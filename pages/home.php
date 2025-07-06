@@ -1,10 +1,12 @@
 <?php
 
 // Archivo: home.php
-// Guardado: 2025-07-05 22:37:58
+// Guardado: 2025-07-05 23:09:13
 // Autor: Andrés Lizcano
 ?>
 <p>¡Deploy automático en acción!</p>
+<h2>¡Deploy automático funcionando! <?php echo date('Y-m-d H:i:s'); ?></h2>
+
 
 <div class='p-5 mb-4 bg-light rounded-3'>
     <div class='container py-5'>
