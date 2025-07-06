@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Upload with rsync
-        uses: burnett01/rsync-deployments@v6
+        uses: burnett01/rsync-deployments@v3
 
         with:
           switches: -avz --delete
