@@ -1,128 +1,187 @@
 <?php
 
 // Archivo: home.php
-// Guardado: 2025-07-05 23:20:32
+// Guardado: 2025-07-05 23:32:16
 // Autor: Andrés Lizcano
 ?>
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-    <meta charset="UTF-8">
-    <title>El Profe Que Aprende</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- DataTables -->
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <!-- SweetAlert2 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <style>
-    html,
-    body {
-        height: 100%;
-        margin: 0;
-        background: #1a2332;
-        color: #fff;
-        font-family: 'Inter', 'Roboto', Arial, sans-serif;
-        overflow-x: hidden;
-    }
+<div id="vanta-bg"></div>
 
-    #vanta-bg {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 0;
-    }
+<div class="container py-5 content-main">
+    <div class="text-center mb-5">
+        <img src="assets/img/logo_profequeaprende.svg" alt="Logo El Profe Que Aprende" style="max-width:100px;"
+            class="mb-3">
+        <h1 class="fw-bold mb-1">El Profe Que Aprende</h1>
+        <p class="fs-5 mb-0 text-info">¡Deploy automático funcionando! <?php echo date('Y-m-d H:i:s'); ?></p>
+    </div>
 
-    .content-main {
-        position: relative;
-        z-index: 1;
-        min-height: 100vh;
-        padding-top: 5rem;
-        padding-bottom: 5rem;
-    }
-
-    .navbar {
-        background: rgba(30, 40, 60, 0.96) !important;
-        z-index: 2;
-    }
-
-    .btn-primary {
-        background: #216af2;
-        border: none;
-    }
-
-    .btn-primary:hover {
-        background: #1848a0;
-    }
-    </style>
-</head>
-
-<body>
-    <div id="vanta-bg"></div>
-    <!-- Navbar simple -->
-    <nav class="navbar navbar-expand-lg navbar-dark shadow">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="?">El Profe Que Aprende</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a href="?" class="nav-link active">Inicio</a></li>
-                    <li class="nav-item"><a href="?page=about" class="nav-link">Quién soy</a></li>
-                    <li class="nav-item"><a href="?page=resources" class="nav-link">Recursos</a></li>
-                    <li class="nav-item"><a href="?page=contact" class="nav-link">Contacto</a></li>
-                </ul>
-            </div>
+    <div class="row g-4 justify-content-center">
+        <!-- Card 1 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="?page=resources" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </div>
+                    <h5 class="card-title">Recursos Offline</h5>
+                    <p class="card-text small">Descarga materiales, guías y recursos.</p>
+                </div>
+            </a>
         </div>
-    </nav>
-
-    <main class="content-main d-flex align-items-center justify-content-center flex-column">
-        <p class="fs-5 mb-0 text-info text-center">¡Deploy automático en acción!</p>
-        <h2 class="fw-bold text-center mb-5">
-            ¡Deploy automático funcionando! <?php echo date('Y-m-d H:i:s'); ?>
-        </h2>
-
-        <div class="p-5 mb-4 bg-light rounded-4 shadow" style="max-width: 700px;">
-            <h1 class="display-5 fw-bold text-dark">Bienvenido a El Profe Que Aprende</h1>
-            <p class="fs-4 text-secondary">Comparte y descarga recursos offline para docentes, descubre proyectos y
-                mucho más.</p>
-            <a class="btn btn-primary btn-lg mt-3" href="?page=resources">Ver Recursos</a>
+        <!-- Card 2 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="?page=maker" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <h5 class="card-title">Proyectos Maker</h5>
+                    <p class="card-text small">Explora proyectos con Arduino, robótica y más.</p>
+                </div>
+            </a>
         </div>
-    </main>
+        <!-- Card 3 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="?page=about" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h5 class="card-title">Quién Soy</h5>
+                    <p class="card-text small">Conoce la historia del Profe Que Aprende.</p>
+                </div>
+            </a>
+        </div>
+        <!-- Card 4 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="?page=contact" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <h5 class="card-title">Contacto</h5>
+                    <p class="card-text small">Escríbeme para colaboraciones o dudas.</p>
+                </div>
+            </a>
+        </div>
+        <!-- Card 5 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="#" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-collection"></i>
+                    </div>
+                    <h5 class="card-title">Secuencias Didácticas</h5>
+                    <p class="card-text small">Accede a propuestas y ejemplos prácticos.</p>
+                </div>
+            </a>
+        </div>
+        <!-- Card 6 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="#" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-music-note-list"></i>
+                    </div>
+                    <h5 class="card-title">Herramientas TIC</h5>
+                    <p class="card-text small">Recursos de tecnología educativa y apps útiles.</p>
+                </div>
+            </a>
+        </div>
+        <!-- Card 7 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="#" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-lightbulb"></i>
+                    </div>
+                    <h5 class="card-title">Ideas para Clase</h5>
+                    <p class="card-text small">Dinámicas, juegos y metodologías activas.</p>
+                </div>
+            </a>
+        </div>
+        <!-- Card 8 -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="#" class="card-access-link">
+                <div class="card custom-card text-center h-100">
+                    <div class="card-icon mb-2">
+                        <i class="bi bi-github"></i>
+                    </div>
+                    <h5 class="card-title">Mi GitHub</h5>
+                    <p class="card-text small">Explora el código y los repositorios abiertos.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
 
-    <!-- Bootstrap JS, DataTables, SweetAlert2, Three.js, VANTA.NET -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <script>
-    // Fondo animado tipo "neuronas/luz"
-    VANTA.NET({
-        el: "#vanta-bg",
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.00,
-        minWidth: 200.00,
-        scale: 1.0,
-        scaleMobile: 1.0,
-        color: 0x3a5cfd, // Azul principal
-        backgroundColor: 0x1a2332, // Fondo azul oscuro
-        points: 12.0,
-        maxDistance: 24.0,
-        spacing: 20.0
-    });
-    </script>
-</body>
+<!-- Estilos personalizados para cards y animaciones -->
+<style>
+.card-access-link {
+    text-decoration: none;
+}
 
-</html>
+.custom-card {
+    background: linear-gradient(135deg, #263a4f 80%, #2c4263 100%);
+    border: none;
+    border-radius: 1.2rem;
+    box-shadow: 0 8px 32px rgba(30, 40, 60, 0.18), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
+    transition: transform 0.15s cubic-bezier(.4, 2, .3, 1), box-shadow 0.15s;
+    cursor: pointer;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    min-height: 220px;
+}
+
+.custom-card:hover,
+.custom-card:focus {
+    transform: translateY(-7px) scale(1.045);
+    box-shadow: 0 16px 48px 0 rgba(33, 106, 242, 0.22), 0 3px 12px rgba(0, 0, 0, 0.11);
+    background: linear-gradient(135deg, #325fbe 70%, #263a4f 100%);
+}
+
+.custom-card .card-icon {
+    font-size: 2.7rem;
+    color: #3a6cf0;
+    margin-top: 1.4rem;
+    transition: color 0.2s;
+}
+
+.custom-card:hover .card-icon {
+    color: #f7b731;
+    filter: drop-shadow(0 0 6px #ffe98a88);
+}
+
+.custom-card .card-title {
+    font-weight: 700;
+    margin-bottom: .2rem;
+}
+
+.custom-card .card-text {
+    color: #d6dbf7;
+    font-size: 1rem;
+}
+</style>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+VANTA.NET({
+    el: "#vanta-bg",
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    scale: 1.0,
+    scaleMobile: 1.0,
+    color: 0x3a5cfd,
+    backgroundColor: 0x1a2332,
+    points: 12.0,
+    maxDistance: 24.0,
+    spacing: 20.0
+});
+</script>
