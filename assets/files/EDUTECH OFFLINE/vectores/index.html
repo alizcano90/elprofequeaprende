@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Vectores Interactivos 🎯</title>
+  <style>
+    body {
+      background: #111;
+      color: #0ff;
+      font-family: sans-serif;
+      margin: 0;
+      text-align: center;
+    }
+    h1 {
+      margin: 10px;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      background: #222;
+    }
+    .tab {
+      padding: 10px 20px;
+      margin: 2px;
+      cursor: pointer;
+      border: 1px solid #0ff;
+      user-select: none;
+    }
+    .tab.active {
+      background: #0ff;
+      color: #111;
+    }
+    .content {
+      display: none;
+      padding: 20px;
+    }
+    .content.active {
+      display: block;
+    }
+    input, button {
+      margin: 5px;
+      padding: 6px;
+      font-size: 16px;
+    }
+    canvas {
+      background: #000;
+      border: 2px solid #0ff;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de Vectores 🧭</h1>
+  <div class="tabs">
+    <div class="tab active" onclick="changeTab(0)">Crear Vector</div>
+    <div class="tab" onclick="changeTab(1)">Suma</div>
+    <div class="tab" onclick="changeTab(2)">Resta</div>
+  </div>
+
+  <!-- Crear -->
+  <div class="content active">
+    <h2>Crear Vector</h2>
+    <input type="number" id="mag" placeholder="Magnitud" />
+    <input type="number" id="ang" placeholder="Ángulo (°)" />
+    <button onclick="crearVector()">Mostrar</button>
+    <button onclick="aleatorioVector()">Aleatorio</button>
+    <canvas id="canvas1" width="400" height="400"></canvas>
+  </div>
+
+  <!-- Suma -->
+  <div class="content">
+    <h2>Suma de Vectores</h2>
+    <input type="number" id="sx1" placeholder="X₁" />
+    <input type="number" id="sy1" placeholder="Y₁" />
+    <input type="number" id="sx2" placeholder="X₂" />
+    <input type="number" id="sy2" placeholder="Y₂" />
+    <button onclick="sumarVectores()">Sumar</button>
+    <button onclick="aleatorioSuma()">Aleatorio</button>
+    <canvas id="canvas2" width="400" height="400"></canvas>
+  </div>
+
+  <!-- Resta -->
+  <div class="content">
+    <h2>Resta de Vectores</h2>
+    <input type="number" id="rx1" placeholder="X₁" />
+    <input type="number" id="ry1" placeholder="Y₁" />
+    <input type="number" id="rx2" placeholder="X₂" />
+    <input type="number" id="ry2" placeholder="Y₂" />
+    <button onclick="restarVectores()">Restar</button>
+    <button onclick="aleatorioResta()">Aleatorio</button>
+    <canvas id="canvas3" width="400" height="400"></canvas>
+  </div>
+
+  <script>
+    const escala = 20; // 1 unidad = 20px
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.content');
+
+    function changeTab(i) {
+      tabs.forEach((t, idx) => t.classList.toggle('active', idx === i));
+      contents.forEach((c, idx) => c.classList.toggle('active', idx === i));
+    }
+
+    function dibujarPlano(ctx) {
+      ctx.clearRect(0,0,400,400);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#0ff';
+      // líneas y unidades
+      for(let i=0;i<=400;i+=escala){
+        // verticales
+        ctx.beginPath();
+        ctx.moveTo(i,0); ctx.lineTo(i,400);
+        ctx.stroke();
+        // numerar eje X
+        const xVal = (i-200)/escala;
+        if(i!==200) ctx.fillText(xVal, i+2, 198);
+        // horizontales
+        ctx.beginPath();
+        ctx.moveTo(0,i); ctx.lineTo(400,i);
+        ctx.stroke();
+        // numerar eje Y
+        const yVal = (200-i)/escala;
+        if(i!==200) ctx.fillText(yVal, 202, i-2);
+      }
+      // ejes
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(200,0); ctx.lineTo(200,400);
+      ctx.moveTo(0,200); ctx.lineTo(400,200);
+      ctx.stroke();
+    }
+
+    function animarFlecha(ctx, x, y, color, delay=0) {
+      setTimeout(() => {
+        dibujarPlano(ctx);
+        const steps = 60;
+        let i = 0;
+        const dx = x/steps, dy = y/steps;
+        function paso(){
+          if(i>steps) return;
+          const ex = 200 + dx*i, ey = 200 - dy*i;
+          // cuerpo
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(200,200);
+          ctx.lineTo(ex,ey);
+          ctx.stroke();
+          // punta SOLO en el último frame
+          if(i===steps){
+            const ang = Math.atan2(-y, x);
+            const size = 8;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(ex,ey);
+            ctx.lineTo(ex - size*Math.cos(ang-0.3),
+                       ey + size*Math.sin(ang-0.3));
+            ctx.lineTo(ex - size*Math.cos(ang+0.3),
+                       ey + size*Math.sin(ang+0.3));
+            ctx.closePath();
+            ctx.fill();
+          }
+          i++;
+          requestAnimationFrame(paso);
+        }
+        paso();
+      }, delay);
+    }
+
+    // --- Crear ---
+    function crearVector(){
+      const mag = +document.getElementById('mag').value;
+      const ang = +document.getElementById('ang').value * Math.PI/180;
+      const x = mag*Math.cos(ang)*escala;
+      const y = mag*Math.sin(ang)*escala;
+      const ctx = document.getElementById('canvas1').getContext('2d');
+      animarFlecha(ctx, x, y, '#0f0');
+    }
+    function aleatorioVector(){
+      document.getElementById('mag').value = Math.floor(Math.random()*8+1);
+      document.getElementById('ang').value = Math.floor(Math.random()*360);
+      crearVector();
+    }
+
+    // --- Sumar ---
+    function sumarVectores(){
+      const x1=+document.getElementById('sx1').value*escala;
+      const y1=+document.getElementById('sy1').value*escala;
+      const x2=+document.getElementById('sx2').value*escala;
+      const y2=+document.getElementById('sy2').value*escala;
+      const ctx=document.getElementById('canvas2').getContext('2d');
+      animarFlecha(ctx, x1, y1, '#f00', 0);
+      animarFlecha(ctx, x2, y2, '#0ff', 700);
+      animarFlecha(ctx, x1+x2, y1+y2, '#ff0', 1400);
+    }
+    function aleatorioSuma(){
+      document.getElementById('sx1').value = Math.floor(Math.random()*8-4);
+      document.getElementById('sy1').value = Math.floor(Math.random()*8-4);
+      document.getElementById('sx2').value = Math.floor(Math.random()*8-4);
+      document.getElementById('sy2').value = Math.floor(Math.random()*8-4);
+      sumarVectores();
+    }
+
+    // --- Restar ---
+    function restarVectores(){
+      const x1=+document.getElementById('rx1').value*escala;
+      const y1=+document.getElementById('ry1').value*escala;
+      const x2=+document.getElementById('rx2').value*escala;
+      const y2=+document.getElementById('ry2').value*escala;
+      const ctx=document.getElementById('canvas3').getContext('2d');
+      animarFlecha(ctx, x1, y1, '#0f0', 0);
+      animarFlecha(ctx, x2, y2, '#f0f', 700);
+      animarFlecha(ctx, x1-x2, y1-y2, '#fff', 1400);
+    }
+    function aleatorioResta(){
+      document.getElementById('rx1').value = Math.floor(Math.random()*8-4);
+      document.getElementById('ry1').value = Math.floor(Math.random()*8-4);
+      document.getElementById('rx2').value = Math.floor(Math.random()*8-4);
+      document.getElementById('ry2').value = Math.floor(Math.random()*8-4);
+      restarVectores();
+    }
+
+    // Inicializa los planos
+    window.onload = () => {
+      ['canvas1','canvas2','canvas3'].forEach(id => {
+        const ctx = document.getElementById(id).getContext('2d');
+        dibujarPlano(ctx);
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>QuizCam Offline</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #fdf6e3; color: #333; }
+    #pregunta { font-size: 2em; margin: 20px auto; max-width: 80%; background: #fff3cd; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    #video { width: 320px; border: 3px solid #28a745; margin-top: 15px; border-radius: 10px; transform: rotate(0deg); }
+    #resultado { font-size: 1.5em; margin-top: 20px; color: #007b00; }
+    button { padding: 10px 20px; font-size: 1em; margin: 10px; border-radius: 5px; border: none; cursor: pointer; }
+    #siguienteBtn { background: #007bff; color: white; }
+    #capturarBtn { background: #28a745; color: white; }
+    #selectorHoja { position: absolute; top: 20px; right: 20px; background: #ffc107; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<div id="selectorHoja">
+  <a href="generar_hojas.html" target="_blank">🖨️ Generar Hojas de Respuesta</a>
+</div>
+
+<h1>QuizCam Offline</h1>
+<div id="pregunta">¿Cuál es la capital de Colombia?</div>
+<div id="opciones">
+  <strong>A:</strong> Bogotá &nbsp;&nbsp;&nbsp;&nbsp;
+  <strong>B:</strong> Medellín &nbsp;&nbsp;&nbsp;&nbsp;
+  <strong>C:</strong> Cali &nbsp;&nbsp;&nbsp;&nbsp;
+  <strong>D:</strong> Barranquilla
+</div>
+<video id="video" autoplay></video>
+<br>
+<button id="capturarBtn" onclick="detectarRespuesta()">📷 Capturar Respuesta</button>
+<button id="siguienteBtn" onclick="siguientePregunta()">⏭️ Siguiente Pregunta</button>
+<div id="resultado"></div>
+
+<script>
+  const video = document.getElementById('video');
+  const resultado = document.getElementById('resultado');
+  const pregunta = document.getElementById('pregunta');
+  const opciones = document.getElementById('opciones');
+
+  const preguntas = [
+    {
+      texto: '¿Cuál es la capital de Colombia?',
+      opciones: ['Bogotá', 'Medellín', 'Cali', 'Barranquilla'],
+      correcta: 'A'
+    },
+    {
+      texto: '¿Qué animal es conocido como el rey de la selva?',
+      opciones: ['Elefante', 'León', 'Tigre', 'Jirafa'],
+      correcta: 'B'
+    },
+    {
+      texto: '¿Cuántos continentes hay en el mundo?',
+      opciones: ['5', '6', '7', '8'],
+      correcta: 'C'
+    }
+  ];
+
+  let indiceActual = 0;
+
+  function mostrarPregunta() {
+    const actual = preguntas[indiceActual];
+    pregunta.innerText = actual.texto;
+    opciones.innerHTML = `<strong>A:</strong> ${actual.opciones[0]} &nbsp;&nbsp;&nbsp;&nbsp;
+                          <strong>B:</strong> ${actual.opciones[1]} &nbsp;&nbsp;&nbsp;&nbsp;
+                          <strong>C:</strong> ${actual.opciones[2]} &nbsp;&nbsp;&nbsp;&nbsp;
+                          <strong>D:</strong> ${actual.opciones[3]}`;
+    resultado.innerText = '';
+  }
+
+  function siguientePregunta() {
+    indiceActual = (indiceActual + 1) % preguntas.length;
+    mostrarPregunta();
+  }
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(error => {
+      alert('No se pudo acceder a la cámara');
+    });
+
+  function detectarRespuesta() {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const { width, height } = canvas;
+
+    // Creamos 4 regiones para orientación (esquinas)
+    const regiones = {
+      A: ctx.getImageData(0, 0, width / 2, height / 2), // superior izquierda
+      B: ctx.getImageData(width / 2, 0, width / 2, height / 2), // superior derecha
+      C: ctx.getImageData(0, height / 2, width / 2, height / 2), // inferior izquierda
+      D: ctx.getImageData(width / 2, height / 2, width / 2, height / 2), // inferior derecha
+    };
+
+    const detectarNegros = (region) => {
+      const data = region.data;
+      let negros = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const prom = (r + g + b) / 3;
+        if (prom < 80) negros++;
+      }
+      return negros;
+    };
+
+    const conteo = {
+      A: detectarNegros(regiones.A),
+      B: detectarNegros(regiones.B),
+      C: detectarNegros(regiones.C),
+      D: detectarNegros(regiones.D)
+    };
+
+    const respuestaDetectada = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0][0];
+    resultado.innerText = `Respuesta detectada: ${respuestaDetectada}`;
+  }
+
+  mostrarPregunta();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dado 3‑D Neón</title>
+<style>
+    /* ===== Configuración general ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body{
+        min-height:100vh;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        background:#000;                 /* fondo negro */
+        font-family:Arial, Helvetica, sans-serif;
+        color:#0ff;
+        user-select:none;
+        overflow:hidden;
+    }
+    h1{ margin-bottom:1rem; text-shadow:0 0 10px #0ff; }
+
+    /* ===== Escena y cubo ===== */
+    #scene{
+        perspective: 800px;
+        width:220px; height:220px;
+    }
+    #cube{
+        width:100%; height:100%;
+        position:relative;
+        transform-style:preserve-3d;
+        transition:transform 1s cubic-bezier(.23,1.2,.32,1);  /* giro suave */
+    }
+
+    .face{
+        position:absolute;
+        width:200px; height:200px;
+        left:10px; top:10px;           /* centrar dentro de #cube */
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        font-size:4rem;
+        font-weight:bold;
+        /* efecto neón */
+        color:#0ff;
+        border:4px solid #f0f;
+        border-radius:20px;
+        background:#000;
+        text-shadow:
+            0 0 6px #0ff,
+            0 0 12px #0ff,
+            0 0 18px #0ff;
+        box-shadow:0 0 15px 2px #0ff inset, 0 0 20px 2px #f0f;
+    }
+
+    /* Posición de cada cara (sentido de las agujas del reloj) */
+    .front { transform:rotateY(   0deg) translateZ(100px); }
+    .back  { transform:rotateY( 180deg) translateZ(100px); }
+    .right { transform:rotateY( -90deg) translateZ(100px); }
+    .left  { transform:rotateY(  90deg) translateZ(100px); }
+    .top   { transform:rotateX( -90deg) translateZ(100px); }
+    .bottom{ transform:rotateX(  90deg) translateZ(100px); }
+
+    /* Botón opcional */
+    button{
+        margin-top:1.5rem;
+        padding:.6rem 1.2rem;
+        font-size:1rem;
+        font-weight:600;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        background:#f0f;
+        color:#000;
+        box-shadow:0 0 15px #f0f;
+        transition:transform .2s;
+    }
+    button:active{ transform:scale(.95); }
+</style>
+</head>
+<body>
+    <h1>Lanza el dado 🎲</h1>
+
+    <div id="scene">
+        <div id="cube">
+            <div class="face front">1</div>
+            <div class="face back">6</div>
+            <div class="face right">2</div>
+            <div class="face left">5</div>
+            <div class="face top">3</div>
+            <div class="face bottom">4</div>
+        </div>
+    </div>
+
+    <button id="rollBtn">Escoge tu destino!</button>
+
+<script>
+(() => {
+    const cube   = document.getElementById('cube');
+    const button = document.getElementById('rollBtn');
+
+    /* Orientaciones básicas para que cada número quede al frente */
+    const orientations = {
+        1: {x:   0, y:   0},
+        2: {x:   0, y: -90},
+        3: {x:  -90, y:   0},
+        4: {x:   90, y:   0},
+        5: {x:   0, y:  90},
+        6: {x:   0, y: 180}
+    };
+
+    function roll() {
+        const value = Math.floor(Math.random()*6)+1;      // 1 ‑ 6
+        /* Añadimos vueltas completas extra para un giro vistoso */
+        const extraX = 360 * (Math.floor(Math.random()*4)+1);
+        const extraY = 360 * (Math.floor(Math.random()*4)+1);
+        cube.style.transitionDuration = '3s';      // ¡más tiempo de giro!
+
+        const {x, y} = orientations[value];
+        cube.style.transform =
+            `rotateX(${x + extraX}deg) rotateY(${y + extraY}deg)`;
+    }
+
+    /* Eventos */
+    button.addEventListener('click', roll);
+    cube  .addEventListener('click', roll);
+    window.addEventListener('keydown', e=>{
+        if(e.code === 'Space') roll();
+    });
+})();
+</script>
+</body>
+</html>

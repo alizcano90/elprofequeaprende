@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Ruleta de Estudiantes</title>
+    <style>
+        /* ---------- Estilos generales ---------- */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin: 20px 0;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+        }
+
+        .left,
+        .right {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* ---------- Puntero ---------- */
+        .pointer {
+            width: 0;
+            height: 0;
+            z-index: 10;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 30px solid red;
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 30px #0ff;
+            background: radial-gradient(#111, #000);
+        }
+
+        .right textarea {
+            width: 100%;
+            height: 70%;
+            font-size: 18px;
+            padding: 10px;
+            background: #222;
+            color: #0ff;
+            border: 2px solid #0ff;
+            border-radius: 8px;
+        }
+
+        .right button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 18px;
+            background: #111;
+            color: #0ff;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+            cursor: pointer;
+        }
+
+        /* ---------- Modal ---------- */
+        .modal {
+            display: flex;
+            /* flex para centrar */
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .8);
+            justify-content: center;
+            /* horizontal */
+            align-items: center;
+            /* vertical */
+            z-index: 999;
+        }
+
+        .modal-content {
+            background: #111;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            width: 90%;
+            max-width: 320px;
+            /* ancho máximo */
+            height: 300px;
+            /* altura fija solicitada */
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 25px #0ff;
+            text-align: center;
+
+            display: flex;
+            /* centrar texto y botón dentro */
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .modal-content h2 {
+            margin: 0 0 10px;
+        }
+
+        .modal-content button {
+            margin-top: 12px;
+            padding: 8px 18px;
+            font-size: 16px;
+            background: #111;
+            color: #0ff;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #0ff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎯 Ruleta Aleatoria de Estudiantes</h1>
+
+    <div class="container">
+        <div class="left">
+            <div class="pointer"></div>
+            <canvas id="ruleta" width="500" height="500"></canvas>
+        </div>
+
+        <div class="right">
+            <textarea id="inputEstudiantes" onkeydown="manejarTeclas(event)"
+                placeholder="Escribe un estudiante por línea. Agrega * al final para ocultarlo."></textarea>
+            <button onclick="girarRuleta()">🎲 Girar</button>
+            <button onclick="reiniciarRuleta()">🔄 Reiniciar</button>
+        </div>
+    </div>
+
+    <!-- Modal ganador -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2>Seleccionado:</h2>
+            <p id="resultado"></p>
+            <button onclick="cerrarModal(true)">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Sonido de clic muy corto (opcional) -->
+    <audio id="clickSound">
+        <source
+            src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAABCxAgAEABAAZGF0YYQAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA=="
+            type="audio/wav">
+    </audio>
+
+    <script>
+        /* ---------- Variables ---------- */
+        const canvas = document.getElementById('ruleta');
+        const ctx = canvas.getContext('2d');
+        const R = canvas.width / 2;
+
+        let estudiantes = [];
+        let coloresPorNombre = {};
+        let anguloActual = 0;
+        let animacion;
+        let ultimoGanador = '';
+        const sonido = document.getElementById('clickSound');
+
+        /* ---------- Utilidades ---------- */
+        const colores = ['#0ff', '#f0f', '#ff0', '#0f0', '#f80', '#08f'];
+        const randomColor = () => colores[Math.floor(Math.random() * colores.length)];
+        const activos = () => estudiantes.filter(n => !n.endsWith('*'));
+
+        /* ---------- Entrada teclado ---------- */
+        function manejarTeclas(e) {
+            const ta = e.target;
+            if (e.key === 'Enter') { setTimeout(actualizarEstudiantes, 10); return; }
+
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                // línea actual
+                const lines = ta.value.split('\n');
+                let pos = 0, idx = 0;
+                for (let i = 0; i < lines.length; i++) { pos += lines[i].length + 1; if (ta.selectionStart < pos) { idx = i; break; } }
+                if (lines[idx]) {
+                    lines[idx] = lines[idx].endsWith('*') ? lines[idx].slice(0, -1) : lines[idx] + '*';
+                    ta.value = lines.join('\n');
+                    actualizarEstudiantes();
+                }
+                e.preventDefault();
+            }
+        }
+
+        /* ---------- Actualizar lista y dibujar ---------- */
+        function actualizarEstudiantes() {
+            const texto = document.getElementById('inputEstudiantes').value.trim();
+            estudiantes = texto.split('\n').map(s => s.trim()).filter(Boolean);
+            estudiantes.forEach(n => { if (!coloresPorNombre[n]) coloresPorNombre[n] = randomColor(); });
+            dibujarRuleta();
+        }
+
+        function dibujarRuleta() {
+            const lista = activos();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!lista.length) return;
+            const ang = 2 * Math.PI / lista.length;
+
+            lista.forEach((nombre, i) => {
+                const ini = ang * i + anguloActual;
+                const fin = ini + ang;
+                ctx.beginPath(); ctx.moveTo(R, R); ctx.arc(R, R, R, ini, fin); ctx.closePath();
+                ctx.fillStyle = coloresPorNombre[nombre]; ctx.fill();
+
+                ctx.save();
+                ctx.translate(R, R); ctx.rotate(ini + ang / 2);
+                ctx.fillStyle = '#000'; ctx.font = 'bold 18px Arial';
+                ctx.fillText(nombre.replace('*', ''), 50, 5);
+                ctx.restore();
+            });
+        }
+
+        /* ---------- Girar ---------- */
+        function girarRuleta() {
+            if (!activos().length) { alert('Agrega estudiantes visibles'); return; }
+            let vel = Math.random() * 0.5 + 0.5;
+            function spin() {
+                anguloActual += vel; vel *= 0.985; sonido.play();
+                if (vel < 0.002) { cancelAnimationFrame(animacion); seleccionarGanador(); }
+                else { dibujarRuleta(); animacion = requestAnimationFrame(spin); }
+            }
+            spin();
+        }
+
+        /* ---------- Ganador ---------- */
+        function seleccionarGanador() {
+            const lista = activos();
+            const ang = 2 * Math.PI / lista.length;
+            const rel = ((Math.PI * 1.5 - anguloActual) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            const idx = Math.floor(rel / ang) % lista.length;
+
+            anguloActual = Math.PI * 1.5 - idx * ang;  // alinear arriba
+            dibujarRuleta();
+
+            ultimoGanador = lista[idx];
+            document.getElementById('resultado').textContent = ultimoGanador.replace('*', '');
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        /* ---------- Cerrar modal ---------- */
+        function cerrarModal(marcar = true) {
+            if (marcar && ultimoGanador) {
+                const ta = document.getElementById('inputEstudiantes');
+                const lines = ta.value.split('\n').map(l => {
+                    return l.replace('*', '') === ultimoGanador.replace('*', '')
+                        ? (l.endsWith('*') ? l : l + '*') : l;
+                });
+                ta.value = lines.join('\n');
+                actualizarEstudiantes();
+            }
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        /* ---------- Reiniciar ---------- */
+        function reiniciarRuleta() {
+            anguloActual = 0;
+            const ta = document.getElementById('inputEstudiantes');
+            ta.value = ta.value.split('\n').map(l => l.replace('*', '').trim()).filter(Boolean).join('\n');
+            actualizarEstudiantes();
+        }
+
+        /* ---------- Clic derecho para ocultar ---------- */
+        document.getElementById('inputEstudiantes').addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const ta = e.target, lines = ta.value.split('\n');
+            let acc = 0, idx = 0;
+            for (let i = 0; i < lines.length; i++) { acc += lines[i].length + 1; if (ta.selectionStart < acc) { idx = i; break; } }
+            if (lines[idx]) lines[idx] = lines[idx].endsWith('*') ? lines[idx].slice(0, -1) : lines[idx] + '*';
+            ta.value = lines.join('\n'); actualizarEstudiantes();
+        });
+    </script>
+</body>
+
+</html>

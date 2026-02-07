@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pista‑Emoji Mega Suspenso</title>
+<style>
+    /* ----------- Estilo general ------------ */
+    body{margin:0;background:#111;color:#0ff;text-align:center;
+         font-family:system-ui,sans-serif;}
+    h1{margin:20px 0 10px;}
+    textarea{width:90%;max-width:500px;height:80px;
+             background:#000;border:2px solid #0ff;color:#0ff;
+             padding:8px;border-radius:6px;resize:none;}
+    button{margin:10px 6px;padding:10px 22px;font-size:16px;font-weight:bold;
+           background:#0ff;color:#000;border:none;border-radius:6px;
+           cursor:pointer;box-shadow:0 0 12px #0ff;transition:.2s;}
+    button:hover{transform:scale(1.05);}
+    #winnerBox{margin:18px 0;font-size:24px;font-weight:bold;}
+
+    /* ----------- Pista y corredores --------- */
+    #raceWrapper{width:95%;margin:20px auto 40px;}  /* 95 % de la página */
+    #raceArea{width:100%;}                          /* ocupa todo el wrapper */
+    .lane{position:relative;height:90px;margin:14px 0;
+          background:linear-gradient(#2b2b2b 0%,#1a1a1a 50%,#2b2b2b 100%);
+          border-radius:45px;overflow:hidden;}
+    .lane::after{content:'🏁';position:absolute;right:15px;top:50%;
+                 transform:translateY(-50%);font-size:32px;}
+    .runner{--clr:#0ff;position:absolute;left:0;top:50%;
+            width:80px;height:80px;transform:translateY(-50%);
+            border-radius:50%;background:var(--clr);
+            display:flex;flex-direction:column;align-items:center;
+            justify-content:center;gap:3px;
+            color:#000;font-size:13px;font-weight:bold;
+            box-shadow:0 0 15px var(--clr);user-select:none;}
+    .runner .emoji{font-size:30px;line-height:1;}
+    .winner{box-shadow:0 0 25px 6px gold;background:gold;color:#000;}
+</style>
+</head>
+<body>
+<h1>🎳 Pista de Emoji‑Corredores</h1>
+
+<p>Nombres separados por comas → “Crear pista” → “¡Girar!”</p>
+<textarea id="nameInput" placeholder="Ej: Ana, Beto, Carlos"></textarea><br>
+<button id="buildBtn">Crear pista</button>
+<button id="raceBtn"  disabled>¡Girar!</button>
+
+<div id="raceWrapper"><div id="raceArea"></div></div>
+<div id="winnerBox"></div>
+
+<script>
+/* ----------- Configuración -------------- */
+const MIN_SPEED = 0.4, MAX_SPEED = 3.2, CHANGE_CH = 0.02;
+const EMOJIS=['🐢','🐇','🦊','🐱','🐶','🐼','🐸','🐰','🐹','🐻',
+              '🦄','🐝','🦋','🐌','🐯','🦁','🐮','🐴'];
+
+const $ = s=>document.querySelector(s);
+const nameInput=$('#nameInput'), buildBtn=$('#buildBtn'), raceBtn=$('#raceBtn');
+const raceArea=$('#raceArea'), winnerBox=$('#winnerBox');
+
+let runners=[], racing=false;
+
+/* ----------- Construir pista ------------ */
+function buildRace(){
+    const names=nameInput.value.trim().split(',').map(n=>n.trim()).filter(Boolean);
+    if(!names.length){alert('👀 ¡Escribe al menos un nombre!');return;}
+    raceArea.innerHTML=''; winnerBox.textContent=''; runners=[];
+    names.forEach(n=>{
+        const lane=document.createElement('div'); lane.className='lane';
+        const run=document.createElement('div'); run.className='runner';
+        const emoji=document.createElement('span'); emoji.className='emoji';
+        emoji.textContent=EMOJIS[Math.random()*EMOJIS.length|0];
+        const label=document.createElement('span'); label.textContent=n;
+        run.append(emoji,label); lane.appendChild(run); raceArea.appendChild(lane);
+        run.style.setProperty('--clr',`hsl(${Math.random()*360}deg,100%,50%)`);
+        runners.push({node:run,pos:0,
+                      speed:MIN_SPEED+Math.random()*(MAX_SPEED-MIN_SPEED)});
+    });
+    raceBtn.disabled=false;
+}
+
+/* ------------- Carrera ------------------ */
+function startRace(){
+    if(racing||!runners.length)return;
+    racing=true; winnerBox.textContent='';
+    const meta = raceArea.clientWidth - 100;     // 95 % de página – bola
+
+    function step(){
+        let winner=null;
+        runners.forEach(r=>{
+            if(Math.random()<CHANGE_CH){
+                r.speed=MIN_SPEED+Math.random()*(MAX_SPEED-MIN_SPEED);
+                r.node.animate([{filter:'brightness(180%)'},
+                                 {filter:'brightness(100%)'}],
+                                {duration:250});
+            }
+            r.pos+=r.speed;
+            r.node.style.transform=`translate(${r.pos}px,-50%) rotate(${r.pos*3}deg)`;
+            if(!winner && r.pos>=meta) winner=r;
+        });
+
+        if(winner){
+            winner.node.classList.add('winner');
+            winnerBox.textContent='🏆 Ganador: '+winner.node.lastChild.textContent;
+            winner.node.animate([{transform:`translate(${winner.pos}px,-50%) scale(1.25)`},
+                                  {transform:`translate(${winner.pos}px,-50%)`}],
+                                 {duration:600,iterations:4});
+            racing=false;
+        }else requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+/* ------------ Eventos ------------------- */
+buildBtn.addEventListener('click',buildRace);
+raceBtn .addEventListener('click',startRace);
+</script>
+</body>
+</html>

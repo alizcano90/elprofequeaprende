@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Moneda Neón – Mensaje doble</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+        min-height:100vh;display:flex;flex-direction:column;
+        justify-content:center;align-items:center;
+        background:#000;font-family:Arial,Helvetica,sans-serif;
+        color:#0ff;user-select:none;overflow:hidden;
+    }
+    h1{margin-bottom:1rem;text-shadow:0 0 10px #0ff}
+
+    /* ===== escena & moneda grande ===== */
+    #scene{perspective:900px;width:320px;height:320px}
+    #coin{
+        width:100%;height:100%;position:relative;
+        transform-style:preserve-3d;
+        transition:transform 1s cubic-bezier(.23,1.2,.32,1);
+    }
+    .side{
+        position:absolute;width:300px;height:300px;left:10px;top:10px;
+        border-radius:50%;display:flex;flex-direction:column;
+        justify-content:center;align-items:center;text-align:center;
+        font-size:2.2rem;font-weight:700;line-height:1.15;
+        color:#ff0;background:#000;border:4px solid #0ff;
+        box-shadow:0 0 18px #0ff inset,0 0 30px #ff0;
+        text-shadow:0 0 7px #ff0,0 0 15px #ff0;
+        padding:0 18px;
+    }
+    .front{transform:rotateY(  0deg) translateZ(6px);}   /* El Profe / Que Aprende */
+    .back {transform:rotateY(180deg) translateZ(6px);}   /* Educación / Innovadora */
+
+    button{
+        margin-top:1.5rem;padding:.6rem 1.5rem;font-size:1.05rem;font-weight:600;
+        border:none;border-radius:8px;background:#0ff;color:#000;
+        cursor:pointer;box-shadow:0 0 15px #0ff;transition:transform .2s;
+    }
+    button:active{transform:scale(.95);}
+</style>
+</head>
+<body>
+<h1>¡Lanza la moneda! 🪙</h1>
+
+<div id="scene">
+    <div id="coin">
+        <div class="side front">
+            El&nbsp;Profe<br>Que&nbsp;Aprende
+        </div>
+        <div class="side back">
+            Educación<br>Innovadora
+        </div>
+    </div>
+</div>
+
+<button id="flipBtn">Gira tu destino!</button>
+
+<script>
+(() =>{
+    const coin = document.getElementById('coin');
+    const btn  = document.getElementById('flipBtn');
+
+    /* 0° -> front | 180° -> back */
+    const angles = { front:0, back:180 };
+
+    function flip(){
+        const target = Math.random() < .5 ? 'front' : 'back';
+        const extra  = 360 * (Math.floor(Math.random()*6)+3); // 3‑8 giros
+        coin.style.transitionDuration = '2.5s';
+        coin.style.transform = `rotateY(${angles[target] + extra}deg)`;
+    }
+
+    coin.addEventListener('click', flip);
+    btn .addEventListener('click', flip);
+    window.addEventListener('keydown', e => { if(e.code==='Space') flip(); });
+
+    coin.addEventListener('transitionend', ()=> coin.style.transitionDuration='1s');
+})();
+</script>
+</body>
+</html>

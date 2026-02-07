@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Detección de Respuesta - Cámara</title>
+  <style>
+    body { margin: 0; padding: 0; font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
+    #resultado { font-size: 2em; margin: 20px; color: #333; }
+    video { width: 80%; max-width: 480px; border: 2px solid #444; border-radius: 8px; }
+    canvas { display: none; }
+  </style>
+</head>
+<body>
+  <h1 id="resultado">Respuesta: -</h1>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultado = document.getElementById('resultado');
+
+    // Acceso a la cámara
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        setInterval(detectarOrientacion, 500);
+      });
+    }).catch(err => {
+      resultado.innerText = 'Error accediendo a la cámara';
+      console.error(err);
+    });
+
+    function detectarOrientacion() {
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      const w = canvas.width;
+      const h = canvas.height;
+      const regions = {
+        A: ctx.getImageData(0, 0, w/2, h/2),
+        B: ctx.getImageData(w/2, 0, w/2, h/2),
+        C: ctx.getImageData(0, h/2, w/2, h/2),
+        D: ctx.getImageData(w/2, h/2, w/2, h/2)
+      };
+      const counts = {};
+      for (let key in regions) {
+        const data = regions[key].data;
+        let dark = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+          if (avg < 80) dark++;
+        }
+        counts[key] = dark;
+      }
+      // Buscar máxima
+      const detected = Object.entries(counts).sort((a,b) => b[1] - a[1])[0][0];
+      resultado.innerText = 'Respuesta: ' + detected;
+    }
+  </script>
+</body>
+</html>

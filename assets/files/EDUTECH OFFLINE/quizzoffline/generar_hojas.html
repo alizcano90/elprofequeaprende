@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Tarjetas Plickers Offline</title>
+  <style>
+    body { margin: 0; padding: 0; font-family: sans-serif; }
+    .pagina {
+      width: 210mm; height: 297mm;
+      page-break-after: always;
+      display: flex; align-items: center; justify-content: center;
+      background: white; box-sizing: border-box;
+    }
+    .tarjeta {
+      width: 180mm; height: 180mm;
+      border: 1px solid #000;
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      grid-template-rows: repeat(20, 1fr);
+      position: relative;
+      box-shadow: 0 0 0 1px #000;
+    }
+    .cell { width: 100%; height: 100%; background: white; }
+    .cell.black { background: black; }
+    .cell.orient { outline: 1px dashed red; }
+    .orient-letter {
+      position: absolute;
+      font-size: 20pt;
+      font-weight: bold;
+      color: rgba(0,0,0,0.3);
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+<script>
+  const totalEstudiantes = 20;
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function crearTarjeta(id) {
+    const pagina = document.createElement('div'); pagina.className = 'pagina';
+    const tar = document.createElement('div'); tar.className = 'tarjeta';
+    const cells = [];
+    for (let i = 0; i < 400; i++) {
+      const div = document.createElement('div'); div.className = 'cell';
+      tar.appendChild(div);
+      cells.push(div);
+    }
+    // Configuración de orientación con aleatoriedad controlada
+    const orientConfig = {
+      A: { count: 2, rowRange: [0, 2], colRange: [5, 14] },
+      B: { count: 4, rowRange: [5, 14], colRange: [17, 19] },
+      C: { count: 6, rowRange: [17, 19], colRange: [5, 14] },
+      D: { count: 8, rowRange: [5, 14], colRange: [0, 2] }
+    };
+    // Añadir bloques de orientación y letras guía
+    for (const [key, {count, rowRange, colRange}] of Object.entries(orientConfig)) {
+      const positions = [];
+      for (let r = rowRange[0]; r <= rowRange[1]; r++) {
+        for (let c = colRange[0]; c <= colRange[1]; c++) {
+          positions.push(r * 20 + c);
+        }
+      }
+      shuffle(positions);
+      // Módulos negros aleatorios
+      positions.slice(0, count).forEach(idx => {
+        cells[idx].classList.add('black', 'orient');
+      });
+      // Colocar letra en posición central del rango
+      const midRow = Math.floor((rowRange[0] + rowRange[1]) / 2);
+      const midCol = Math.floor((colRange[0] + colRange[1]) / 2);
+      const letter = document.createElement('div');
+      letter.className = 'orient-letter';
+      letter.innerText = key;
+      // Calcular posición absoluta
+      letter.style.left = `calc(${(midCol + 0.5) * 5}% - 10pt)`;
+      letter.style.top = `calc(${(midRow + 0.5) * 5}% - 10pt)`;
+      tar.appendChild(letter);
+    }
+    // ID: centro 5x5
+    const center = [];
+    for (let r = 7; r <= 11; r++) for (let c = 7; c <= 11; c++) center.push(r * 20 + c);
+    shuffle(center);
+    for (let i = 0; i < id; i++) cells[center[i]].classList.add('black');
+    pagina.appendChild(tar);
+    document.body.appendChild(pagina);
+  }
+
+  for (let id = 1; id <= totalEstudiantes; id++) crearTarjeta(id);
+</script>
+</body>
+</html>
