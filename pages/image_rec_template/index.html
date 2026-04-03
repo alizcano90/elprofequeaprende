@@ -1,0 +1,1214 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarjetas de Respuesta + Camara (Offline)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #161f39;
+      --panel-2: #1f2b4d;
+      --line: #33456f;
+      --txt: #eef3ff;
+      --muted: #b8c6e8;
+      --accent: #54b3ff;
+      --accent2: #57e2c3;
+      --ok: #9cf1c0;
+      --warn: #ffdba2;
+      --err: #ffb5b5;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      background: radial-gradient(circle at top right, #1a2d5f, var(--bg) 45%);
+      color: var(--txt);
+    }
+
+    .app {
+      width: min(1280px, calc(100% - 1.2rem));
+      margin: 0.8rem auto 1.3rem;
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), #131c32);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.8rem); }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .sub { margin: 0.4rem 0 0; color: var(--muted); }
+
+    .badge {
+      border: 1px solid #4c8dca;
+      background: #21456d;
+      color: #d7ebff;
+      border-radius: 999px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: 1.35fr 1fr;
+    }
+
+    .controls { padding: 1rem; display: grid; gap: 0.8rem; }
+    .controls-grid {
+      display: grid;
+      gap: 0.6rem;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .field { display: grid; gap: 0.35rem; }
+    .field label { font-size: 0.82rem; color: #d6e5ff; font-weight: 650; }
+    .field input, .field select {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-2);
+      color: var(--txt);
+      padding: 0 0.6rem;
+    }
+
+    .field.span-2 { grid-column: span 2; }
+
+    .btns { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+    button {
+      border: 0;
+      min-height: 43px;
+      border-radius: 11px;
+      padding: 0.6rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: linear-gradient(120deg, var(--accent), var(--accent2)); color: #062036; }
+    .btn-soft { background: #2c3a62; color: var(--txt); border: 1px solid #4f608e; }
+
+    .status {
+      border-radius: 10px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .info { background: #24395f; border-color: #41689f; color: #cde8ff; }
+    .success { background: #244838; border-color: #418868; color: var(--ok); }
+    .warning { background: #4f3f24; border-color: #9c7c47; color: var(--warn); }
+    .error { background: #582d2d; border-color: #965959; color: var(--err); }
+
+    .help { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+    .preview { background: #f7f8fc; border: 1px solid #d7deed; border-radius: var(--radius); padding: 0.9rem; }
+    .preview h2 { color: #1f2d4e; }
+
+    .sheet { display: grid; gap: 0.75rem; }
+    .layout-1 .page { grid-template-columns: 1fr; }
+    .layout-2 .page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .layout-4 .page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .page {
+      background: #fff;
+      border: 1px solid #d7deed;
+      border-radius: 7px;
+      padding: 0.6rem;
+      display: grid;
+      gap: 0.65rem;
+      justify-content: center;
+      align-content: start;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .resp-card {
+      background: #fff;
+      color: #000;
+      border: 3px solid #000;
+      position: relative;
+      margin: 0 auto;
+      padding: 0.8rem;
+      display: grid;
+      place-items: center;
+      aspect-ratio: 70/98;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .size-large .resp-card { width: min(100%, 17.5cm); }
+    .size-medium .resp-card { width: min(100%, 12.5cm); }
+
+    .id-tag { position: absolute; top: 8px; left: 10px; font-size: clamp(0.95rem, 2vw, 1.4rem); font-weight: 900; letter-spacing: 0.04em; }
+    .mark { position: absolute; font-weight: 900; font-size: clamp(1.15rem, 2.2vw, 1.8rem); }
+    .top { top: 8px; left: 50%; transform: translateX(-50%); }
+    .right { right: 10px; top: 50%; transform: translateY(-50%); }
+    .bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+    .left { left: 10px; top: 50%; transform: translateY(-50%); }
+
+    .pattern { width: min(78%, 88mm); aspect-ratio: 1; border: 3px solid #000; display: grid; background: #fff; }
+    .pattern-grid { display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); width: 100%; height: 100%; }
+    .cell { border: 0; }
+    .b { background: #000; }
+    .w { background: #fff; }
+
+    .legend { position: absolute; bottom: 10px; right: 12px; font-size: 0.78rem; font-weight: 700; }
+
+    .answer-board {
+      margin-top: 0.8rem;
+      border: 1px dashed #a2b3d5;
+      border-radius: 10px;
+      padding: 0.65rem;
+      color: #1c2b4e;
+      background: #ffffff;
+    }
+    .answer-board h3 { margin: 0 0 0.4rem; font-size: 0.92rem; }
+    .answers { display: flex; gap: 0.42rem; flex-wrap: wrap; }
+    .ans-chip {
+      border: 1px solid #bac8e4;
+      border-radius: 999px;
+      padding: 0.28rem 0.5rem;
+      font-size: 0.82rem;
+      background: #f3f6ff;
+      font-weight: 700;
+    }
+
+    .camera-wrap { padding: 1rem; display: grid; gap: 0.8rem; }
+    .cam-box {
+      position: relative;
+      border: 1px solid #506aa1;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #0c1224;
+      min-height: 270px;
+      display: grid;
+      place-items: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .cam-placeholder {
+      text-align: center;
+      color: #b9c9ee;
+      padding: 1rem;
+    }
+
+    .scan-guide {
+      position: absolute;
+      width: min(72%, 320px);
+      aspect-ratio: 1;
+      border: 3px dashed rgba(120, 220, 255, 0.88);
+      border-radius: 10px;
+      box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.23);
+      pointer-events: none;
+      display: none;
+    }
+
+    .detected {
+      border: 1px solid #486c47;
+      border-radius: 10px;
+      background: #1f3a2d;
+      color: #c9f9da;
+      padding: 0.65rem;
+      font-weight: 700;
+    }
+
+    .small-note { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+    .live-results {
+      border: 1px solid #48629b;
+      border-radius: 12px;
+      background: #111b33;
+      padding: 0.7rem;
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .live-results h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #d8e7ff;
+    }
+
+    .count-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .count-chip {
+      border: 1px solid #5a74a9;
+      border-radius: 10px;
+      background: #1a2747;
+      color: #dbe8ff;
+      text-align: center;
+      padding: 0.4rem 0.25rem;
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+
+    .session-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      color: #b9c9ee;
+      font-size: 0.82rem;
+    }
+
+    .results-table-wrap {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid #395481;
+      border-radius: 10px;
+      background: #0d162d;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      color: #dce9ff;
+    }
+
+    .results-table th,
+    .results-table td {
+      border-bottom: 1px solid #2d436d;
+      padding: 0.4rem 0.45rem;
+      text-align: left;
+    }
+
+    .results-table th {
+      position: sticky;
+      top: 0;
+      background: #172545;
+      z-index: 1;
+    }
+
+    .empty-table {
+      color: #9ab0dd;
+      font-size: 0.82rem;
+      padding: 0.65rem;
+    }
+
+    .no-print {}
+
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+      .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .field.span-2 { grid-column: span 1; }
+    }
+
+    @media (max-width: 640px) {
+      .header { flex-direction: column; align-items: flex-start; }
+      .btns button { width: 100%; }
+      .layout-2 .page, .layout-4 .page { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      @page { size: auto; margin: 8mm; }
+      body { background: #fff !important; color: #000 !important; }
+      .no-print { display: none !important; }
+      .app { width: 100% !important; margin: 0 !important; }
+      .preview { border: 0 !important; padding: 0 !important; background: #fff !important; }
+      .preview h2, .answer-board { display: none !important; }
+      .sheet { gap: 0 !important; }
+      .page {
+        border: 0 !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        page-break-after: always;
+        break-after: page;
+      }
+      .page:last-child { page-break-after: auto; break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="card header no-print">
+      <div>
+        <h1>Generador de Tarjetas + Reconocimiento por Camara</h1>
+        <p class="sub">Genera hojas imprimibles y reconoce orientacion de la tarjeta (A/B/C/D) con la camara.</p>
+      </div>
+      <span class="badge">Offline · Un solo archivo</span>
+    </header>
+
+    <div class="layout">
+      <section class="card controls no-print">
+        <div class="controls-grid">
+          <div class="field">
+            <label for="startId">Numero inicial</label>
+            <input id="startId" type="number" min="1" value="1" />
+          </div>
+          <div class="field">
+            <label for="endId">Numero final</label>
+            <input id="endId" type="number" min="1" value="8" />
+          </div>
+          <div class="field">
+            <label for="layoutMode">Tarjetas por pagina</label>
+            <select id="layoutMode">
+              <option value="1">1 por pagina</option>
+              <option value="2">2 por pagina</option>
+              <option value="4" selected>4 por pagina</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sizeMode">Tamano</label>
+            <select id="sizeMode">
+              <option value="large">Grande</option>
+              <option value="medium" selected>Mediano</option>
+            </select>
+          </div>
+          <div class="field span-2">
+            <label>Acciones</label>
+            <div class="btns">
+              <button id="generateBtn" class="btn-primary" type="button">Generar tarjetas</button>
+              <button id="clearBtn" class="btn-soft" type="button">Limpiar</button>
+              <button id="printBtn" class="btn-soft" type="button">Imprimir / Guardar PDF</button>
+              <button id="downloadBtn" class="btn-soft" type="button">Descargar tarjetas (HTML)</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="statusBox" class="status info">Listo para generar tarjetas.</div>
+        <p class="help">Consejo: imprime las hojas y centra el patron dentro del recuadro de escaneo para reconocer la letra arriba.</p>
+      </section>
+
+      <section class="card camera-wrap no-print" aria-labelledby="cam-title">
+        <h2 id="cam-title">Camara y lectura de orientacion</h2>
+
+        <div class="cam-box">
+          <video id="cameraVideo" playsinline autoplay muted></video>
+          <div id="camPlaceholder" class="cam-placeholder">La camara aparecera aqui</div>
+          <div id="scanGuide" class="scan-guide" aria-hidden="true"></div>
+        </div>
+
+        <div class="btns">
+          <button id="startCamBtn" class="btn-primary" type="button">Conectar camara</button>
+          <button id="stopCamBtn" class="btn-soft" type="button" disabled>Detener camara</button>
+          <button id="clearSessionBtn" class="btn-soft" type="button">Limpiar respuestas</button>
+        </div>
+
+        <div id="camStatus" class="status info">Esperando conexion de camara.</div>
+        <div id="detectedBox" class="detected">Sin lectura aun.</div>
+        <p class="small-note">Modo barrido: mueve la camara entre estudiantes y el sistema ira guardando respuestas por ID automaticamente.</p>
+
+        <section class="live-results" aria-live="polite">
+          <h3>Respuestas recolectadas en vivo</h3>
+          <div class="count-row">
+            <div id="countA" class="count-chip">A: 0</div>
+            <div id="countB" class="count-chip">B: 0</div>
+            <div id="countC" class="count-chip">C: 0</div>
+            <div id="countD" class="count-chip">D: 0</div>
+          </div>
+          <div class="session-meta">
+            <span id="uniqueCount">Estudiantes leidos: 0</span>
+            <span id="lastCapture">Ultima lectura: --</span>
+          </div>
+          <div class="results-table-wrap">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Respuesta</th>
+                  <th>Conf.</th>
+                  <th>Hora</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+            <div id="emptyResults" class="empty-table">Aun no hay respuestas registradas.</div>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <section class="preview">
+      <h2 class="no-print">Previsualizacion de hojas</h2>
+      <div id="sheet" class="sheet layout-4 size-medium" aria-live="polite"></div>
+
+      <section class="answer-board no-print" aria-live="polite">
+        <h3>Respuestas esperadas por ID</h3>
+        <div id="answers" class="answers"></div>
+      </section>
+    </section>
+  </main>
+
+  <canvas id="scanCanvas" width="420" height="420" style="display:none"></canvas>
+
+  <script>
+    const startIdEl = document.getElementById("startId");
+    const endIdEl = document.getElementById("endId");
+    const layoutModeEl = document.getElementById("layoutMode");
+    const sizeModeEl = document.getElementById("sizeMode");
+    const generateBtn = document.getElementById("generateBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const printBtn = document.getElementById("printBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const statusBox = document.getElementById("statusBox");
+    const sheet = document.getElementById("sheet");
+    const answers = document.getElementById("answers");
+
+    const cameraVideo = document.getElementById("cameraVideo");
+    const camPlaceholder = document.getElementById("camPlaceholder");
+    const scanGuide = document.getElementById("scanGuide");
+    const startCamBtn = document.getElementById("startCamBtn");
+    const stopCamBtn = document.getElementById("stopCamBtn");
+    const clearSessionBtn = document.getElementById("clearSessionBtn");
+    const camStatus = document.getElementById("camStatus");
+    const detectedBox = document.getElementById("detectedBox");
+    const countAEl = document.getElementById("countA");
+    const countBEl = document.getElementById("countB");
+    const countCEl = document.getElementById("countC");
+    const countDEl = document.getElementById("countD");
+    const uniqueCountEl = document.getElementById("uniqueCount");
+    const lastCaptureEl = document.getElementById("lastCapture");
+    const resultsBody = document.getElementById("resultsBody");
+    const emptyResults = document.getElementById("emptyResults");
+    const scanCanvas = document.getElementById("scanCanvas");
+    const scanCtx = scanCanvas.getContext("2d", { willReadFrequently: true });
+
+    const OPTIONS = ["A", "B", "C", "D"];
+    // rotacion aplicada al frame observado para normalizar a orientacion canonica
+    const NORMALIZE_ROT_TO_TOP_LETTER = ["A", "B", "C", "D"];
+    const GRID_SIZE = 9;
+    const MARKER_SIZE = 3;
+    const ID_BITS = 12;
+    const CHECK_BITS = 4;
+    const PAYLOAD_BITS = ID_BITS + CHECK_BITS;
+    const PAYLOAD_PAIRS = PAYLOAD_BITS * 2;
+    const MAX_CARDS = 180;
+
+    let currentCards = [];
+    let cameraStream = null;
+    let scanTimer = null;
+    let responseSession = new Map();
+    let stableRead = { key: "", count: 0 };
+    let lastCaptureTime = "--";
+    let dataCellsCache = null;
+
+    // Marcadores de esquina en orientacion canonica para detectar rotacion con mayor robustez.
+    const CORNER_PATTERNS = {
+      tl: [
+        [1, 1, 1],
+        [1, 0, 1],
+        [1, 1, 1]
+      ],
+      tr: [
+        [1, 1, 0],
+        [1, 0, 0],
+        [1, 1, 0]
+      ],
+      bl: [
+        [0, 1, 1],
+        [0, 0, 1],
+        [1, 1, 1]
+      ],
+      br: [
+        [1, 0, 1],
+        [0, 0, 0],
+        [1, 0, 1]
+      ]
+    };
+
+    function toBits(value, length) {
+      const bits = [];
+      for (let i = length - 1; i >= 0; i--) bits.push((value >> i) & 1);
+      return bits;
+    }
+
+    function bitsToNumber(bits) {
+      let n = 0;
+      for (const b of bits) n = (n << 1) | (b ? 1 : 0);
+      return n >>> 0;
+    }
+
+    function computeChecksum(id) {
+      return (id ^ (id >> 3) ^ (id >> 6) ^ (id >> 9)) & 0x0f;
+    }
+
+    function isInCornerBlock(r, c, n = GRID_SIZE, m = MARKER_SIZE) {
+      const top = r < m;
+      const bottom = r >= n - m;
+      const left = c < m;
+      const right = c >= n - m;
+      return (top && left) || (top && right) || (bottom && left) || (bottom && right);
+    }
+
+    function getDataCells() {
+      if (dataCellsCache) return dataCellsCache;
+      const cells = [];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (!isInCornerBlock(r, c)) cells.push({ r, c });
+        }
+      }
+      dataCellsCache = cells;
+      return dataCellsCache;
+    }
+
+    function paintPattern(matrix, startR, startC, pattern) {
+      for (let r = 0; r < pattern.length; r++) {
+        for (let c = 0; c < pattern.length; c++) {
+          matrix[startR + r][startC + c] = pattern[r][c];
+        }
+      }
+    }
+
+    function applyCornerMarkers(matrix) {
+      const n = matrix.length;
+      paintPattern(matrix, 0, 0, CORNER_PATTERNS.tl);
+      paintPattern(matrix, 0, n - MARKER_SIZE, CORNER_PATTERNS.tr);
+      paintPattern(matrix, n - MARKER_SIZE, 0, CORNER_PATTERNS.bl);
+      paintPattern(matrix, n - MARKER_SIZE, n - MARKER_SIZE, CORNER_PATTERNS.br);
+    }
+
+    function formatTime(dateObj) {
+      const hh = String(dateObj.getHours()).padStart(2, "0");
+      const mm = String(dateObj.getMinutes()).padStart(2, "0");
+      const ss = String(dateObj.getSeconds()).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
+    }
+
+    function renderSessionResults() {
+      const counters = { A: 0, B: 0, C: 0, D: 0 };
+      const rows = Array.from(responseSession.entries())
+        .map(([id, payload]) => ({ id, ...payload }))
+        .sort((a, b) => a.id - b.id);
+
+      rows.forEach((r) => {
+        if (counters[r.answer] !== undefined) counters[r.answer] += 1;
+      });
+
+      countAEl.textContent = `A: ${counters.A}`;
+      countBEl.textContent = `B: ${counters.B}`;
+      countCEl.textContent = `C: ${counters.C}`;
+      countDEl.textContent = `D: ${counters.D}`;
+      uniqueCountEl.textContent = `Estudiantes leidos: ${rows.length}`;
+
+      resultsBody.innerHTML = "";
+      if (!rows.length) {
+        emptyResults.style.display = "block";
+        lastCaptureEl.textContent = "Ultima lectura: --";
+        return;
+      }
+
+      emptyResults.style.display = "none";
+      lastCaptureEl.textContent = `Ultima lectura: ${lastCaptureTime}`;
+
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${String(r.id).padStart(2, "0")}</td><td>${r.answer}</td><td>${r.confidence}%</td><td>${r.time}</td>`;
+        resultsBody.appendChild(tr);
+      });
+    }
+
+    function clearSessionResponses() {
+      responseSession = new Map();
+      stableRead = { key: "", count: 0 };
+      lastCaptureTime = "--";
+      renderSessionResults();
+      detectedBox.textContent = "Sesion reiniciada. Sin lectura aun.";
+    }
+
+    function captureResponse(result) {
+      const now = new Date();
+      const existing = responseSession.get(result.id);
+      const confidence = Math.round(result.confidence * 100);
+
+      if (existing && existing.answer === result.topLetter) {
+        return false;
+      }
+
+      responseSession.set(result.id, {
+        answer: result.topLetter,
+        confidence,
+        time: formatTime(now)
+      });
+      lastCaptureTime = formatTime(now);
+      renderSessionResults();
+      return true;
+    }
+
+    function setStatus(message, type = "info") {
+      const safe = ["info", "success", "warning", "error"].includes(type) ? type : "info";
+      statusBox.className = `status ${safe}`;
+      statusBox.textContent = message;
+    }
+
+    function setCamStatus(message, type = "info") {
+      const safe = ["info", "success", "warning", "error"].includes(type) ? type : "info";
+      camStatus.className = `status ${safe}`;
+      camStatus.textContent = message;
+    }
+
+    function hashInt(value) {
+      let x = value | 0;
+      x ^= x << 13;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      return Math.abs(x) >>> 0;
+    }
+
+    function generatePatternFromId(id, size = GRID_SIZE) {
+      const m = Array.from({ length: size }, () => Array(size).fill(0));
+      const safeId = Math.max(1, Math.min(4095, Number(id) || 1));
+
+      // 1) Pinta marcadores de esquina para orientacion.
+      applyCornerMarkers(m);
+
+      // 2) Codifica ID + checksum en pares de celdas para robustez al ruido.
+      const payload = [...toBits(safeId, ID_BITS), ...toBits(computeChecksum(safeId), CHECK_BITS)];
+      const dataCells = getDataCells();
+
+      for (let i = 0; i < payload.length; i++) {
+        const bit = payload[i];
+        const c1 = dataCells[i * 2];
+        const c2 = dataCells[i * 2 + 1];
+        m[c1.r][c1.c] = bit;
+        m[c2.r][c2.c] = bit;
+      }
+
+      // 3) Relleno deterministico en celdas restantes para mayor contraste visual.
+      for (let i = PAYLOAD_PAIRS; i < dataCells.length; i++) {
+        const cell = dataCells[i];
+        const h = hashInt(safeId * 92821 + cell.r * 313 + cell.c * 733 + i * 17);
+        m[cell.r][cell.c] = h % 2;
+      }
+
+      return m;
+    }
+
+    function expectedAnswerForId(id) {
+      return OPTIONS[(id - 1) % 4];
+    }
+
+    function createPatternElement(matrix) {
+      const box = document.createElement("div");
+      box.className = "pattern";
+      const grid = document.createElement("div");
+      grid.className = "pattern-grid";
+
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix.length; c++) {
+          const cell = document.createElement("div");
+          cell.className = `cell ${matrix[r][c] ? "b" : "w"}`;
+          grid.appendChild(cell);
+        }
+      }
+
+      box.appendChild(grid);
+      return box;
+    }
+
+    function createCardElement(card) {
+      const el = document.createElement("article");
+      el.className = "resp-card";
+      el.dataset.id = String(card.id);
+      el.dataset.answer = card.answer;
+
+      const id = document.createElement("div");
+      id.className = "id-tag";
+      id.textContent = `ID ${String(card.id).padStart(2, "0")}`;
+
+      const top = document.createElement("span"); top.className = "mark top"; top.textContent = "A";
+      const right = document.createElement("span"); right.className = "mark right"; right.textContent = "B";
+      const bottom = document.createElement("span"); bottom.className = "mark bottom"; bottom.textContent = "C";
+      const left = document.createElement("span"); left.className = "mark left"; left.textContent = "D";
+
+      const legend = document.createElement("div");
+      legend.className = "legend";
+      legend.textContent = `Resp esperada: ${card.answer}`;
+
+      el.appendChild(id);
+      el.appendChild(top);
+      el.appendChild(right);
+      el.appendChild(bottom);
+      el.appendChild(left);
+      el.appendChild(createPatternElement(card.pattern));
+      el.appendChild(legend);
+
+      return el;
+    }
+
+    function createAnswerChip(card) {
+      const chip = document.createElement("span");
+      chip.className = "ans-chip";
+      chip.textContent = `ID ${String(card.id).padStart(2, "0")}: ${card.answer}`;
+      return chip;
+    }
+
+    function applyLayout() {
+      sheet.className = `sheet layout-${layoutModeEl.value} size-${sizeModeEl.value}`;
+    }
+
+    function buildCardSet(start, end) {
+      const list = [];
+      for (let id = start; id <= end; id++) {
+        list.push({
+          id,
+          pattern: generatePatternFromId(id),
+          answer: expectedAnswerForId(id)
+        });
+      }
+      return list;
+    }
+
+    function renderCards(cards, perPage) {
+      sheet.innerHTML = "";
+      answers.innerHTML = "";
+
+      for (let i = 0; i < cards.length; i += perPage) {
+        const page = document.createElement("section");
+        page.className = "page";
+
+        cards.slice(i, i + perPage).forEach((card) => {
+          page.appendChild(createCardElement(card));
+          answers.appendChild(createAnswerChip(card));
+        });
+
+        sheet.appendChild(page);
+      }
+    }
+
+    function validateRange() {
+      const start = Number(startIdEl.value);
+      const end = Number(endIdEl.value);
+
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < 1) {
+        setStatus("Usa numeros enteros validos (1 o mayores).", "error");
+        return null;
+      }
+      if (end < start) {
+        setStatus("El numero final debe ser mayor o igual al inicial.", "error");
+        return null;
+      }
+
+      const count = end - start + 1;
+      if (count > MAX_CARDS) {
+        setStatus(`Rango muy grande (${count}). Maximo recomendado: ${MAX_CARDS}.`, "warning");
+        return null;
+      }
+
+      return { start, end, count };
+    }
+
+    function generateCards() {
+      const valid = validateRange();
+      if (!valid) return;
+
+      currentCards = buildCardSet(valid.start, valid.end);
+      applyLayout();
+      renderCards(currentCards, Number(layoutModeEl.value));
+      clearSessionResponses();
+      setStatus(`Se generaron ${valid.count} tarjetas.`, "success");
+    }
+
+    function clearAll() {
+      currentCards = [];
+      sheet.innerHTML = "";
+      answers.innerHTML = "";
+      clearSessionResponses();
+      setStatus("Vista limpia. Genera nuevas tarjetas cuando quieras.", "info");
+    }
+
+    function printCards() {
+      if (!sheet.children.length) {
+        setStatus("No hay tarjetas para imprimir. Genera al menos una.", "warning");
+        return;
+      }
+      window.print();
+    }
+
+    function buildDownloadHtml() {
+      const styles = `
+<style>
+  @page { size: auto; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: #000; font-family: "Segoe UI", "Trebuchet MS", sans-serif; }
+  .sheet { display: grid; gap: 0; }
+  .layout-1 .page { grid-template-columns: 1fr; }
+  .layout-2 .page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .layout-4 .page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page { display: grid; gap: 4mm; justify-content: center; align-content: start; page-break-after: always; break-after: page; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .resp-card { background: #fff; color: #000; border: 3px solid #000; position: relative; margin: 0 auto; padding: 0.8rem; display: grid; place-items: center; aspect-ratio: 70/98; }
+  .size-large .resp-card { width: 17.5cm; }
+  .size-medium .resp-card { width: 12.5cm; }
+  .id-tag { position: absolute; top: 8px; left: 10px; font-size: 1.35rem; font-weight: 900; }
+  .mark { position: absolute; font-weight: 900; font-size: 1.8rem; }
+  .top { top: 8px; left: 50%; transform: translateX(-50%); }
+  .right { right: 10px; top: 50%; transform: translateY(-50%); }
+  .bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+  .left { left: 10px; top: 50%; transform: translateY(-50%); }
+  .pattern { width: min(78%, 88mm); aspect-ratio: 1; border: 3px solid #000; display: grid; background: #fff; }
+  .pattern-grid { display: grid; grid-template-columns: repeat(${GRID_SIZE}, 1fr); grid-template-rows: repeat(${GRID_SIZE}, 1fr); width: 100%; height: 100%; }
+  .cell { border: 0; }
+  .b { background: #000; }
+  .w { background: #fff; }
+  .legend { position: absolute; bottom: 10px; right: 12px; font-size: 0.78rem; font-weight: 700; }
+</style>`;
+
+      return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tarjetas_respuesta</title>
+${styles}
+</head>
+<body>
+  <main class="${sheet.className}">
+    ${sheet.innerHTML}
+  </main>
+</body>
+</html>`;
+    }
+
+    function downloadCards() {
+      if (!sheet.children.length) {
+        setStatus("No hay tarjetas para descargar. Genera al menos una.", "warning");
+        return;
+      }
+
+      const html = buildDownloadHtml();
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tarjetas_respuesta.html";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      URL.revokeObjectURL(url);
+      setStatus("Descarga completada: tarjetas_respuesta.html", "success");
+    }
+
+    function rotateCW(matrix) {
+      const n = matrix.length;
+      const out = Array.from({ length: n }, () => Array(n).fill(0));
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          out[c][n - 1 - r] = matrix[r][c];
+        }
+      }
+      return out;
+    }
+
+    function rotateTimes(matrix, times) {
+      let out = matrix;
+      for (let i = 0; i < times; i++) out = rotateCW(out);
+      return out;
+    }
+
+    function getCornerMarkerMatchScore(matrix) {
+      const n = matrix.length;
+      let matches = 0;
+      let total = 0;
+
+      function scoreAt(startR, startC, pattern) {
+        for (let r = 0; r < MARKER_SIZE; r++) {
+          for (let c = 0; c < MARKER_SIZE; c++) {
+            total++;
+            if (matrix[startR + r][startC + c] === pattern[r][c]) matches++;
+          }
+        }
+      }
+
+      scoreAt(0, 0, CORNER_PATTERNS.tl);
+      scoreAt(0, n - MARKER_SIZE, CORNER_PATTERNS.tr);
+      scoreAt(n - MARKER_SIZE, 0, CORNER_PATTERNS.bl);
+      scoreAt(n - MARKER_SIZE, n - MARKER_SIZE, CORNER_PATTERNS.br);
+
+      return { matches, total, ratio: matches / total };
+    }
+
+    function decodeIdFromNormalizedMatrix(matrix) {
+      const dataCells = getDataCells();
+      const bits = [];
+      let pairAgreements = 0;
+
+      for (let i = 0; i < PAYLOAD_BITS; i++) {
+        const p1 = dataCells[i * 2];
+        const p2 = dataCells[i * 2 + 1];
+        const b1 = matrix[p1.r][p1.c];
+        const b2 = matrix[p2.r][p2.c];
+        if (b1 === b2) pairAgreements++;
+        bits.push(b1 === b2 ? b1 : b1);
+      }
+
+      const idBits = bits.slice(0, ID_BITS);
+      const checkBits = bits.slice(ID_BITS);
+      const decodedId = bitsToNumber(idBits);
+      const decodedChecksum = bitsToNumber(checkBits);
+      const expectedChecksum = computeChecksum(decodedId);
+      const checksumOk = decodedChecksum === expectedChecksum;
+      const pairRatio = pairAgreements / PAYLOAD_BITS;
+
+      return { decodedId, checksumOk, pairRatio };
+    }
+
+    function sampleObservedMatrixFromVideo(videoEl) {
+      const vw = videoEl.videoWidth;
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return null;
+
+      // Toma una region central cuadrada del video (mas amplia para barrido rapido)
+      const side = Math.floor(Math.min(vw, vh) * 0.64);
+      const sx = Math.floor((vw - side) / 2);
+      const sy = Math.floor((vh - side) / 2);
+
+      scanCanvas.width = 420;
+      scanCanvas.height = 420;
+      scanCtx.drawImage(videoEl, sx, sy, side, side, 0, 0, 420, 420);
+
+      const img = scanCtx.getImageData(0, 0, 420, 420);
+      const data = img.data;
+
+      // Umbral por promedio simple
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+      }
+      const mean = sum / (data.length / 4);
+      const threshold = mean * 0.94;
+
+      const matrix = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+      const cellW = 420 / GRID_SIZE;
+      const cellH = 420 / GRID_SIZE;
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          let dark = 0;
+          let total = 0;
+
+          const startX = Math.floor(c * cellW + cellW * 0.2);
+          const endX = Math.floor((c + 1) * cellW - cellW * 0.2);
+          const startY = Math.floor(r * cellH + cellH * 0.2);
+          const endY = Math.floor((r + 1) * cellH - cellH * 0.2);
+
+          for (let y = startY; y < endY; y += 2) {
+            for (let x = startX; x < endX; x += 2) {
+              const idx = (y * 420 + x) * 4;
+              const g = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+              if (g < threshold) dark++;
+              total++;
+            }
+          }
+
+          matrix[r][c] = (dark / Math.max(total, 1)) > 0.5 ? 1 : 0;
+        }
+      }
+
+      return matrix;
+    }
+
+    function getCandidateIds() {
+      if (currentCards.length) {
+        return currentCards.map((c) => c.id);
+      }
+
+      const s = Number(startIdEl.value);
+      const e = Number(endIdEl.value);
+      if (Number.isInteger(s) && Number.isInteger(e) && s > 0 && e >= s && (e - s + 1) <= MAX_CARDS) {
+        const ids = [];
+        for (let i = s; i <= e; i++) ids.push(i);
+        return ids;
+      }
+
+      // fallback corto
+      const ids = [];
+      for (let i = 1; i <= 30; i++) ids.push(i);
+      return ids;
+    }
+
+    function detectCardAndOrientation(observed) {
+      const allowed = new Set(getCandidateIds());
+      let best = { rot: 0, score: -1, matrix: null };
+      let secondBestScore = -1;
+
+      // 1) Encuentra rotacion por marcadores de esquina.
+      for (let rot = 0; rot < 4; rot++) {
+        const normalized = rotateTimes(observed, rot);
+        const markerScore = getCornerMarkerMatchScore(normalized);
+        if (markerScore.matches > best.score) {
+          secondBestScore = best.score;
+          best = { rot, score: markerScore.matches, ratio: markerScore.ratio, matrix: normalized };
+        } else if (markerScore.matches > secondBestScore) {
+          secondBestScore = markerScore.matches;
+        }
+      }
+
+      if (!best.matrix || best.ratio < 0.76) {
+        return null;
+      }
+
+      // 2) Decodifica ID + checksum en la orientacion normalizada.
+      const decoded = decodeIdFromNormalizedMatrix(best.matrix);
+      if (!decoded.checksumOk) return null;
+      if (!allowed.has(decoded.decodedId)) return null;
+
+      // 3) Confianza combinada: marcadores + consistencia de pares + separacion con segunda mejor rotacion.
+      const separation = Math.max(0, (best.score - secondBestScore) / 36);
+      const confidence = Math.min(
+        0.99,
+        best.ratio * 0.55 + decoded.pairRatio * 0.35 + separation * 0.10
+      );
+
+      if (confidence < 0.7) return null;
+
+      const topLetter = NORMALIZE_ROT_TO_TOP_LETTER[best.rot];
+      return { id: decoded.decodedId, topLetter, confidence };
+    }
+
+    function scanLoop() {
+      if (!cameraStream) return;
+
+      const observed = sampleObservedMatrixFromVideo(cameraVideo);
+      if (!observed) return;
+
+      const result = detectCardAndOrientation(observed);
+      if (!result) {
+        detectedBox.textContent = "No se detecta tarjeta con suficiente claridad. Centra el patron en el recuadro.";
+        stableRead = { key: "", count: 0 };
+        return;
+      }
+
+      const pct = Math.round(result.confidence * 100);
+      const key = `${result.id}-${result.topLetter}`;
+      if (stableRead.key === key) {
+        stableRead.count += 1;
+      } else {
+        stableRead = { key, count: 1 };
+      }
+
+      let msg = `Detectada tarjeta ID ${result.id} | Letra arriba: ${result.topLetter} | Confianza: ${pct}%`;
+      if (stableRead.count >= 2) {
+        const saved = captureResponse(result);
+        if (saved) {
+          msg += " | Guardada en sesion";
+        }
+      } else {
+        msg += " | Confirmando...";
+      }
+      detectedBox.textContent = msg;
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCamStatus("Tu navegador no soporta getUserMedia.", "error");
+        return;
+      }
+
+      startCamBtn.disabled = true;
+      setCamStatus("Solicitando permisos de camara...", "warning");
+
+      try {
+        if (cameraStream) stopCamera();
+
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        } catch (_) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+
+        cameraStream = stream;
+        cameraVideo.srcObject = stream;
+
+        cameraVideo.style.display = "block";
+        camPlaceholder.style.display = "none";
+        scanGuide.style.display = "block";
+        stopCamBtn.disabled = false;
+
+        setCamStatus("Camara conectada. Coloca el patron en el recuadro.", "success");
+
+        if (scanTimer) clearInterval(scanTimer);
+        scanTimer = setInterval(scanLoop, 380);
+      } catch (error) {
+        console.error(error);
+        setCamStatus("No se pudo acceder a la camara. Revisa permisos.", "error");
+      } finally {
+        startCamBtn.disabled = false;
+      }
+    }
+
+    function stopCamera() {
+      if (scanTimer) {
+        clearInterval(scanTimer);
+        scanTimer = null;
+      }
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((t) => t.stop());
+        cameraStream = null;
+      }
+
+      cameraVideo.srcObject = null;
+      cameraVideo.style.display = "none";
+      camPlaceholder.style.display = "block";
+      scanGuide.style.display = "none";
+      stopCamBtn.disabled = true;
+      setCamStatus("Camara detenida.", "info");
+      detectedBox.textContent = "Sin lectura aun.";
+    }
+
+    generateBtn.addEventListener("click", generateCards);
+    clearBtn.addEventListener("click", clearAll);
+    printBtn.addEventListener("click", printCards);
+    downloadBtn.addEventListener("click", downloadCards);
+
+    layoutModeEl.addEventListener("change", () => {
+      applyLayout();
+      if (currentCards.length) renderCards(currentCards, Number(layoutModeEl.value));
+    });
+
+    sizeModeEl.addEventListener("change", () => {
+      applyLayout();
+      if (currentCards.length) renderCards(currentCards, Number(layoutModeEl.value));
+    });
+
+    startCamBtn.addEventListener("click", startCamera);
+    stopCamBtn.addEventListener("click", stopCamera);
+    clearSessionBtn.addEventListener("click", clearSessionResponses);
+
+    window.addEventListener("beforeunload", () => {
+      if (cameraStream) cameraStream.getTracks().forEach((t) => t.stop());
+    });
+
+    // inicio
+    generateCards();
+    renderSessionResults();
+  </script>
+</body>
+</html>
