@@ -1,171 +1,98 @@
-<?php
-$resourceBase = __DIR__ . '/../assets/files/EDUTECH OFFLINE';
-$resourceCount = 0;
-
-if (is_dir($resourceBase)) {
-    $entries = array_diff(scandir($resourceBase), ['.', '..']);
-    foreach ($entries as $entry) {
-        $dirPath = $resourceBase . DIRECTORY_SEPARATOR . $entry;
-        if (!is_dir($dirPath)) {
-            continue;
-        }
-        if (is_file($dirPath . '/index.html') || is_file($dirPath . '/index.php')) {
-            $resourceCount++;
-        }
-    }
-}
-
-$cards = [
-    [
-        'icon' => 'bi-grid-3x3-gap',
-        'kicker' => 'Servicio',
-        'title' => 'Recursos Offline',
-        'text' => 'Materiales listos para usar en clase, incluso sin internet.',
-        'href' => '/?page=resources',
-    ],
-    [
-        'icon' => 'bi-youtube',
-        'kicker' => 'Servicio',
-        'title' => 'Videos Tutoriales',
-        'text' => 'Explicaciones claras para docentes y estudiantes.',
-        'href' => 'https://www.youtube.com/@elprofequeaprende',
-    ],
-    [
-        'icon' => 'bi-person-workspace',
-        'kicker' => 'Servicio',
-        'title' => 'Asesorias',
-        'text' => 'Acompanamiento para implementar tecnologia educativa en aula.',
-        'href' => '/?page=contact',
-    ],
-    [
-        'icon' => 'bi-journal-richtext',
-        'kicker' => 'Servicio',
-        'title' => 'Cursos',
-        'text' => 'Formacion practica para fortalecer estrategias pedagogicas.',
-        'href' => '/?page=sequences',
-    ],
-    [
-        'icon' => 'bi-cpu',
-        'kicker' => 'Linea',
-        'title' => 'Laboratorio Maker',
-        'text' => 'Proyectos y experiencias de aprendizaje activo.',
-        'href' => '/?page=maker',
-    ],
-    [
-        'icon' => 'bi-tools',
-        'kicker' => 'Linea',
-        'title' => 'Herramientas TIC',
-        'text' => 'Apps y plataformas utiles para dinamizar tus clases.',
-        'href' => '/?page=tools',
-    ],
-];
-?>
-
-<section class="container section-pad">
-  <div class="hero-block reveal-up">
-    <div class="row g-4 align-items-center">
-      <div class="col-lg-8">
-        <p class="eyebrow mb-2">El Profe Que Aprende</p>
-        <h1 class="hero-title">Ayudando a docentes y estudiantes a aprender mejor con recursos utiles y aplicables.</h1>
-        <p class="hero-subtitle">
-          Proyecto educativo creado desde Garzon, Huila - Colombia, enfocado en apoyar a estudiantes, docentes e instituciones con soluciones practicas.
-        </p>
-        <div class="action-row mb-3">
-          <a class="btn-main" href="/?page=resources"><i class="bi bi-play-circle"></i> Explorar recursos</a>
-          <a class="btn-alt" href="/?page=contact"><i class="bi bi-chat-dots"></i> Solicitar asesoria</a>
-        </div>
-        <div class="pill-list">
-          <span class="pill">Estudiantes</span>
-          <span class="pill">Docentes</span>
-          <span class="pill">Instituciones</span>
-          <span class="pill">Aprendizaje activo</span>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <article class="profile-highlight">
-          <img class="profile-photo" src="/assets/img/profile.png" alt="Foto de perfil de El Profe Que Aprende">
-          <h2 class="h5 mb-1">Anfaliz</h2>
-          <p class="meta-line mb-2">Garzon, Huila - Colombia</p>
-          <div class="social-strip">
-            <a href="https://www.youtube.com/@elprofequeaprende" target="_blank" rel="noopener" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
-            <a href="https://www.instagram.com/anfalizco/" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
-            <a href="https://www.linkedin.com/in/anfaliz90/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
-            <a href="https://elprofequeaprende.com" target="_blank" rel="noopener" aria-label="Sitio web"><i class="bi bi-globe"></i></a>
-          </div>
-        </article>
+<section class="stem-hero platform-hero">
+  <div class="container stem-hero-grid">
+    <div class="stem-hero-copy reveal-up">
+      <p class="stem-label"><i class="bi bi-stars"></i> Plataforma educativa para docentes</p>
+      <h1>El Profe Que Aprende</h1>
+      <p class="stem-lead">Plataforma practica para docentes que quieren crear, organizar y dinamizar sus clases con IA, recursos offline y herramientas digitales.</p>
+      <p class="platform-support">Creamos recursos educativos, capacitaciones y herramientas pensadas para docentes reales, con aulas reales y tiempos reales. Tecnologia util, sencilla y aplicable incluso en contextos de baja conectividad.</p>
+      <div class="stem-actions">
+        <a class="btn-main" href="<?= e(url('recursos')) ?>"><i class="bi bi-folder2-open"></i> Explorar recursos</a>
+        <a class="btn-alt" href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-easel2"></i> Ver capacitaciones</a>
+        <a class="btn-alt" href="<?= e(url('herramientas')) ?>"><i class="bi bi-tools"></i> Probar herramientas</a>
       </div>
     </div>
-    <div class="hero-metrics mt-4">
-      <div class="metric-card">
-        <span class="metric-label">Recursos disponibles</span>
-        <span class="metric-value" data-countup="<?= (int)$resourceCount ?>"><?= number_format((int)$resourceCount) ?></span>
+    <div class="stem-lab-board reveal-up" aria-label="Resumen de la plataforma">
+      <div class="lab-top">
+        <span>Ecosistema</span>
+        <strong>EPQA</strong>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">Visitas totales (publico)</span>
-        <span class="metric-value" data-countup="<?= isset($visitStats['total']) ? (int)$visitStats['total'] : 0 ?>">
-          <?= isset($visitStats['total']) ? number_format((int)$visitStats['total']) : '0' ?>
-        </span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Visitas hoy</span>
-        <span class="metric-value" data-countup="<?= isset($visitStats['today']) ? (int)$visitStats['today'] : 0 ?>">
-          <?= isset($visitStats['today']) ? number_format((int)$visitStats['today']) : '0' ?>
-        </span>
+      <div class="lab-kit service-kit">
+        <a href="<?= e(url('recursos')) ?>"><i class="bi bi-wifi-off"></i> Offline</a>
+        <a href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-robot"></i> IA docente</a>
+        <a href="<?= e(url('herramientas')) ?>"><i class="bi bi-calendar-week"></i> Horarios</a>
+        <a href="<?= e(url('planes')) ?>"><i class="bi bi-gem"></i> Pro</a>
       </div>
     </div>
   </div>
 </section>
 
-<section class="container pb-3">
-  <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
-    <div>
-      <p class="eyebrow mb-1">Servicios y Lineas</p>
-      <h2 class="mb-0">En que te puedo apoyar</h2>
-    </div>
-    <a class="btn-alt" href="/?page=about"><i class="bi bi-person-circle"></i> Conocer el proyecto</a>
+<section class="container section-pad" id="ecosistema">
+  <div class="stem-section-head reveal-up">
+    <p class="stem-label"><i class="bi bi-diagram-3-fill"></i> Ecosistema de la plataforma</p>
+    <h2>Seis lineas para aprender, crear y organizar mejor</h2>
   </div>
-
-  <div class="row g-3 g-lg-4">
-    <?php foreach ($cards as $card): ?>
-      <?php $isExternal = strpos($card['href'], 'http') === 0; ?>
-      <div class="col-12 col-md-6 col-xl-4">
-        <a class="quick-link reveal-up" href="<?= htmlspecialchars($card['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $isExternal ? ' target="_blank" rel="noopener"' : '' ?>>
-          <article class="surface-card">
-            <div class="surface-card-body">
-              <span class="icon-chip"><i class="bi <?= htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8') ?>"></i></span>
-              <p class="card-kicker mb-2"><?= htmlspecialchars($card['kicker'], ENT_QUOTES, 'UTF-8') ?></p>
-              <h3 class="h4 mb-2"><?= htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8') ?></h3>
-              <p class="meta-line mb-0"><?= htmlspecialchars($card['text'], ENT_QUOTES, 'UTF-8') ?></p>
-            </div>
-          </article>
-        </a>
-      </div>
+  <div class="stem-path-grid platform-grid">
+    <?php
+    $ecosystem = [
+        ['recursos', 'bi-folder2-open', 'Recursos educativos offline', 'Guias interactivas HTML, simuladores, actividades STEM/Arduino, herramientas de aula y paquetes por grado que pueden funcionar sin depender de Internet.'],
+        ['capacitaciones', 'bi-robot', 'Capacitaciones con IA para docentes', 'Formaciones practicas para crear guias interactivas, recursos digitales y materiales de clase usando inteligencia artificial, sin necesidad de saber programar.'],
+        ['herramientas', 'bi-tools', 'Herramientas online', 'Utilidades digitales para docentes: generador de horarios, ruletas, grupos aleatorios, generadores de rubricas, organizacion de clases y mas.'],
+        ['tips', 'bi-lightbulb-fill', 'Tips y contenido gratuito', 'Tutoriales de ofimatica, IA practica, productividad docente, Excel, Word, plantillas y soluciones rapidas para el trabajo diario.'],
+        ['instituciones', 'bi-building-fill-check', 'Servicios para instituciones', 'Capacitaciones, licencias institucionales, kits offline, acompanamiento STEM y personalizacion de recursos para colegios, sedes, cooperativas y fundaciones.'],
+        ['planes', 'bi-gem', 'Monetizacion y planes', 'Recursos premium, cursos, suscripcion Pro, licencias institucionales y contenido gratuito apoyado por Google AdSense.'],
+    ];
+    foreach ($ecosystem as $index => $item):
+    ?>
+      <a class="stem-path-card platform-card reveal-up tone-<?= (int)$index % 6 ?>" href="<?= e(url($item[0])) ?>">
+        <i class="bi <?= e($item[1]) ?>"></i>
+        <span>Linea de la plataforma</span>
+        <h3><?= e($item[2]) ?></h3>
+        <p><?= e($item[3]) ?></p>
+      </a>
     <?php endforeach; ?>
   </div>
 </section>
 
+<section class="stem-band">
+  <div class="container">
+    <div class="stem-section-head reveal-up">
+      <p class="stem-label"><i class="bi bi-award-fill"></i> Producto destacado</p>
+      <h2>Guias Interactivas con IA para Docentes</h2>
+    </div>
+    <div class="platform-split">
+      <article class="stem-feature-card reveal-up">
+        <div class="feature-icon"><i class="bi bi-robot"></i></div>
+        <h3>Capacitacion bandera</h3>
+        <p>Convierte tus clases en guias digitales interactivas usando IA, con salida HTML y posibilidad de uso offline en el aula.</p>
+        <a href="<?= e(url('capacitaciones')) ?>">Ver capacitacion <i class="bi bi-arrow-right"></i></a>
+      </article>
+      <article class="stem-feature-card reveal-up">
+        <div class="feature-icon green"><i class="bi bi-calendar-week"></i></div>
+        <h3>Generador de Horarios Online</h3>
+        <p>Base visual para crear, organizar, guardar y exportar horarios escolares. La version Pro quedara lista para usuarios y sedes.</p>
+        <a href="<?= e(url('herramientas')) ?>">Ver herramienta <i class="bi bi-arrow-right"></i></a>
+      </article>
+      <article class="stem-feature-card reveal-up">
+        <div class="feature-icon red"><i class="bi bi-building"></i></div>
+        <h3>Kit institucional offline</h3>
+        <p>Biblioteca de recursos, simuladores, capacitacion docente y personalizacion para instituciones educativas.</p>
+        <a href="<?= e(url('instituciones')) ?>">Solicitar propuesta <i class="bi bi-arrow-right"></i></a>
+      </article>
+    </div>
+  </div>
+</section>
+
 <section class="container section-pad">
-  <div class="row g-3 g-lg-4">
-    <div class="col-lg-7">
-      <article class="surface-card reveal-up">
-        <div class="surface-card-body">
-          <p class="eyebrow mb-1">Mensaje del Proyecto</p>
-          <h2 class="mb-2">Aprender mejor, juntos</h2>
-          <p class="meta-line mb-2">
-            Mi objetivo es ayudarte a llevar soluciones concretas al aula para que docentes y estudiantes aprendan de forma mas clara, activa y motivadora.
-          </p>
-          <ul class="list-clean">
-            <li>1. Recursos de aplicacion inmediata.</li>
-            <li>2. Videos tutoriales para reforzar contenidos.</li>
-            <li>3. Asesorias y cursos adaptados a tu contexto.</li>
-          </ul>
-        </div>
-      </article>
+  <div class="stem-class-plan reveal-up">
+    <div>
+      <p class="stem-label"><i class="bi bi-cash-coin"></i> Planes y crecimiento</p>
+      <h2>Contenido gratuito, recursos premium y licencias institucionales</h2>
+      <p>La plataforma queda preparada para crecer con recursos gratuitos, herramientas Pro, cursos, paquetes descargables y servicios para colegios.</p>
     </div>
-    <div class="col-lg-5">
-      <article class="note-box reveal-up">
-        <strong>Canales activos:</strong> YouTube, Instagram, LinkedIn, Telegram y correo para acompanamiento directo.
-      </article>
-    </div>
+    <ol class="stem-steps">
+      <li><strong>1</strong><span>Explora recursos gratuitos y tips para resolver necesidades inmediatas.</span></li>
+      <li><strong>2</strong><span>Usa capacitaciones y herramientas para crear materiales propios.</span></li>
+      <li><strong>3</strong><span>Activa planes Pro o institucionales cuando necesites guardar, personalizar y escalar.</span></li>
+    </ol>
   </div>
 </section>

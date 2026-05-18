@@ -1,1 +1,15 @@
 storage/visit_counter.json
+.env
+.env.*
+!.env.example
+config/config.local.php
+config/local.php
+*.log
+*.tmp
+*.bak
+*.backup
+*.sql.gz
+*.zip.tmp
+storage/*.log
+storage/cache/
+storage/tmp/

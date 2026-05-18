@@ -182,12 +182,66 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   var navLinks = document.querySelectorAll(".navbar .nav-link[data-nav]");
+  var params = new URLSearchParams(window.location.search);
+  var pageParam = (params.get("pg") || "home").toLowerCase();
   var path = (window.location.pathname.split("/").pop() || "index.html").toLowerCase();
   navLinks.forEach(function (link) {
-    if ((link.getAttribute("data-nav") || "").toLowerCase() === path) {
+    var target = (link.getAttribute("data-nav") || "").toLowerCase();
+    if (target === pageParam || target === path) {
       link.classList.add("active");
     }
   });
+
+  var scheduleGrid = document.querySelector("[data-schedule-grid]");
+  var scheduleSave = document.querySelector("[data-schedule-save]");
+  if (scheduleGrid && scheduleSave) {
+    var scheduleKey = "epqa_horario_basico";
+    var savedSchedule = {};
+    try {
+      savedSchedule = JSON.parse(localStorage.getItem(scheduleKey) || "{}");
+    } catch (error) {
+      savedSchedule = {};
+    }
+
+    scheduleGrid.querySelectorAll("[data-cell]").forEach(function (cell) {
+      var key = cell.getAttribute("data-cell");
+      if (savedSchedule[key]) {
+        cell.textContent = savedSchedule[key];
+      }
+    });
+
+    scheduleSave.addEventListener("click", function () {
+      var data = {};
+      scheduleGrid.querySelectorAll("[data-cell]").forEach(function (cell) {
+        data[cell.getAttribute("data-cell")] = cell.textContent.trim();
+      });
+      localStorage.setItem(scheduleKey, JSON.stringify(data));
+      scheduleSave.innerHTML = '<i class="bi bi-check2-circle"></i> Guardado';
+      window.setTimeout(function () {
+        scheduleSave.innerHTML = '<i class="bi bi-save"></i> Guardar local';
+      }, 1600);
+    });
+  }
+
+  var contactForm = document.querySelector("[data-contact-form]");
+  if (contactForm) {
+    contactForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var formData = new FormData(contactForm);
+      var text = [
+        "Hola, soy " + (formData.get("name") || ""),
+        "Correo: " + (formData.get("email") || ""),
+        "WhatsApp: " + (formData.get("whatsapp") || ""),
+        "Interes: " + (formData.get("interest") || ""),
+        "Mensaje: " + (formData.get("message") || "")
+      ].join("\n");
+      var status = contactForm.querySelector("[data-contact-status]");
+      if (status) {
+        status.textContent = "Mensaje preparado. Se abrira WhatsApp para enviarlo.";
+      }
+      window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(text), "_blank", "noopener");
+    });
+  }
 
   var hasPublicCounters = document.querySelectorAll("[data-counter-source]").length > 0;
   if (!hasPublicCounters) return;
