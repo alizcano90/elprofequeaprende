@@ -16,7 +16,8 @@ function flash_all(): array
 function flash_render(): void
 {
     foreach (flash_all() as $item) {
-        $type = $item['type'] === 'success' ? 'success' : ($item['type'] === 'warning' ? 'warning' : 'danger');
-        echo '<div class="auth-alert auth-alert-' . e($type) . '">' . e((string)$item['message']) . '</div>';
+        $rawType = (string)($item['type'] ?? 'error');
+        $type = in_array($rawType, ['success', 'warning', 'info'], true) ? $rawType : 'error';
+        echo '<div class="alert alert-' . e($type) . ' auth-alert auth-alert-' . e($type) . '">' . e((string)$item['message']) . '</div>';
     }
 }
