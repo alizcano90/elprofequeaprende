@@ -1,0 +1,158 @@
+﻿:root {
+  --bg: #f4f7f4;
+  --surface: #ffffff;
+  --line: #d4ddd4;
+  --text: #1e2b1e;
+  --muted: #5f6e5f;
+  --primary: #2d7b58;
+  --primary-strong: #256447;
+  --accent: #eef7f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, #edf4ee 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  width: min(980px, 100% - 2rem);
+  margin: 1.2rem auto 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.header,
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.header p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.form-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+.checkbox-field input {
+  width: auto;
+  margin: 0;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-strong);
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+th,
+td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e8ede8;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+th {
+  background: var(--accent);
+  color: #35533f;
+}
+
+.empty-state {
+  margin-top: 0.8rem;
+  color: var(--muted);
+}
+
+.message {
+  min-height: 1.2rem;
+  margin: 0;
+  color: #356644;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(980px, 100% - 1rem);
+  }
+}

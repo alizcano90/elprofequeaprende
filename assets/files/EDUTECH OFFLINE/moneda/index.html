@@ -1,83 +1,185 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Moneda Neón – Mensaje doble</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moneda Pastel</title>
 <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-        min-height:100vh;display:flex;flex-direction:column;
-        justify-content:center;align-items:center;
-        background:#000;font-family:Arial,Helvetica,sans-serif;
-        color:#0ff;user-select:none;overflow:hidden;
+    :root {
+        --bg: #1f1c2a;
+        --bg-soft: #2a2640;
+        --text: #efe7ff;
+        --muted: #d4c7ea;
+        --panel: #2f2a47;
+        --panel-border: #4f4872;
+        --btn: #f5c7df;
+        --btn-text: #312344;
+        --accent: #f3e5ff;
+        --coin-front: #f6d6e2;
+        --coin-back: #d8f0ff;
+        --coin-text: #3c2c50;
+        --coin-border: #f1bdd1;
     }
-    h1{margin-bottom:1rem;text-shadow:0 0 10px #0ff}
 
-    /* ===== escena & moneda grande ===== */
-    #scene{perspective:900px;width:320px;height:320px}
-    #coin{
-        width:100%;height:100%;position:relative;
-        transform-style:preserve-3d;
-        transition:transform 1s cubic-bezier(.23,1.2,.32,1);
+    body[data-theme="light"] {
+        --bg: #fff7f4;
+        --bg-soft: #ffe8f2;
+        --text: #4d3350;
+        --muted: #7b5776;
+        --panel: #fff3fa;
+        --panel-border: #ebcde1;
+        --btn: #c8e9ff;
+        --btn-text: #2f4452;
+        --accent: #ffffff;
+        --coin-front: #ffeaf1;
+        --coin-back: #e8f6ff;
+        --coin-text: #4a3152;
+        --coin-border: #efc6d9;
     }
-    .side{
-        position:absolute;width:300px;height:300px;left:10px;top:10px;
-        border-radius:50%;display:flex;flex-direction:column;
-        justify-content:center;align-items:center;text-align:center;
-        font-size:2.2rem;font-weight:700;line-height:1.15;
-        color:#ff0;background:#000;border:4px solid #0ff;
-        box-shadow:0 0 18px #0ff inset,0 0 30px #ff0;
-        text-shadow:0 0 7px #ff0,0 0 15px #ff0;
-        padding:0 18px;
-    }
-    .front{transform:rotateY(  0deg) translateZ(6px);}   /* El Profe / Que Aprende */
-    .back {transform:rotateY(180deg) translateZ(6px);}   /* Educación / Innovadora */
 
-    button{
-        margin-top:1.5rem;padding:.6rem 1.5rem;font-size:1.05rem;font-weight:600;
-        border:none;border-radius:8px;background:#0ff;color:#000;
-        cursor:pointer;box-shadow:0 0 15px #0ff;transition:transform .2s;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
+        background: radial-gradient(circle at top, var(--bg-soft), var(--bg) 72%);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        color: var(--text);
+        user-select: none;
+        padding: 14px;
     }
-    button:active{transform:scale(.95);}
+
+    h1 { font-size: clamp(1.2rem, 2.8vw, 2rem); }
+
+    .controls {
+        width: min(560px, 94vw);
+        padding: 12px;
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--panel) 92%, white 8%);
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .controls label { color: var(--muted); font-weight: 700; }
+
+    select, button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+    }
+
+    select {
+        background: var(--accent);
+        color: #2f213c;
+        border: 1px solid var(--panel-border);
+    }
+
+    select option { color: #2f213c; }
+
+    button {
+        background: var(--btn);
+        color: var(--btn-text);
+        cursor: pointer;
+    }
+
+    button:active { transform: scale(.97); }
+
+    #scene {
+        perspective: 1000px;
+        width: min(70vw, 320px);
+        aspect-ratio: 1 / 1;
+    }
+
+    #coin {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 1s cubic-bezier(.23,1.2,.32,1);
+    }
+
+    .side {
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0 16px;
+        font-size: clamp(1.4rem, 4.8vw, 2.2rem);
+        font-weight: 800;
+        line-height: 1.15;
+        color: var(--coin-text);
+        border: 4px solid var(--coin-border);
+        box-shadow: 0 10px 20px rgba(0,0,0,.2), inset 0 0 0 1px rgba(255,255,255,.4);
+        backface-visibility: hidden;
+    }
+
+    .front { background: var(--coin-front); transform: rotateY(0deg) translateZ(7px); }
+    .back { background: var(--coin-back); transform: rotateY(180deg) translateZ(7px); }
 </style>
 </head>
-<body>
-<h1>¡Lanza la moneda! 🪙</h1>
+<body data-theme="dark">
+<h1>🪙 Lanza la moneda</h1>
+
+<div class="controls">
+    <label for="themeSelect">Tema:</label>
+    <select id="themeSelect" aria-label="Tema visual">
+        <option value="dark">Oscuro pastel</option>
+        <option value="light">Claro pastel</option>
+    </select>
+    <button id="flipBtn" type="button">Gira tu destino</button>
+</div>
 
 <div id="scene">
     <div id="coin">
-        <div class="side front">
-            El&nbsp;Profe<br>Que&nbsp;Aprende
-        </div>
-        <div class="side back">
-            Educación<br>Innovadora
-        </div>
+        <div class="side front">El Profe<br>Que Aprende</div>
+        <div class="side back">Educación<br>Innovadora</div>
     </div>
 </div>
 
-<button id="flipBtn">Gira tu destino!</button>
-
 <script>
-(() =>{
+(() => {
     const coin = document.getElementById('coin');
-    const btn  = document.getElementById('flipBtn');
+    const btn = document.getElementById('flipBtn');
+    const themeSelect = document.getElementById('themeSelect');
 
-    /* 0° -> front | 180° -> back */
-    const angles = { front:0, back:180 };
+    const angles = { front: 0, back: 180 };
 
-    function flip(){
-        const target = Math.random() < .5 ? 'front' : 'back';
-        const extra  = 360 * (Math.floor(Math.random()*6)+3); // 3‑8 giros
-        coin.style.transitionDuration = '2.5s';
+    function flip() {
+        const target = Math.random() < 0.5 ? 'front' : 'back';
+        const extra = 360 * (Math.floor(Math.random() * 6) + 3);
+        coin.style.transitionDuration = '2.3s';
         coin.style.transform = `rotateY(${angles[target] + extra}deg)`;
     }
 
-    coin.addEventListener('click', flip);
-    btn .addEventListener('click', flip);
-    window.addEventListener('keydown', e => { if(e.code==='Space') flip(); });
+    themeSelect.addEventListener('change', () => {
+        document.body.dataset.theme = themeSelect.value;
+    });
 
-    coin.addEventListener('transitionend', ()=> coin.style.transitionDuration='1s');
+    coin.addEventListener('click', flip);
+    btn.addEventListener('click', flip);
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            flip();
+        }
+    });
+
+    coin.addEventListener('transitionend', () => {
+        coin.style.transitionDuration = '1s';
+    });
 })();
 </script>
 </body>

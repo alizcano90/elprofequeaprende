@@ -1,0 +1,456 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Puzzle Math 15</title>
+  <style>
+    :root {
+      --bg: linear-gradient(140deg, #ffe9f2 0%, #f7f4ff 55%, #eafff8 100%);
+      --panel: rgba(255, 255, 255, 0.86);
+      --text: #2d2341;
+      --muted: #6d6483;
+      --tile-1: #fdd6e7;
+      --tile-2: #d6ecff;
+      --tile-3: #def7e5;
+      --accent: #7f6ce0;
+      --shadow: 0 14px 35px rgba(90, 64, 132, 0.20);
+      --empty: rgba(127, 108, 224, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: linear-gradient(145deg, #23162f 0%, #1d243d 50%, #143038 100%);
+        --panel: rgba(28, 33, 52, 0.82);
+        --text: #f6f3ff;
+        --muted: #c4b9de;
+        --tile-1: #5b3450;
+        --tile-2: #2f4861;
+        --tile-3: #2f5641;
+        --accent: #b9a1ff;
+        --shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+        --empty: rgba(185, 161, 255, 0.14);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(94vw, 560px);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: clamp(1.45rem, 3vw, 1.9rem);
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 12px;
+      padding: 8px 12px;
+      min-width: 130px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .pill span {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: none;
+      padding: 10px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button:active { transform: translateY(0); }
+
+    .board {
+      width: min(90vw, 480px);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 8px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .board.hidden {
+      display: none;
+    }
+
+    .tile {
+      border: none;
+      border-radius: 12px;
+      font-size: clamp(1rem, 4vw, 1.7rem);
+      font-weight: 800;
+      color: var(--text);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+      cursor: grab;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      touch-action: none;
+      will-change: transform;
+    }
+
+    .tile:nth-child(3n + 1) { background: var(--tile-1); }
+    .tile:nth-child(3n + 2) { background: var(--tile-2); }
+    .tile:nth-child(3n + 3) { background: var(--tile-3); }
+
+    .tile:hover { transform: scale(1.03); }
+
+    .tile.dragging {
+      opacity: 0.92;
+      cursor: grabbing;
+      z-index: 3;
+      transition: none;
+    }
+
+    .tile.empty {
+      background: var(--empty);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      cursor: default;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 12px;
+      min-height: 24px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Puzzle Math 15</h1>
+    <p class="subtitle">Ordena del 1 al 15 deslizando fichas en el espacio vacío.</p>
+
+    <section class="hud">
+      <div class="pill"><span>Movimientos</span><strong id="moves">0</strong></div>
+      <div class="pill"><span>Tiempo</span><strong id="time">00:00</strong></div>
+    </section>
+
+    <div class="actions">
+      <button id="startBtn" type="button">Iniciar</button>
+    </div>
+
+    <section id="board" class="board hidden" aria-label="Tablero 15 puzzle"></section>
+    <p id="status" class="status"></p>
+  </main>
+
+  <script>
+    const BOARD_SIZE = 4;
+    const EMPTY = 0;
+    const boardEl = document.getElementById('board');
+    const movesEl = document.getElementById('moves');
+    const timeEl = document.getElementById('time');
+    const startBtn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+
+    let board = [];
+    let moves = 0;
+    let seconds = 0;
+    let timerId = null;
+    let started = false;
+    let dragState = null;
+
+    function initSolvedBoard() {
+      return [...Array(15).keys()].map(n => n + 1).concat(EMPTY);
+    }
+
+    function countInversions(arr) {
+      const nums = arr.filter(n => n !== EMPTY);
+      let inv = 0;
+      for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+          if (nums[i] > nums[j]) inv++;
+        }
+      }
+      return inv;
+    }
+
+    function isSolvable(arr) {
+      const inversions = countInversions(arr);
+      const emptyIndex = arr.indexOf(EMPTY);
+      const rowFromTop = Math.floor(emptyIndex / BOARD_SIZE);
+      const rowFromBottom = BOARD_SIZE - rowFromTop;
+
+      if (BOARD_SIZE % 2 !== 0) {
+        return inversions % 2 === 0;
+      }
+
+      return (rowFromBottom % 2 === 0) !== (inversions % 2 === 0);
+    }
+
+    function isSolved(arr) {
+      for (let i = 0; i < 15; i++) {
+        if (arr[i] !== i + 1) return false;
+      }
+      return arr[15] === EMPTY;
+    }
+
+    function randomBoard() {
+      const arr = initSolvedBoard();
+      do {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+      } while (!isSolvable(arr) || isSolved(arr));
+      return arr;
+    }
+
+    function formatTime(totalSeconds) {
+      const min = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const sec = (totalSeconds % 60).toString().padStart(2, '0');
+      return `${min}:${sec}`;
+    }
+
+    function areAdjacent(i, j) {
+      const r1 = Math.floor(i / BOARD_SIZE);
+      const c1 = i % BOARD_SIZE;
+      const r2 = Math.floor(j / BOARD_SIZE);
+      const c2 = j % BOARD_SIZE;
+      return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+    }
+
+    function getDirection(fromIndex, toIndex) {
+      const fr = Math.floor(fromIndex / BOARD_SIZE);
+      const fc = fromIndex % BOARD_SIZE;
+      const tr = Math.floor(toIndex / BOARD_SIZE);
+      const tc = toIndex % BOARD_SIZE;
+      return { x: tc - fc, y: tr - fr };
+    }
+
+    function render() {
+      boardEl.innerHTML = '';
+      board.forEach((value, index) => {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'tile';
+        tile.dataset.index = index;
+
+        if (value === EMPTY) {
+          tile.classList.add('empty');
+          tile.disabled = true;
+          tile.setAttribute('aria-label', 'Espacio vacío');
+        } else {
+          tile.textContent = value;
+          tile.setAttribute('aria-label', `Ficha ${value}`);
+          tile.addEventListener('pointerdown', onTilePointerDown);
+        }
+
+        boardEl.appendChild(tile);
+      });
+    }
+
+    function updateHud() {
+      movesEl.textContent = moves;
+      timeEl.textContent = formatTime(seconds);
+    }
+
+    function onTilePointerDown(event) {
+      if (!started) return;
+
+      const tile = event.currentTarget;
+      const index = Number(tile.dataset.index);
+      const emptyIndex = board.indexOf(EMPTY);
+      if (!areAdjacent(index, emptyIndex)) return;
+
+      const dir = getDirection(index, emptyIndex);
+      const rect = tile.getBoundingClientRect();
+
+      event.preventDefault();
+      tile.classList.add('dragging');
+      tile.setPointerCapture(event.pointerId);
+
+      dragState = {
+        tile,
+        index,
+        emptyIndex,
+        direction: dir,
+        startX: event.clientX,
+        startY: event.clientY,
+        pointerId: event.pointerId,
+        movePx: 0,
+        maxMoveX: rect.width + 8,
+        maxMoveY: rect.height + 8,
+        threshold: Math.min(rect.width, rect.height) * 0.38
+      };
+
+      tile.addEventListener('pointermove', onTilePointerMove);
+      tile.addEventListener('pointerup', onTilePointerEnd, { once: true });
+      tile.addEventListener('pointercancel', onTilePointerEnd, { once: true });
+    }
+
+    function onTilePointerMove(event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+      const dx = event.clientX - dragState.startX;
+      const dy = event.clientY - dragState.startY;
+
+      let tx = 0;
+      let ty = 0;
+
+      if (dragState.direction.x !== 0) {
+        const projected = dx * dragState.direction.x;
+        const clamped = Math.max(0, Math.min(projected, dragState.maxMoveX));
+        tx = clamped * dragState.direction.x;
+      }
+
+      if (dragState.direction.y !== 0) {
+        const projected = dy * dragState.direction.y;
+        const clamped = Math.max(0, Math.min(projected, dragState.maxMoveY));
+        ty = clamped * dragState.direction.y;
+      }
+
+      dragState.movePx = Math.max(Math.abs(tx), Math.abs(ty));
+      dragState.tile.style.transform = `translate(${tx}px, ${ty}px) scale(1.03)`;
+    }
+
+    function onTilePointerEnd(event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+      const current = dragState;
+      const tile = current.tile;
+      tile.classList.remove('dragging');
+      tile.style.transform = '';
+      tile.removeEventListener('pointermove', onTilePointerMove);
+      try {
+        tile.releasePointerCapture(event.pointerId);
+      } catch (err) {
+      }
+
+      dragState = null;
+
+      if (current.movePx >= current.threshold) {
+        tryMove(current.index);
+      }
+    }
+
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(() => {
+        seconds += 1;
+        updateHud();
+      }, 1000);
+    }
+
+    function tryMove(index) {
+      if (!started) return;
+      const emptyIndex = board.indexOf(EMPTY);
+      if (!areAdjacent(index, emptyIndex)) return;
+
+      [board[index], board[emptyIndex]] = [board[emptyIndex], board[index]];
+      moves += 1;
+      updateHud();
+      render();
+
+      if (isSolved(board)) {
+        started = false;
+        stopTimer();
+        statusEl.textContent = `Resuelto en ${moves} movimientos y ${formatTime(seconds)}.`;
+      }
+    }
+
+    function startGame() {
+      board = randomBoard();
+      moves = 0;
+      seconds = 0;
+      started = true;
+      statusEl.textContent = '';
+      boardEl.classList.remove('hidden');
+      updateHud();
+      render();
+      startTimer();
+      startBtn.textContent = 'Reiniciar';
+    }
+
+    startBtn.addEventListener('click', startGame);
+
+    document.addEventListener('keydown', event => {
+      if (!started) return;
+
+      const empty = board.indexOf(EMPTY);
+      const row = Math.floor(empty / BOARD_SIZE);
+      const col = empty % BOARD_SIZE;
+      let target = -1;
+
+      if (event.key === 'ArrowUp' && row < BOARD_SIZE - 1) target = empty + BOARD_SIZE;
+      if (event.key === 'ArrowDown' && row > 0) target = empty - BOARD_SIZE;
+      if (event.key === 'ArrowLeft' && col < BOARD_SIZE - 1) target = empty + 1;
+      if (event.key === 'ArrowRight' && col > 0) target = empty - 1;
+
+      if (target >= 0) {
+        event.preventDefault();
+        tryMove(target);
+      }
+    });
+
+    updateHud();
+  </script>
+</body>
+</html>

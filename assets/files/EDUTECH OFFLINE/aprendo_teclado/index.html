@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aprendo el teclado</title>
+  <style>
+    :root {
+      --bg: #f4f9ff;
+      --card: #ffffff;
+      --text: #1f2d3d;
+      --muted: #5c7187;
+      --line: #d8e5f2;
+      --key: #f2f7fd;
+      --space: #5aa9ff;
+      --backspace: #ff9d9d;
+      --shift: #75cd8d;
+      --alt: #ffba6b;
+      --enter: #b58dff;
+      --caps: #8fb8ff;
+      --ok: #239f59;
+      --warn: #d17b06;
+      --shadow: 0 10px 24px rgba(28, 54, 86, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #fafdff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3vw, 2.2rem);
+    }
+
+    .header h2 {
+      margin: 6px 0 8px;
+      color: #2d6ca6;
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      font-weight: 700;
+    }
+
+    .motivation {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .key-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fbfeff;
+    }
+
+    .key-card h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .key-card p {
+      margin: 0 0 4px;
+      color: #375069;
+      font-size: 0.92rem;
+      line-height: 1.3;
+    }
+
+    .example {
+      color: #5a728c;
+      font-weight: 600;
+      font-size: 0.87rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 14px;
+    }
+
+    .keyboard-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: linear-gradient(180deg, #f7fbff 0%, #edf5ff 100%);
+      overflow-x: auto;
+    }
+
+    .keyboard-grid {
+      display: grid;
+      gap: 8px;
+      min-width: 890px;
+    }
+
+    .kb-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .key {
+      min-width: 46px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid #c8d8ea;
+      background: var(--key);
+      color: #254260;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: grid;
+      place-items: center;
+      user-select: none;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.2s ease, background-color 0.18s ease;
+      padding: 0 6px;
+      text-align: center;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .key:hover {
+      transform: translateY(-1px);
+    }
+
+    .key:active {
+      transform: translateY(0);
+    }
+
+    .key.w-tab { min-width: 72px; }
+    .key.w-caps { min-width: 90px; }
+    .key.w-shift { min-width: 112px; }
+    .key.w-backspace { min-width: 122px; }
+    .key.w-enter { min-width: 102px; }
+    .key.w-space { min-width: 320px; }
+    .key.w-ctrl { min-width: 74px; }
+    .key.w-alt { min-width: 74px; }
+    .key.w-menu { min-width: 86px; }
+
+    .key.space { background: #d8ebff; }
+    .key.backspace { background: #ffe0e0; }
+    .key.shift { background: #def6e6; }
+    .key.alt { background: #ffecd5; }
+    .key.enter { background: #ece2ff; }
+    .key.caps { background: #e4eeff; }
+
+    .key.active {
+      box-shadow: 0 0 0 3px rgba(26, 91, 158, 0.25);
+      transform: translateY(-1px) scale(1.03);
+    }
+
+    .key.shift.latched,
+    .key.caps.latched,
+    .key.alt.latched {
+      box-shadow: 0 0 0 3px rgba(43, 131, 68, 0.28);
+    }
+
+    .last-key-label {
+      margin: 8px 0 0;
+      color: #3e5770;
+      font-weight: 700;
+    }
+
+    .mode-note {
+      margin: 6px 0 0;
+      color: #446382;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .alt-tip {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      max-width: 280px;
+      border-radius: 12px;
+      border: 1px solid #f3ce9d;
+      background: #fff7eb;
+      color: #8d5d1e;
+      padding: 8px 10px;
+      font-size: 0.86rem;
+      line-height: 1.3;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+
+    .alt-tip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .writing-panel h3,
+    .challenge-panel h3,
+    .support-panel h3,
+    .keyboard-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1.06rem;
+    }
+
+    .write-box {
+      width: 100%;
+      min-height: 200px;
+      border-radius: 12px;
+      border: 1px solid #c8dae9;
+      background: #fff;
+      padding: 12px;
+      font: inherit;
+      font-size: 1.04rem;
+      resize: vertical;
+      line-height: 1.4;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .write-box.anim-space {
+      animation: textSpacePulse 280ms ease;
+    }
+
+    .write-box.anim-backspace {
+      animation: textBackspacePulse 280ms ease;
+    }
+
+    @keyframes textSpacePulse {
+      0% { background: #ffffff; box-shadow: inset 0 0 0 0 rgba(89, 169, 255, 0.3); }
+      45% { background: #eef7ff; box-shadow: inset 0 0 0 3px rgba(89, 169, 255, 0.28); }
+      100% { background: #ffffff; box-shadow: inset 0 0 0 0 rgba(89, 169, 255, 0); }
+    }
+
+    @keyframes textBackspacePulse {
+      0% { background: #ffffff; box-shadow: inset 0 0 0 0 rgba(255, 143, 143, 0.3); }
+      45% { background: #fff2f2; box-shadow: inset 0 0 0 3px rgba(255, 143, 143, 0.28); }
+      100% { background: #ffffff; box-shadow: inset 0 0 0 0 rgba(255, 143, 143, 0); }
+    }
+
+    .write-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-clear {
+      background: #edf4fb;
+      color: #2a4968;
+      border: 1px solid #cadbee;
+    }
+
+    .btn-new {
+      background: #2f7de0;
+      color: #fff;
+    }
+
+    .challenge-text {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fcfeff;
+      padding: 10px;
+      color: #314a64;
+      font-weight: 700;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+    }
+
+    .challenge-status {
+      margin-top: 8px;
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid #d7e5f2;
+      background: #f8fbff;
+      color: #35516d;
+      font-weight: 700;
+    }
+
+    .challenge-status.done {
+      border-color: #b8e4c9;
+      background: #f0fff5;
+      color: var(--ok);
+      animation: pulseDone 0.55s ease;
+    }
+
+    @keyframes pulseDone {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    .support-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfeff;
+      display: grid;
+      gap: 8px;
+    }
+
+    .support-item {
+      border: 1px solid #d7e4f1;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    .support-item strong {
+      display: block;
+      color: #385777;
+      margin-bottom: 4px;
+      font-size: 0.92rem;
+    }
+
+    .support-item p {
+      margin: 0;
+      color: #2a445f;
+      font-weight: 600;
+      line-height: 1.3;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 1050px) {
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="card header">
+      <h1>Aprendo el teclado</h1>
+      <h2>Descubre cómo funcionan Space, Borrar, Shift, Alt y Enter</h2>
+      <p class="motivation">Practica, juega y conviértete en experto del teclado.</p>
+    </header>
+
+    <section class="card">
+      <div class="cards-grid">
+        <article class="key-card">
+          <h3>Space</h3>
+          <p>Deja un espacio entre palabras.</p>
+          <span class="example">Ejemplo: hola mundo</span>
+        </article>
+        <article class="key-card">
+          <h3>Backspace</h3>
+          <p>Borra lo que escribiste.</p>
+          <span class="example">Ejemplo: casaa → casa</span>
+        </article>
+        <article class="key-card">
+          <h3>Shift</h3>
+          <p>Ayuda a escribir mayúsculas.</p>
+          <span class="example">Ejemplo: casa → Casa</span>
+        </article>
+        <article class="key-card">
+          <h3>Alt</h3>
+          <p>Sirve para funciones especiales.</p>
+          <span class="example">Ejemplo: Alt + número</span>
+        </article>
+        <article class="key-card">
+          <h3>Enter</h3>
+          <p>Baja a la siguiente línea.</p>
+          <span class="example">Ejemplo: línea 1 ↵ línea 2</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="card keyboard-panel">
+        <h3>Teclado visual completo</h3>
+        <div class="keyboard-wrap">
+          <div id="keyboard" class="keyboard-grid"></div>
+          <div id="altTip" class="alt-tip">Alt ayuda con funciones especiales. Prueba Alt + número para ver su uso.</div>
+        </div>
+        <p class="last-key-label">Tecla usada recientemente: <span id="lastKey">Ninguna todavía</span></p>
+        <p class="mode-note" id="modeNote">Modo actual: minúsculas.</p>
+      </div>
+
+      <div class="card support-panel">
+        <h3>Panel de apoyo</h3>
+        <div class="support-box">
+          <div class="support-item">
+            <strong>Tecla usada recientemente</strong>
+            <p id="recentKeyText">Aquí aparecerá la última tecla usada.</p>
+          </div>
+          <div class="support-item">
+            <strong>¿Qué hace esta tecla?</strong>
+            <p id="keyHelpText">Usa una tecla para ver su explicación.</p>
+          </div>
+          <div class="support-item">
+            <strong>Mensaje amigable</strong>
+            <p id="friendlyText">Empieza con el teclado visual o con el teclado físico.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="card writing-panel">
+        <h3>Zona de escritura</h3>
+        <textarea id="writingArea" class="write-box" readonly placeholder="Escribe aquí usando el teclado físico o el teclado visual..."></textarea>
+        <div class="write-actions">
+          <button id="btnLimpiar" class="btn btn-clear" type="button">Limpiar texto</button>
+        </div>
+      </div>
+
+      <div class="card challenge-panel">
+        <h3>Zona de retos</h3>
+        <div id="challengeText" class="challenge-text">Pulsa "Nuevo reto" para empezar.</div>
+        <div id="challengeStatus" class="challenge-status">Reto actual: pendiente.</div>
+        <div class="write-actions">
+          <button id="btnReto" class="btn btn-new" type="button">Nuevo reto</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const keyboardModel = [
+        [
+          { id: "Backquote", type: "print", lower: "`", upper: "~" },
+          { id: "Digit1", type: "print", lower: "1", upper: "!" },
+          { id: "Digit2", type: "print", lower: "2", upper: "@" },
+          { id: "Digit3", type: "print", lower: "3", upper: "#" },
+          { id: "Digit4", type: "print", lower: "4", upper: "$" },
+          { id: "Digit5", type: "print", lower: "5", upper: "%" },
+          { id: "Digit6", type: "print", lower: "6", upper: "^" },
+          { id: "Digit7", type: "print", lower: "7", upper: "&" },
+          { id: "Digit8", type: "print", lower: "8", upper: "*" },
+          { id: "Digit9", type: "print", lower: "9", upper: "(" },
+          { id: "Digit0", type: "print", lower: "0", upper: ")" },
+          { id: "Minus", type: "print", lower: "-", upper: "_" },
+          { id: "Equal", type: "print", lower: "=", upper: "+" },
+          { id: "Backspace", type: "special", label: "Borrar", className: "backspace w-backspace" }
+        ],
+        [
+          { id: "Tab", type: "special", label: "Tab", className: "w-tab" },
+          { id: "KeyQ", type: "letter", lower: "q", upper: "Q" },
+          { id: "KeyW", type: "letter", lower: "w", upper: "W" },
+          { id: "KeyE", type: "letter", lower: "e", upper: "E" },
+          { id: "KeyR", type: "letter", lower: "r", upper: "R" },
+          { id: "KeyT", type: "letter", lower: "t", upper: "T" },
+          { id: "KeyY", type: "letter", lower: "y", upper: "Y" },
+          { id: "KeyU", type: "letter", lower: "u", upper: "U" },
+          { id: "KeyI", type: "letter", lower: "i", upper: "I" },
+          { id: "KeyO", type: "letter", lower: "o", upper: "O" },
+          { id: "KeyP", type: "letter", lower: "p", upper: "P" },
+          { id: "BracketLeft", type: "print", lower: "[", upper: "{" },
+          { id: "BracketRight", type: "print", lower: "]", upper: "}" },
+          { id: "Backslash", type: "print", lower: "\\", upper: "|" }
+        ],
+        [
+          { id: "CapsLock", type: "special", label: "Caps", className: "caps w-caps" },
+          { id: "KeyA", type: "letter", lower: "a", upper: "A" },
+          { id: "KeyS", type: "letter", lower: "s", upper: "S" },
+          { id: "KeyD", type: "letter", lower: "d", upper: "D" },
+          { id: "KeyF", type: "letter", lower: "f", upper: "F" },
+          { id: "KeyG", type: "letter", lower: "g", upper: "G" },
+          { id: "KeyH", type: "letter", lower: "h", upper: "H" },
+          { id: "KeyJ", type: "letter", lower: "j", upper: "J" },
+          { id: "KeyK", type: "letter", lower: "k", upper: "K" },
+          { id: "KeyL", type: "letter", lower: "l", upper: "L" },
+          { id: "Semicolon", type: "print", lower: ";", upper: ":" },
+          { id: "Quote", type: "print", lower: "'", upper: "\"" },
+          { id: "Enter", type: "special", label: "Enter", className: "enter w-enter" }
+        ],
+        [
+          { id: "ShiftLeft", type: "special", label: "Shift", className: "shift w-shift" },
+          { id: "KeyZ", type: "letter", lower: "z", upper: "Z" },
+          { id: "KeyX", type: "letter", lower: "x", upper: "X" },
+          { id: "KeyC", type: "letter", lower: "c", upper: "C" },
+          { id: "KeyV", type: "letter", lower: "v", upper: "V" },
+          { id: "KeyB", type: "letter", lower: "b", upper: "B" },
+          { id: "KeyN", type: "letter", lower: "n", upper: "N" },
+          { id: "KeyM", type: "letter", lower: "m", upper: "M" },
+          { id: "Comma", type: "print", lower: ",", upper: "<" },
+          { id: "Period", type: "print", lower: ".", upper: ">" },
+          { id: "Slash", type: "print", lower: "/", upper: "?" },
+          { id: "ShiftRight", type: "special", label: "Shift", className: "shift w-shift" }
+        ],
+        [
+          { id: "ControlLeft", type: "special", label: "Ctrl", className: "w-ctrl" },
+          { id: "AltLeft", type: "special", label: "Alt", className: "alt w-alt" },
+          { id: "Space", type: "special", label: "Space", className: "space w-space" },
+          { id: "AltRight", type: "special", label: "Alt", className: "alt w-alt" },
+          { id: "ContextMenu", type: "special", label: "Menú", className: "w-menu" },
+          { id: "ControlRight", type: "special", label: "Ctrl", className: "w-ctrl" }
+        ]
+      ];
+
+      const messagesByKey = {
+        Space: "Usaste Space: separa palabras.",
+        Backspace: "Usaste Backspace: borra lo que escribiste.",
+        Shift: "Usaste Shift: ayuda a escribir mayúsculas.",
+        CapsLock: "Usaste Caps Lock: mantiene mayúsculas activadas.",
+        Alt: "Usaste Alt: ayuda con funciones especiales.",
+        Enter: "Usaste Enter: baja a la siguiente línea.",
+        Tab: "Usaste Tab: agrega una tabulación."
+      };
+
+      const retos = [
+        {
+          text: "Reto: escribe tu nombre en una sola palabra.",
+          check: function (texto) {
+            return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,}$/.test(texto.trim());
+          }
+        },
+        {
+          text: "Reto: escribe dos palabras separadas por un espacio.",
+          check: function (texto) {
+            return /^\S+\s+\S+$/.test(texto.trim());
+          }
+        },
+        {
+          text: "Reto: escribe una palabra con la primera letra en mayúscula.",
+          check: function (texto) {
+            return /^[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+$/.test(texto.trim());
+          }
+        },
+        {
+          text: "Reto: escribe una palabra y luego borra una letra con Backspace.",
+          check: function (texto, stats) {
+            return stats.usoBackspace && texto.trim().length >= 2;
+          }
+        },
+        {
+          text: "Reto: escribe dos líneas usando Enter.",
+          check: function (texto) {
+            return /\n/.test(texto);
+          }
+        }
+      ];
+
+      const ui = {
+        keyboard: document.getElementById("keyboard"),
+        writingArea: document.getElementById("writingArea"),
+        btnLimpiar: document.getElementById("btnLimpiar"),
+        btnReto: document.getElementById("btnReto"),
+        challengeText: document.getElementById("challengeText"),
+        challengeStatus: document.getElementById("challengeStatus"),
+        lastKey: document.getElementById("lastKey"),
+        modeNote: document.getElementById("modeNote"),
+        recentKeyText: document.getElementById("recentKeyText"),
+        keyHelpText: document.getElementById("keyHelpText"),
+        friendlyText: document.getElementById("friendlyText"),
+        altTip: document.getElementById("altTip")
+      };
+
+      const state = {
+        text: "",
+        shiftActive: false,
+        capsLockActive: false,
+        altActive: false,
+        currentChallenge: null,
+        stats: {
+          usoBackspace: false
+        }
+      };
+
+      const keyMap = new Map();
+      const keyMeta = new Map();
+
+      function updateWritingArea() {
+        ui.writingArea.value = state.text;
+      }
+
+      function updateModeLabel() {
+        const mayus = state.capsLockActive ? "Caps Lock activo" : "Caps Lock apagado";
+        const shift = state.shiftActive ? "Shift activo" : "Shift apagado";
+        ui.modeNote.textContent = "Modo actual: " + mayus + " | " + shift + ".";
+      }
+
+      function normalizeCodeFromKey(key) {
+        if (key.length === 1 && /^[a-z]$/i.test(key)) return "Key" + key.toUpperCase();
+        if (key.length === 1 && /^[0-9]$/.test(key)) return "Digit" + key;
+        if (key === " ") return "Space";
+        return null;
+      }
+
+      function friendlyKeyNameFromCode(code) {
+        if (!code) return "Tecla";
+        if (code === "Space") return "Space";
+        if (code === "Backspace") return "Backspace";
+        if (code === "CapsLock") return "Caps Lock";
+        if (code === "Enter") return "Enter";
+        if (code === "Tab") return "Tab";
+        if (code === "ShiftLeft" || code === "ShiftRight") return "Shift";
+        if (code === "AltLeft" || code === "AltRight") return "Alt";
+        if (/^Key[A-Z]$/.test(code)) return code.slice(-1).toLowerCase();
+        if (/^Digit[0-9]$/.test(code)) return code.slice(-1);
+        return code;
+      }
+
+      function getDisplayLabel(meta) {
+        if (meta.type === "letter") {
+          const upper = state.capsLockActive || state.shiftActive;
+          return upper ? meta.upper : meta.lower;
+        }
+        if (meta.type === "print") {
+          return state.shiftActive ? meta.upper : meta.lower;
+        }
+        return meta.label;
+      }
+
+      function updateKeyboardLabels() {
+        keyMeta.forEach(function (meta, code) {
+          const keys = keyMap.get(code) || [];
+          const label = getDisplayLabel(meta);
+          keys.forEach(function (btn) {
+            btn.textContent = label;
+          });
+        });
+      }
+
+      function renderTeclado() {
+        ui.keyboard.innerHTML = "";
+        keyMap.clear();
+        keyMeta.clear();
+
+        keyboardModel.forEach(function (rowData) {
+          const row = document.createElement("div");
+          row.className = "kb-row";
+
+          rowData.forEach(function (item) {
+            keyMeta.set(item.id, item);
+
+            const key = document.createElement("button");
+            key.type = "button";
+            key.className = "key" + (item.className ? " " + item.className : "");
+            key.textContent = getDisplayLabel(item);
+            key.dataset.code = item.id;
+            key.addEventListener("click", function () {
+              manejarClickTeclaVisual(item.id);
+            });
+
+            if (!keyMap.has(item.id)) keyMap.set(item.id, []);
+            keyMap.get(item.id).push(key);
+            row.appendChild(key);
+          });
+
+          ui.keyboard.appendChild(row);
+        });
+
+        updateKeyboardLabels();
+        updateLatchClasses();
+      }
+
+      function highlightByCode(code) {
+        const keys = keyMap.get(code);
+        if (!keys) return;
+        keys.forEach(function (btn) {
+          btn.classList.add("active");
+          setTimeout(function () {
+            btn.classList.remove("active");
+          }, 180);
+        });
+      }
+
+      function highlightKeyByName(name) {
+        if (name === "Shift") {
+          highlightByCode("ShiftLeft");
+          highlightByCode("ShiftRight");
+          return;
+        }
+        if (name === "Alt") {
+          highlightByCode("AltLeft");
+          highlightByCode("AltRight");
+          return;
+        }
+        highlightByCode(name);
+      }
+
+      function updateLatchClasses() {
+        const shiftKeys = (keyMap.get("ShiftLeft") || []).concat(keyMap.get("ShiftRight") || []);
+        const capsKeys = keyMap.get("CapsLock") || [];
+        const altKeys = (keyMap.get("AltLeft") || []).concat(keyMap.get("AltRight") || []);
+
+        shiftKeys.forEach(function (k) {
+          if (state.shiftActive) k.classList.add("latched");
+          else k.classList.remove("latched");
+        });
+        capsKeys.forEach(function (k) {
+          if (state.capsLockActive) k.classList.add("latched");
+          else k.classList.remove("latched");
+        });
+        altKeys.forEach(function (k) {
+          if (state.altActive) k.classList.add("latched");
+          else k.classList.remove("latched");
+        });
+      }
+
+      function showAltTip() {
+        ui.altTip.classList.add("show");
+        setTimeout(function () {
+          ui.altTip.classList.remove("show");
+        }, 1900);
+      }
+
+      function triggerTextAnimation(type) {
+        const cls = type === "space" ? "anim-space" : "anim-backspace";
+        ui.writingArea.classList.remove("anim-space", "anim-backspace");
+        void ui.writingArea.offsetWidth;
+        ui.writingArea.classList.add(cls);
+        setTimeout(function () {
+          ui.writingArea.classList.remove(cls);
+        }, 280);
+      }
+
+      function setSupportMessages(keyName, message, friendly) {
+        ui.lastKey.textContent = keyName;
+        ui.recentKeyText.textContent = "Última tecla: " + keyName + ".";
+        ui.keyHelpText.textContent = message;
+        ui.friendlyText.textContent = friendly;
+      }
+
+      function explainKey(code) {
+        let keyName = friendlyKeyNameFromCode(code);
+        let baseName = keyName;
+        if (code === "ShiftLeft" || code === "ShiftRight") baseName = "Shift";
+        if (code === "AltLeft" || code === "AltRight") baseName = "Alt";
+        const message = messagesByKey[baseName] || ("Usaste " + keyName + ": escribe un carácter.");
+
+        let friendly = "Sigue practicando, lo estás haciendo muy bien.";
+        if (baseName === "Shift") friendly = "Shift está activo: la siguiente tecla cambiará de forma.";
+        else if (baseName === "CapsLock") friendly = "Caps Lock cambia entre mayúsculas y minúsculas.";
+        else if (baseName === "Backspace") friendly = "¡Bien! Estás corrigiendo tu texto.";
+        else if (baseName === "Space") friendly = "Muy bien: separaste palabras con Space.";
+        else if (baseName === "Enter") friendly = "Excelente: hiciste un salto de línea.";
+        else if (baseName === "Alt") friendly = "Alt sirve para funciones especiales con otras teclas.";
+
+        setSupportMessages(keyName, message, friendly);
+      }
+
+      function getPrintableFromCode(code, eventKey) {
+        const meta = keyMeta.get(code);
+        if (!meta) return null;
+
+        if (meta.type === "letter") {
+          const uppercase = state.capsLockActive || state.shiftActive;
+          return uppercase ? meta.upper : meta.lower;
+        }
+        if (meta.type === "print") {
+          return state.shiftActive ? meta.upper : meta.lower;
+        }
+        if (code === "Space") return " ";
+        if (code === "Tab") return "  ";
+        if (eventKey && eventKey.length === 1) return eventKey;
+        return null;
+      }
+
+      function appendChar(char) {
+        state.text += char;
+        updateWritingArea();
+      }
+
+      function applyBackspace() {
+        if (state.text.length > 0) {
+          state.text = state.text.slice(0, -1);
+          updateWritingArea();
+        }
+      }
+
+      function tryAltNumber(code) {
+        if (!state.altActive) return false;
+        if (!/^Digit[0-9]$/.test(code)) return false;
+
+        const number = code.slice(-1);
+        appendChar("[ALT+" + number + "]");
+        setSupportMessages(
+          "Alt + " + number,
+          "Combinaste Alt con un número de la fila superior.",
+          "Excelente: Alt trabaja acompañada de otras teclas."
+        );
+        showAltTip();
+        state.altActive = false;
+        updateLatchClasses();
+        verificarReto();
+        return true;
+      }
+
+      function processKeyCode(code, eventKey, fromPhysical) {
+        explainKey(code);
+        highlightByCode(code);
+
+        if (code === "ShiftLeft" || code === "ShiftRight") {
+          if (fromPhysical) {
+            state.shiftActive = true;
+          } else {
+            state.shiftActive = !state.shiftActive;
+          }
+          updateKeyboardLabels();
+          updateLatchClasses();
+          updateModeLabel();
+          return;
+        }
+
+        if (code === "CapsLock") {
+          state.capsLockActive = !state.capsLockActive;
+          updateKeyboardLabels();
+          updateLatchClasses();
+          updateModeLabel();
+          return;
+        }
+
+        if (code === "AltLeft" || code === "AltRight") {
+          if (fromPhysical) {
+            state.altActive = true;
+          } else {
+            state.altActive = !state.altActive;
+          }
+          updateLatchClasses();
+          showAltTip();
+          return;
+        }
+
+        if (tryAltNumber(code)) return;
+
+        if (state.altActive) {
+          state.altActive = false;
+          updateLatchClasses();
+        }
+
+        if (code === "Backspace") {
+          applyBackspace();
+          state.stats.usoBackspace = true;
+          triggerTextAnimation("backspace");
+          verificarReto();
+          updateModeLabel();
+          return;
+        }
+
+        if (code === "Enter") {
+          appendChar("\n");
+          verificarReto();
+          updateModeLabel();
+          return;
+        }
+
+        if (code === "Space") {
+          appendChar(" ");
+          triggerTextAnimation("space");
+          verificarReto();
+          updateModeLabel();
+          return;
+        }
+
+        if (code === "Tab") {
+          appendChar("  ");
+          verificarReto();
+          updateModeLabel();
+          return;
+        }
+
+        const out = getPrintableFromCode(code, eventKey);
+        if (out !== null) {
+          appendChar(out);
+          verificarReto();
+          updateModeLabel();
+        }
+      }
+
+      function verificarReto() {
+        if (!state.currentChallenge) return;
+        const ok = state.currentChallenge.check(state.text, state.stats);
+        if (ok) {
+          ui.challengeStatus.textContent = "¡Muy bien! ¡Lo lograste! Excelente trabajo.";
+          ui.challengeStatus.classList.add("done");
+        } else {
+          ui.challengeStatus.textContent = "Reto actual: pendiente.";
+          ui.challengeStatus.classList.remove("done");
+        }
+      }
+
+      function nuevoReto() {
+        let next = retos[Math.floor(Math.random() * retos.length)];
+        if (state.currentChallenge && retos.length > 1) {
+          while (next === state.currentChallenge) {
+            next = retos[Math.floor(Math.random() * retos.length)];
+          }
+        }
+        state.currentChallenge = next;
+        ui.challengeText.textContent = next.text;
+        ui.challengeStatus.textContent = "Reto actual: pendiente.";
+        ui.challengeStatus.classList.remove("done");
+        verificarReto();
+      }
+
+      function limpiarTexto() {
+        state.text = "";
+        state.shiftActive = false;
+        state.altActive = false;
+        state.stats.usoBackspace = false;
+        updateWritingArea();
+        updateKeyboardLabels();
+        updateLatchClasses();
+        updateModeLabel();
+        ui.friendlyText.textContent = "Texto limpio. ¡Listo para seguir practicando!";
+        verificarReto();
+      }
+
+      function manejarEntradaTeclado(event) {
+        if (event.ctrlKey || event.metaKey) return;
+
+        let code = event.code;
+        if (!code) {
+          code = normalizeCodeFromKey(event.key);
+        }
+
+        if (!code || !keyMeta.has(code)) return;
+
+        event.preventDefault();
+        processKeyCode(code, event.key, true);
+      }
+
+      function manejarClickTeclaVisual(code) {
+        processKeyCode(code, null, false);
+      }
+
+      function manejarKeyUp(event) {
+        if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+          state.shiftActive = false;
+          updateKeyboardLabels();
+          updateLatchClasses();
+          updateModeLabel();
+          return;
+        }
+        if (event.code === "AltLeft" || event.code === "AltRight") {
+          state.altActive = false;
+          updateLatchClasses();
+          updateModeLabel();
+        }
+      }
+
+      ui.btnLimpiar.addEventListener("click", limpiarTexto);
+      ui.btnReto.addEventListener("click", nuevoReto);
+      document.addEventListener("keydown", manejarEntradaTeclado);
+      document.addEventListener("keyup", manejarKeyUp);
+
+      renderTeclado();
+      updateWritingArea();
+      updateModeLabel();
+      nuevoReto();
+      ui.writingArea.focus();
+    })();
+  </script>
+</body>
+</html>

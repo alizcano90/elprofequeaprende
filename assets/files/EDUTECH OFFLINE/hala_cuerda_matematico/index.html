@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hala la cuerda matemático</title>
+  <style>
+    :root {
+      --bg: #f3f7fc;
+      --card: #ffffff;
+      --text: #1f2f3f;
+      --muted: #546579;
+      --border: #d7e2ee;
+      --azul: #2f7de1;
+      --azul-dark: #1f5cb0;
+      --rojo: #e24a4a;
+      --rojo-dark: #b23636;
+      --cuerda: #8a6239;
+      --cinta: #f6d743;
+      --ganador: #1f8a4d;
+      --error: #b3261e;
+      --sombra: 0 8px 20px rgba(24, 43, 65, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #f9fcff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      padding: 14px;
+    }
+
+    .header {
+      display: grid;
+      gap: 10px;
+    }
+
+    .header-main {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.6vw, 2rem);
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      font-weight: 600;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .btn-restart {
+      background: #eff4fa;
+      border: 1px solid #cad9e8;
+      color: #29435f;
+      min-width: 110px;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .score {
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+
+    .score.azul {
+      background: #ecf4ff;
+      color: var(--azul-dark);
+      border-color: #c9ddfa;
+    }
+
+    .score.rojo {
+      background: #ffefef;
+      color: var(--rojo-dark);
+      border-color: #f5cccc;
+    }
+
+    .game-zone {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .svg-wrap {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: linear-gradient(180deg, #f6fbff 0%, #edf5ff 100%);
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .movable {
+      transition: transform 280ms ease;
+      will-change: transform;
+    }
+
+    .team-bounce {
+      animation: bounce 320ms ease;
+    }
+
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+      100% { transform: translateY(0); }
+    }
+
+    .floating {
+      position: absolute;
+      top: 20px;
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      font-size: 1rem;
+    }
+
+    .floating.azul {
+      left: 90px;
+      color: var(--azul-dark);
+    }
+
+    .floating.rojo {
+      right: 90px;
+      color: var(--rojo-dark);
+    }
+
+    .floating.show {
+      animation: rise 620ms ease;
+    }
+
+    @keyframes rise {
+      0% { opacity: 0; transform: translateY(6px); }
+      25% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-16px); }
+    }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .team-panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fcfeff;
+    }
+
+    .team-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+    }
+
+    .team-panel.azul h3 {
+      color: var(--azul-dark);
+    }
+
+    .team-panel.rojo h3 {
+      color: var(--rojo-dark);
+    }
+
+    .op-box {
+      border: 1px solid #d1ddeb;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 1.3rem;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      min-height: 58px;
+      display: grid;
+      place-items: center;
+    }
+
+    .team-input {
+      width: 100%;
+      border: 1px solid #c8d6e5;
+      border-radius: 10px;
+      padding: 10px;
+      font: inherit;
+      margin-bottom: 8px;
+      background: #fff;
+    }
+
+    .team-btn {
+      width: 100%;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .team-btn.azul {
+      background: var(--azul);
+    }
+
+    .team-btn.rojo {
+      background: var(--rojo);
+    }
+
+    .message-panel {
+      border-left: 5px solid #c8d7e8;
+      background: #f8fbff;
+      color: #29435e;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .message-panel.ok {
+      border-left-color: var(--ganador);
+      color: var(--ganador);
+    }
+
+    .message-panel.error {
+      border-left-color: var(--error);
+      color: var(--error);
+    }
+
+    .message-panel.win-azul {
+      border-left-color: var(--azul-dark);
+      color: var(--azul-dark);
+      background: #eaf3ff;
+    }
+
+    .message-panel.win-rojo {
+      border-left-color: var(--rojo-dark);
+      color: var(--rojo-dark);
+      background: #ffeded;
+    }
+
+    .foot-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 900px) {
+      .panels,
+      .scoreboard {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="card header">
+      <div class="header-main">
+        <div>
+          <h1>Hala la cuerda matemático</h1>
+          <p class="subtitle">Resuelve más rápido y arrastra la soga</p>
+        </div>
+        <button id="btnReiniciar" class="btn-restart" type="button">Reiniciar</button>
+      </div>
+      <div class="scoreboard">
+        <div class="score azul"><span>Equipo azul</span><span id="scoreAzul">0</span></div>
+        <div class="score rojo"><span>Equipo rojo</span><span id="scoreRojo">0</span></div>
+      </div>
+    </header>
+
+    <section class="card game-zone">
+      <div class="svg-wrap">
+        <svg viewBox="0 0 1000 300" role="img" aria-label="Escena del juego hala la cuerda">
+          <rect x="0" y="0" width="1000" height="300" fill="#f2f8ff"></rect>
+          <rect x="0" y="0" width="120" height="300" fill="#deedff"></rect>
+          <rect x="880" y="0" width="120" height="300" fill="#ffe3e3"></rect>
+          <text x="24" y="26" fill="#2f6ca9" font-size="14" font-weight="700">Zona azul</text>
+          <text x="900" y="26" fill="#b14343" font-size="14" font-weight="700">Zona roja</text>
+          <line x1="500" y1="18" x2="500" y2="282" stroke="#9ab0c7" stroke-width="3" stroke-dasharray="8 6"></line>
+          <text x="500" y="16" text-anchor="middle" fill="#5a6b7b" font-size="12" font-weight="700">Centro</text>
+
+          <g id="ropeGroup" class="movable">
+            <line x1="180" y1="152" x2="820" y2="152" stroke="var(--cuerda)" stroke-width="10" stroke-linecap="round"></line>
+            <line x1="180" y1="152" x2="820" y2="152" stroke="#a67c52" stroke-width="4" stroke-linecap="round" opacity="0.6"></line>
+            <rect x="492" y="137" width="16" height="30" rx="4" fill="var(--cinta)" stroke="#9f8124" stroke-width="2"></rect>
+          </g>
+
+          <g id="blueTeam" class="movable">
+            <g stroke="#1e4f9a" stroke-width="3.3" fill="none" stroke-linecap="round">
+              <g transform="translate(-50,0)">
+                <circle cx="0" cy="-50" r="10" fill="#78abef"></circle>
+                <line x1="0" y1="-40" x2="0" y2="-12"></line>
+                <line x1="0" y1="-32" x2="20" y2="-24"></line>
+                <line x1="0" y1="-28" x2="22" y2="-22"></line>
+                <line x1="0" y1="-12" x2="-11" y2="12"></line>
+                <line x1="0" y1="-12" x2="10" y2="12"></line>
+              </g>
+              <g transform="translate(0,0)">
+                <circle cx="0" cy="-52" r="10" fill="#78abef"></circle>
+                <line x1="0" y1="-42" x2="0" y2="-14"></line>
+                <line x1="0" y1="-34" x2="21" y2="-26"></line>
+                <line x1="0" y1="-30" x2="23" y2="-24"></line>
+                <line x1="0" y1="-14" x2="-10" y2="11"></line>
+                <line x1="0" y1="-14" x2="11" y2="11"></line>
+              </g>
+              <g transform="translate(50,0)">
+                <circle cx="0" cy="-50" r="10" fill="#78abef"></circle>
+                <line x1="0" y1="-40" x2="0" y2="-12"></line>
+                <line x1="0" y1="-32" x2="20" y2="-24"></line>
+                <line x1="0" y1="-28" x2="22" y2="-22"></line>
+                <line x1="0" y1="-12" x2="-11" y2="12"></line>
+                <line x1="0" y1="-12" x2="10" y2="12"></line>
+              </g>
+            </g>
+          </g>
+
+          <g id="redTeam" class="movable">
+            <g stroke="#9d2d2d" stroke-width="3.3" fill="none" stroke-linecap="round">
+              <g transform="translate(-50,0)">
+                <circle cx="0" cy="-50" r="10" fill="#f18b8b"></circle>
+                <line x1="0" y1="-40" x2="0" y2="-12"></line>
+                <line x1="0" y1="-32" x2="-20" y2="-24"></line>
+                <line x1="0" y1="-28" x2="-22" y2="-22"></line>
+                <line x1="0" y1="-12" x2="-11" y2="12"></line>
+                <line x1="0" y1="-12" x2="10" y2="12"></line>
+              </g>
+              <g transform="translate(0,0)">
+                <circle cx="0" cy="-52" r="10" fill="#f18b8b"></circle>
+                <line x1="0" y1="-42" x2="0" y2="-14"></line>
+                <line x1="0" y1="-34" x2="-21" y2="-26"></line>
+                <line x1="0" y1="-30" x2="-23" y2="-24"></line>
+                <line x1="0" y1="-14" x2="-10" y2="11"></line>
+                <line x1="0" y1="-14" x2="11" y2="11"></line>
+              </g>
+              <g transform="translate(50,0)">
+                <circle cx="0" cy="-50" r="10" fill="#f18b8b"></circle>
+                <line x1="0" y1="-40" x2="0" y2="-12"></line>
+                <line x1="0" y1="-32" x2="-20" y2="-24"></line>
+                <line x1="0" y1="-28" x2="-22" y2="-22"></line>
+                <line x1="0" y1="-12" x2="-11" y2="12"></line>
+                <line x1="0" y1="-12" x2="10" y2="12"></line>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div id="floatAzul" class="floating azul">+1 Azul</div>
+      <div id="floatRojo" class="floating rojo">+1 Rojo</div>
+      <p class="foot-note">Resuelve correctamente para arrastrar la cinta central hacia tu zona.</p>
+    </section>
+
+    <section class="panels">
+      <article class="card team-panel azul">
+        <h3>Reto del equipo azul</h3>
+        <div id="opAzul" class="op-box">0 + 0 = ?</div>
+        <input id="inputAzul" class="team-input" type="number" inputmode="numeric" placeholder="Escribe tu respuesta" />
+        <button id="btnAzul" class="team-btn azul" type="button">Responder azul</button>
+      </article>
+
+      <article class="card team-panel rojo">
+        <h3>Reto del equipo rojo</h3>
+        <div id="opRojo" class="op-box">0 + 0 = ?</div>
+        <input id="inputRojo" class="team-input" type="number" inputmode="numeric" placeholder="Escribe tu respuesta" />
+        <button id="btnRojo" class="team-btn rojo" type="button">Responder rojo</button>
+      </article>
+    </section>
+
+    <section id="panelMensajes" class="card message-panel">
+      Inicia el reto: ambos equipos tienen una operación lista.
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const PASO = 25;
+      const LIMITE_IZQUIERDO = -300;
+      const LIMITE_DERECHO = 300;
+      const BASE_BLUE_X = 240;
+      const BASE_RED_X = 760;
+      const BASE_TEAM_Y = 220;
+
+      let ventaja = 0;
+      let juegoActivo = true;
+
+      const estado = {
+        scoreAzul: 0,
+        scoreRojo: 0,
+        opAzul: null,
+        opRojo: null
+      };
+
+      const ui = {
+        scoreAzul: document.getElementById("scoreAzul"),
+        scoreRojo: document.getElementById("scoreRojo"),
+        opAzul: document.getElementById("opAzul"),
+        opRojo: document.getElementById("opRojo"),
+        inputAzul: document.getElementById("inputAzul"),
+        inputRojo: document.getElementById("inputRojo"),
+        btnAzul: document.getElementById("btnAzul"),
+        btnRojo: document.getElementById("btnRojo"),
+        btnReiniciar: document.getElementById("btnReiniciar"),
+        panelMensajes: document.getElementById("panelMensajes"),
+        ropeGroup: document.getElementById("ropeGroup"),
+        blueTeam: document.getElementById("blueTeam"),
+        redTeam: document.getElementById("redTeam"),
+        floatAzul: document.getElementById("floatAzul"),
+        floatRojo: document.getElementById("floatRojo")
+      };
+
+      function numeroAleatorio(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function generarOperacion() {
+        const tipos = ["+", "-", "×", "÷"];
+        const tipo = tipos[numeroAleatorio(0, tipos.length - 1)];
+        let a = 0;
+        let b = 0;
+        let resultado = 0;
+
+        if (tipo === "+") {
+          a = numeroAleatorio(1, 40);
+          b = numeroAleatorio(1, 40);
+          resultado = a + b;
+        } else if (tipo === "-") {
+          a = numeroAleatorio(10, 50);
+          b = numeroAleatorio(1, a);
+          resultado = a - b;
+        } else if (tipo === "×") {
+          a = numeroAleatorio(2, 12);
+          b = numeroAleatorio(2, 12);
+          resultado = a * b;
+        } else {
+          b = numeroAleatorio(2, 12);
+          resultado = numeroAleatorio(2, 12);
+          a = b * resultado;
+        }
+
+        return {
+          texto: a + " " + tipo + " " + b + " = ?",
+          resultado: resultado
+        };
+      }
+
+      function ponerMensaje(texto, tipo) {
+        ui.panelMensajes.textContent = texto;
+        ui.panelMensajes.className = "card message-panel";
+        if (tipo) ui.panelMensajes.classList.add(tipo);
+      }
+
+      function mostrarFlotante(equipo) {
+        const elem = equipo === "azul" ? ui.floatAzul : ui.floatRojo;
+        elem.classList.remove("show");
+        void elem.offsetWidth;
+        elem.classList.add("show");
+      }
+
+      function reboteEquipo(equipo) {
+        const elem = equipo === "azul" ? ui.blueTeam : ui.redTeam;
+        elem.classList.remove("team-bounce");
+        void elem.offsetWidth;
+        elem.classList.add("team-bounce");
+      }
+
+      function actualizarRetos() {
+        if (!estado.opAzul) estado.opAzul = generarOperacion();
+        if (!estado.opRojo) estado.opRojo = generarOperacion();
+        ui.opAzul.textContent = estado.opAzul.texto;
+        ui.opRojo.textContent = estado.opRojo.texto;
+      }
+
+      function actualizarMarcador() {
+        ui.scoreAzul.textContent = String(estado.scoreAzul);
+        ui.scoreRojo.textContent = String(estado.scoreRojo);
+      }
+
+      function actualizarEscena() {
+        const x = ventaja;
+        const arrastre = x * 0.16;
+        let inclinacionAzul = -4;
+        let inclinacionRojo = 4;
+
+        if (x < 0) {
+          inclinacionAzul = -9;
+          inclinacionRojo = 2;
+        } else if (x > 0) {
+          inclinacionAzul = -2;
+          inclinacionRojo = 9;
+        }
+
+        ui.ropeGroup.style.transform = "translateX(" + x + "px)";
+        ui.blueTeam.style.transform = "translate(" + (BASE_BLUE_X + arrastre) + "px, " + BASE_TEAM_Y + "px) rotate(" + inclinacionAzul + "deg)";
+        ui.redTeam.style.transform = "translate(" + (BASE_RED_X + arrastre) + "px, " + BASE_TEAM_Y + "px) rotate(" + inclinacionRojo + "deg)";
+      }
+
+      function bloquearControles(bloquear) {
+        ui.inputAzul.disabled = bloquear;
+        ui.inputRojo.disabled = bloquear;
+        ui.btnAzul.disabled = bloquear;
+        ui.btnRojo.disabled = bloquear;
+      }
+
+      function verificarGanador() {
+        if (ventaja <= LIMITE_IZQUIERDO) {
+          juegoActivo = false;
+          bloquearControles(true);
+          ponerMensaje("¡Equipo azul gana! Arrastró la cinta hasta su zona de victoria.", "win-azul");
+          return true;
+        }
+
+        if (ventaja >= LIMITE_DERECHO) {
+          juegoActivo = false;
+          bloquearControles(true);
+          ponerMensaje("¡Equipo rojo gana! Arrastró la cinta hasta su zona de victoria.", "win-rojo");
+          return true;
+        }
+
+        return false;
+      }
+
+      function verificarRespuesta(equipo) {
+        if (!juegoActivo) return;
+
+        const input = equipo === "azul" ? ui.inputAzul : ui.inputRojo;
+        const operacion = equipo === "azul" ? estado.opAzul : estado.opRojo;
+        const texto = input.value.trim();
+
+        if (!texto) {
+          ponerMensaje("Escribe una respuesta para el equipo " + equipo + ".", "error");
+          input.focus();
+          return;
+        }
+
+        const respuesta = Number(texto);
+        if (!Number.isFinite(respuesta)) {
+          ponerMensaje("La respuesta del equipo " + equipo + " no es válida.", "error");
+          input.focus();
+          return;
+        }
+
+        if (respuesta === operacion.resultado) {
+          if (equipo === "azul") {
+            estado.scoreAzul += 1;
+            ventaja -= PASO;
+            estado.opAzul = generarOperacion();
+          } else {
+            estado.scoreRojo += 1;
+            ventaja += PASO;
+            estado.opRojo = generarOperacion();
+          }
+
+          if (ventaja < LIMITE_IZQUIERDO) ventaja = LIMITE_IZQUIERDO;
+          if (ventaja > LIMITE_DERECHO) ventaja = LIMITE_DERECHO;
+
+          actualizarMarcador();
+          actualizarRetos();
+          actualizarEscena();
+          reboteEquipo(equipo);
+          mostrarFlotante(equipo);
+          input.value = "";
+
+          const mensajeOk = equipo === "azul"
+            ? "Correcto. El equipo azul tira la cuerda hacia su lado."
+            : "Correcto. El equipo rojo tira la cuerda hacia su lado.";
+          ponerMensaje(mensajeOk, "ok");
+
+          verificarGanador();
+        } else {
+          ponerMensaje("Incorrecto. La cuerda no se mueve. Intenta de nuevo.", "error");
+          input.value = "";
+          input.focus();
+        }
+      }
+
+      function reiniciarJuego() {
+        ventaja = 0;
+        juegoActivo = true;
+        estado.scoreAzul = 0;
+        estado.scoreRojo = 0;
+        estado.opAzul = generarOperacion();
+        estado.opRojo = generarOperacion();
+        ui.inputAzul.value = "";
+        ui.inputRojo.value = "";
+        bloquearControles(false);
+        actualizarMarcador();
+        actualizarRetos();
+        actualizarEscena();
+        ponerMensaje("Nuevo juego iniciado. ¡Resuelve y hala la cuerda!", "");
+      }
+
+      ui.btnAzul.addEventListener("click", function () {
+        verificarRespuesta("azul");
+      });
+
+      ui.btnRojo.addEventListener("click", function () {
+        verificarRespuesta("rojo");
+      });
+
+      ui.inputAzul.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") verificarRespuesta("azul");
+      });
+
+      ui.inputRojo.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") verificarRespuesta("rojo");
+      });
+
+      ui.btnReiniciar.addEventListener("click", reiniciarJuego);
+
+      reiniciarJuego();
+    })();
+  </script>
+</body>
+</html>

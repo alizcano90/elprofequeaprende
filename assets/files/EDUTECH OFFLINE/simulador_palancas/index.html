@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Palancas</title>
+  <style>
+    :root {
+      --bg: #f2f6fb;
+      --card: #ffffff;
+      --text: #1f2d3d;
+      --muted: #5a6b7b;
+      --border: #d9e3ee;
+      --shadow: 0 8px 24px rgba(20, 42, 67, 0.08);
+      --support: #7b2cbf;
+      --force: #2ea44f;
+      --resistance: #f28c28;
+      --beam: #5d748b;
+      --accent: #1d6fd4;
+      --ok: #1f8a4d;
+      --error: #b3261e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 18px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.8vw, 2rem);
+    }
+
+    .header h2 {
+      margin: 4px 0 8px;
+      color: var(--accent);
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      font-weight: 650;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 14px;
+    }
+
+    .visual-panel h3,
+    .controls-panel h3,
+    .didactic-panel h3 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+
+    .visual-wrap {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fafdff 0%, #eef5ff 100%);
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    .visual-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      min-height: 1.2rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: #324a61;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid #c8d7e6;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 11px;
+      padding: 10px 11px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.15s ease;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: #1d6fd4;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #f0f4fa;
+      color: #26384b;
+      border: 1px solid #c9d7e6;
+    }
+
+    .feedback {
+      margin-top: 10px;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.92rem;
+      min-height: 40px;
+      border: 1px solid #d6e1ed;
+      background: #f9fcff;
+    }
+
+    .feedback.error {
+      border-color: #f0c8c5;
+      background: #fff4f3;
+      color: var(--error);
+    }
+
+    .feedback.ok {
+      border-color: #bde0c8;
+      background: #f2fbf5;
+      color: var(--ok);
+    }
+
+    .exercise-box,
+    .solution-box,
+    .formula-box,
+    .result-box,
+    .steps-box {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfdff;
+    }
+
+    .exercise-box h4,
+    .solution-box h4,
+    .formula-box h4,
+    .result-box h4,
+    .steps-box h4 {
+      margin: 0 0 6px;
+      font-size: 0.96rem;
+      color: #2b4d71;
+    }
+
+    .exercise-box p,
+    .result-box p,
+    .formula-box p,
+    .didactic-panel p {
+      margin: 0;
+      line-height: 1.4;
+      color: #334b63;
+    }
+
+    .solution-box ol {
+      margin: 0;
+      padding-left: 18px;
+      color: #2d445a;
+      line-height: 1.38;
+    }
+
+    .didactic-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 12px;
+    }
+
+    .examples {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: #334b63;
+    }
+
+    .examples li {
+      margin-bottom: 4px;
+    }
+
+    details {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: #fbfdff;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 650;
+      color: #22476f;
+    }
+
+    .quick-list,
+    .steps-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: #334b63;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 980px) {
+      .layout,
+      .didactic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .btn-row,
+      .controls-grid,
+      .legend {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="card header" aria-label="Encabezado principal">
+      <h1>Simulador de Palancas</h1>
+      <h2>Primer, segundo y tercer grado</h2>
+      <p>Explora cómo cambian la fuerza y la resistencia según la posición del apoyo.</p>
+    </header>
+
+    <main class="layout" aria-label="Simulador de palancas">
+      <section class="card visual-panel" aria-label="Panel visual de la palanca">
+        <h3>Panel visual</h3>
+        <div class="visual-wrap">
+          <svg id="leverSvg" viewBox="0 0 800 320" role="img" aria-label="Representación de la palanca con apoyo, fuerza y resistencia">
+            <defs>
+              <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L6,3 z" fill="var(--force)"></path>
+              </marker>
+              <marker id="arrowOrange" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L6,3 z" fill="var(--resistance)"></path>
+              </marker>
+              <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L6,3 z" fill="#2f587d"></path>
+              </marker>
+            </defs>
+
+            <line id="beam" x1="90" y1="185" x2="710" y2="185" stroke="var(--beam)" stroke-width="14" stroke-linecap="round"></line>
+
+            <line id="bfLine" x1="280" y1="145" x2="400" y2="145" stroke="#2f587d" stroke-width="3" stroke-dasharray="6 4" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)"></line>
+            <text id="bfLabel" x="340" y="136" text-anchor="middle" font-size="15" fill="#2f587d" font-weight="700">BF</text>
+
+            <line id="brLine" x1="400" y1="127" x2="520" y2="127" stroke="#2f587d" stroke-width="3" stroke-dasharray="6 4" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)"></line>
+            <text id="brLabel" x="460" y="118" text-anchor="middle" font-size="15" fill="#2f587d" font-weight="700">BR</text>
+
+            <line id="forceArrow" x1="280" y1="80" x2="280" y2="162" stroke="var(--force)" stroke-width="6" marker-end="url(#arrowGreen)"></line>
+            <text id="forceLabel" x="280" y="72" text-anchor="middle" font-size="17" fill="var(--force)" font-weight="800">F</text>
+
+            <line id="resArrow" x1="520" y1="80" x2="520" y2="162" stroke="var(--resistance)" stroke-width="6" marker-end="url(#arrowOrange)"></line>
+            <text id="resLabel" x="520" y="72" text-anchor="middle" font-size="17" fill="var(--resistance)" font-weight="800">R</text>
+
+            <polygon id="supportTri" points="378,228 422,228 400,170" fill="var(--support)"></polygon>
+            <text id="supportLabel" x="400" y="246" text-anchor="middle" font-size="17" fill="var(--support)" font-weight="800">A</text>
+
+            <circle id="pointF" cx="280" cy="185" r="7" fill="var(--force)"></circle>
+            <circle id="pointR" cx="520" cy="185" r="7" fill="var(--resistance)"></circle>
+            <circle id="pointA" cx="400" cy="185" r="7" fill="var(--support)"></circle>
+          </svg>
+        </div>
+        <div id="visualNote" class="visual-note" aria-live="polite"></div>
+
+        <div class="legend" aria-label="Leyenda de colores y etiquetas">
+          <div class="legend-item"><span class="dot" style="background: var(--support)"></span><span><strong>A</strong> = apoyo (morado)</span></div>
+          <div class="legend-item"><span class="dot" style="background: var(--force)"></span><span><strong>F</strong> = fuerza (verde)</span></div>
+          <div class="legend-item"><span class="dot" style="background: var(--resistance)"></span><span><strong>R</strong> = resistencia (naranja)</span></div>
+          <div class="legend-item"><span class="dot" style="background: var(--beam)"></span><span><strong>BF</strong> y <strong>BR</strong> = brazos</span></div>
+        </div>
+      </section>
+
+      <section class="card controls-panel" aria-label="Panel de controles">
+        <h3>Panel de controles</h3>
+
+        <div class="controls-grid">
+          <div class="full">
+            <label for="leverType">Tipo de palanca</label>
+            <select id="leverType">
+              <option value="first">Palanca de primer grado</option>
+              <option value="second">Palanca de segundo grado</option>
+              <option value="third">Palanca de tercer grado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="inputF">Fuerza (F) en N</label>
+            <input id="inputF" type="number" inputmode="decimal" min="0" step="any" placeholder="Ej. 10" />
+          </div>
+          <div>
+            <label for="inputR">Resistencia (R) en N</label>
+            <input id="inputR" type="number" inputmode="decimal" min="0" step="any" placeholder="Ej. 20" />
+          </div>
+          <div>
+            <label for="inputBF">Brazo de fuerza (BF) en cm</label>
+            <input id="inputBF" type="number" inputmode="decimal" min="0" step="any" placeholder="Ej. 4" />
+          </div>
+          <div>
+            <label for="inputBR">Brazo de resistencia (BR) en cm</label>
+            <input id="inputBR" type="number" inputmode="decimal" min="0" step="any" placeholder="Ej. 2" />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnCalc" class="btn-primary" type="button">Calcular valor faltante</button>
+          <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
+          <button id="btnExercise" class="btn-secondary" type="button">Generar ejercicio</button>
+          <button id="btnSolution" class="btn-primary" type="button">Mostrar solución paso a paso</button>
+        </div>
+
+        <div id="feedback" class="feedback" aria-live="polite">Ingresa tres valores y deja uno vacío para calcularlo.</div>
+
+        <div id="exerciseBox" class="exercise-box" aria-live="polite">
+          <h4>Modo ejercicios</h4>
+          <p>Pulsa <strong>Generar ejercicio</strong> para crear una situación nueva.</p>
+        </div>
+
+        <div id="solutionBox" class="solution-box" aria-live="polite">
+          <h4>Solución paso a paso</h4>
+          <p>Cuando tengas un ejercicio, aquí aparecerá la resolución guiada.</p>
+        </div>
+      </section>
+
+      <section class="card didactic-panel" aria-label="Panel didáctico">
+        <h3>Panel didáctico</h3>
+        <div class="didactic-grid">
+          <div>
+            <div class="formula-box">
+              <h4>Fórmula de equilibrio</h4>
+              <p><strong>F × BF = R × BR</strong>. Esto significa que el efecto de la fuerza respecto al apoyo debe equilibrar el efecto de la resistencia.</p>
+            </div>
+
+            <div class="result-box">
+              <h4>Interpretación del resultado</h4>
+              <p id="resultInterpretation">Si el brazo de fuerza aumenta, el esfuerzo necesario puede disminuir.</p>
+            </div>
+
+            <div class="steps-box">
+              <h4>Pasos para resolver</h4>
+              <ol class="steps-list">
+                <li>Identificar los datos.</li>
+                <li>Identificar el valor faltante.</li>
+                <li>Aplicar la fórmula.</li>
+                <li>Despejar.</li>
+                <li>Resolver.</li>
+                <li>Interpretar.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div>
+            <div class="formula-box">
+              <h4 id="typeTitle">Palanca de primer grado</h4>
+              <p id="typeDescription">El apoyo está entre la fuerza y la resistencia.</p>
+              <ul id="exampleList" class="examples"></ul>
+            </div>
+
+            <details>
+              <summary>Resumen rápido</summary>
+              <ul class="quick-list">
+                <li>Primer grado: apoyo en medio.</li>
+                <li>Segundo grado: resistencia en medio.</li>
+                <li>Tercer grado: fuerza en medio.</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const refs = {
+        leverType: document.getElementById("leverType"),
+        inputF: document.getElementById("inputF"),
+        inputR: document.getElementById("inputR"),
+        inputBF: document.getElementById("inputBF"),
+        inputBR: document.getElementById("inputBR"),
+        btnCalc: document.getElementById("btnCalc"),
+        btnClear: document.getElementById("btnClear"),
+        btnExercise: document.getElementById("btnExercise"),
+        btnSolution: document.getElementById("btnSolution"),
+        feedback: document.getElementById("feedback"),
+        exerciseBox: document.getElementById("exerciseBox"),
+        solutionBox: document.getElementById("solutionBox"),
+        typeTitle: document.getElementById("typeTitle"),
+        typeDescription: document.getElementById("typeDescription"),
+        exampleList: document.getElementById("exampleList"),
+        resultInterpretation: document.getElementById("resultInterpretation"),
+        visualNote: document.getElementById("visualNote"),
+        beam: document.getElementById("beam"),
+        bfLine: document.getElementById("bfLine"),
+        brLine: document.getElementById("brLine"),
+        bfLabel: document.getElementById("bfLabel"),
+        brLabel: document.getElementById("brLabel"),
+        forceArrow: document.getElementById("forceArrow"),
+        resArrow: document.getElementById("resArrow"),
+        forceLabel: document.getElementById("forceLabel"),
+        resLabel: document.getElementById("resLabel"),
+        supportTri: document.getElementById("supportTri"),
+        supportLabel: document.getElementById("supportLabel"),
+        pointF: document.getElementById("pointF"),
+        pointR: document.getElementById("pointR"),
+        pointA: document.getElementById("pointA")
+      };
+
+      const leverInfo = {
+        first: {
+          title: "Palanca de primer grado",
+          description: "El apoyo (A) está en medio; la fuerza y la resistencia quedan en extremos opuestos.",
+          examples: ["Tijeras", "Balancín", "Martillo saca-clavos"]
+        },
+        second: {
+          title: "Palanca de segundo grado",
+          description: "La resistencia (R) está en medio; el apoyo queda en un extremo y la fuerza en el otro.",
+          examples: ["Carretilla", "Cascanueces", "Destapador"]
+        },
+        third: {
+          title: "Palanca de tercer grado",
+          description: "La fuerza (F) está en medio; el apoyo queda en un extremo y la resistencia en el otro.",
+          examples: ["Pinzas", "Caña de pescar", "Brazo humano"]
+        }
+      };
+
+      const state = {
+        currentExercise: null
+      };
+
+      const keys = ["F", "R", "BF", "BR"];
+
+      function toNumberOrNull(value) {
+        if (value === null || value === undefined) return null;
+        const clean = String(value).trim();
+        if (!clean) return null;
+        const num = Number(clean);
+        return Number.isFinite(num) ? num : NaN;
+      }
+
+      function getValues() {
+        return {
+          F: toNumberOrNull(refs.inputF.value),
+          R: toNumberOrNull(refs.inputR.value),
+          BF: toNumberOrNull(refs.inputBF.value),
+          BR: toNumberOrNull(refs.inputBR.value)
+        };
+      }
+
+      function formatNum(n) {
+        const rounded = Math.round(n * 100) / 100;
+        if (Number.isInteger(rounded)) return String(rounded);
+        return rounded.toFixed(2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+      }
+
+      function setFeedback(message, type) {
+        refs.feedback.textContent = message;
+        refs.feedback.classList.remove("error", "ok");
+        if (type) refs.feedback.classList.add(type);
+      }
+
+      function validateOneMissing(values) {
+        const missing = keys.filter((k) => values[k] === null);
+
+        if (missing.length > 1) {
+          return { ok: false, message: "Debe quedar vacío exactamente un valor. Hay más de uno sin dato." };
+        }
+
+        if (missing.length === 0) {
+          return { ok: false, message: "Debe dejar un valor vacío para poder calcularlo." };
+        }
+
+        for (const k of keys) {
+          const v = values[k];
+          if (v === null) continue;
+          if (!Number.isFinite(v)) {
+            return { ok: false, message: `El valor de ${k} no es válido.` };
+          }
+          if (v < 0) {
+            return { ok: false, message: `No se permiten valores negativos en ${k}.` };
+          }
+          if (v === 0) {
+            return { ok: false, message: `El valor de ${k} debe ser mayor que cero.` };
+          }
+        }
+
+        return { ok: true, missingKey: missing[0] };
+      }
+
+      function computeMissing(values, missingKey) {
+        const { F, R, BF, BR } = values;
+
+        if (missingKey === "F") return (R * BR) / BF;
+        if (missingKey === "R") return (F * BF) / BR;
+        if (missingKey === "BF") return (R * BR) / F;
+        return (F * BF) / R;
+      }
+
+      function getUnit(key) {
+        return key === "F" || key === "R" ? "N" : "cm";
+      }
+
+      function setInputByKey(key, value) {
+        const formatted = formatNum(value);
+        if (key === "F") refs.inputF.value = formatted;
+        if (key === "R") refs.inputR.value = formatted;
+        if (key === "BF") refs.inputBF.value = formatted;
+        if (key === "BR") refs.inputBR.value = formatted;
+      }
+
+      function updateDidactic() {
+        const type = refs.leverType.value;
+        const info = leverInfo[type];
+
+        refs.typeTitle.textContent = info.title;
+        refs.typeDescription.textContent = info.description;
+        refs.exampleList.innerHTML = info.examples.map((ex) => `<li>${ex}</li>`).join("");
+
+        updateInterpretation();
+      }
+
+      function updateInterpretation(resultData) {
+        const values = getValues();
+        const BF = Number.isFinite(values.BF) ? values.BF : null;
+        const BR = Number.isFinite(values.BR) ? values.BR : null;
+
+        let text = "Si el brazo de fuerza aumenta, el esfuerzo necesario puede disminuir.";
+
+        if (BF && BR) {
+          if (BF > BR) {
+            text = "Como BF es mayor que BR, la palanca puede ayudar a reducir el esfuerzo aplicado.";
+          } else if (BF < BR) {
+            text = "Como BF es menor que BR, se requiere más esfuerzo para equilibrar la resistencia.";
+          } else {
+            text = "Si BF y BR son iguales, fuerza y resistencia tienden a igualarse en el equilibrio.";
+          }
+        }
+
+        if (resultData) {
+          text += ` Resultado: ${resultData.key} = ${formatNum(resultData.value)} ${getUnit(resultData.key)}.`;
+        }
+
+        refs.resultInterpretation.textContent = text;
+      }
+
+      function clamp(n, min, max) {
+        return Math.min(max, Math.max(min, n));
+      }
+
+      function updateVisual() {
+        const type = refs.leverType.value;
+        const rawBF = toNumberOrNull(refs.inputBF.value);
+        const rawBR = toNumberOrNull(refs.inputBR.value);
+        const inputBF = Number.isFinite(rawBF) && rawBF > 0 ? rawBF : 4;
+        const inputBR = Number.isFinite(rawBR) && rawBR > 0 ? rawBR : 3;
+
+        let BF = inputBF;
+        let BR = inputBR;
+        let visualHint = "";
+
+        if (type === "second" && BR >= BF) {
+          BR = BF * 0.82;
+          visualHint = "Vista conceptual: en segundo grado, R se muestra entre A y F.";
+        }
+
+        if (type === "third" && BF >= BR) {
+          BF = BR * 0.82;
+          visualHint = "Vista conceptual: en tercer grado, F se muestra entre A y R.";
+        }
+
+        let A = 400;
+        let F = 270;
+        let R = 530;
+
+        if (type === "first") {
+          const scale = clamp(260 / Math.max(BF, BR, 1), 20, 90);
+          A = 400;
+          F = A - BF * scale;
+          R = A + BR * scale;
+        } else if (type === "second") {
+          const scale = clamp(540 / Math.max(BF, BR, 1), 20, 90);
+          A = 120;
+          F = A + BF * scale;
+          R = A + BR * scale;
+        } else {
+          const scale = clamp(540 / Math.max(BF, BR, 1), 20, 90);
+          A = 120;
+          F = A + BF * scale;
+          R = A + BR * scale;
+        }
+
+        F = clamp(F, 80, 720);
+        R = clamp(R, 80, 720);
+        A = clamp(A, 80, 720);
+
+        const beamStart = clamp(Math.min(F, R, A) - 90, 35, 730);
+        const beamEnd = clamp(Math.max(F, R, A) + 90, 70, 765);
+
+        refs.beam.setAttribute("x1", beamStart);
+        refs.beam.setAttribute("x2", beamEnd);
+
+        refs.supportTri.setAttribute("points", `${A - 24},228 ${A + 24},228 ${A},170`);
+        refs.supportLabel.setAttribute("x", A);
+
+        refs.forceArrow.setAttribute("x1", F);
+        refs.forceArrow.setAttribute("x2", F);
+        refs.forceLabel.setAttribute("x", F);
+
+        refs.resArrow.setAttribute("x1", R);
+        refs.resArrow.setAttribute("x2", R);
+        refs.resLabel.setAttribute("x", R);
+
+        refs.pointF.setAttribute("cx", F);
+        refs.pointR.setAttribute("cx", R);
+        refs.pointA.setAttribute("cx", A);
+
+        refs.bfLine.setAttribute("x1", A);
+        refs.bfLine.setAttribute("x2", F);
+        refs.bfLabel.setAttribute("x", (A + F) / 2);
+
+        refs.brLine.setAttribute("x1", A);
+        refs.brLine.setAttribute("x2", R);
+        refs.brLabel.setAttribute("x", (A + R) / 2);
+
+        refs.visualNote.textContent = visualHint;
+      }
+
+      function buildSolution(values, missingKey) {
+        const result = computeMissing(values, missingKey);
+
+        if (!Number.isFinite(result) || result <= 0) {
+          return { ok: false, message: "No se pudo obtener un resultado válido con los datos ingresados." };
+        }
+
+        const rounded = Math.round(result * 100) / 100;
+        const Fv = values.F;
+        const Rv = values.R;
+        const BFv = values.BF;
+        const BRv = values.BR;
+        let substitution = "";
+        let despeje = "";
+        let operacion = "";
+
+        if (missingKey === "F") {
+          substitution = `F × ${formatNum(BFv)} = ${formatNum(Rv)} × ${formatNum(BRv)}`;
+          despeje = `F = (${formatNum(Rv)} × ${formatNum(BRv)}) / ${formatNum(BFv)}`;
+          operacion = `F = ${formatNum(Rv * BRv)} / ${formatNum(BFv)}`;
+        } else if (missingKey === "R") {
+          substitution = `${formatNum(Fv)} × ${formatNum(BFv)} = R × ${formatNum(BRv)}`;
+          despeje = `R = (${formatNum(Fv)} × ${formatNum(BFv)}) / ${formatNum(BRv)}`;
+          operacion = `R = ${formatNum(Fv * BFv)} / ${formatNum(BRv)}`;
+        } else if (missingKey === "BF") {
+          substitution = `${formatNum(Fv)} × BF = ${formatNum(Rv)} × ${formatNum(BRv)}`;
+          despeje = `BF = (${formatNum(Rv)} × ${formatNum(BRv)}) / ${formatNum(Fv)}`;
+          operacion = `BF = ${formatNum(Rv * BRv)} / ${formatNum(Fv)}`;
+        } else {
+          substitution = `${formatNum(Fv)} × ${formatNum(BFv)} = ${formatNum(Rv)} × BR`;
+          despeje = `BR = (${formatNum(Fv)} × ${formatNum(BFv)}) / ${formatNum(Rv)}`;
+          operacion = `BR = ${formatNum(Fv * BFv)} / ${formatNum(Rv)}`;
+        }
+
+        return {
+          ok: true,
+          key: missingKey,
+          value: rounded,
+          steps: [
+            "Fórmula general: F × BF = R × BR.",
+            `Sustitución: ${substitution}.`,
+            `Despeje: ${despeje}.`,
+            `Operación intermedia: ${operacion}.`,
+            `Resultado final: ${missingKey} = ${formatNum(rounded)} ${getUnit(missingKey)}.`
+          ]
+        };
+      }
+
+      function renderSolution(solution) {
+        const interpretation = (() => {
+          const vals = getValues();
+          const BF = Number.isFinite(vals.BF) ? vals.BF : null;
+          const BR = Number.isFinite(vals.BR) ? vals.BR : null;
+          if (BF && BR && BF > BR) {
+            return "Interpretación: al tener BF mayor que BR, normalmente se necesita menos esfuerzo para equilibrar.";
+          }
+          if (BF && BR && BF < BR) {
+            return "Interpretación: al tener BF menor que BR, suele requerirse mayor esfuerzo para equilibrar.";
+          }
+          return "Interpretación: compara BF y BR para entender si la palanca ayuda a reducir o aumentar el esfuerzo.";
+        })();
+
+        refs.solutionBox.innerHTML = `
+          <h4>Solución paso a paso</h4>
+          <ol>
+            <li>${solution.steps[0]}</li>
+            <li>${solution.steps[1]}</li>
+            <li>${solution.steps[2]}</li>
+            <li>${solution.steps[3]}</li>
+            <li>${solution.steps[4]}</li>
+            <li>${interpretation}</li>
+          </ol>
+        `;
+      }
+
+      function calculateMissingValue() {
+        const values = getValues();
+        const validation = validateOneMissing(values);
+
+        if (!validation.ok) {
+          setFeedback(validation.message, "error");
+          return;
+        }
+
+        const solution = buildSolution(values, validation.missingKey);
+
+        if (!solution.ok) {
+          setFeedback(solution.message, "error");
+          return;
+        }
+
+        setInputByKey(solution.key, solution.value);
+        updateVisual();
+        updateInterpretation({ key: solution.key, value: solution.value });
+        setFeedback(`Calculado: ${solution.key} = ${formatNum(solution.value)} ${getUnit(solution.key)}.`, "ok");
+      }
+
+      function clearAll() {
+        refs.inputF.value = "";
+        refs.inputR.value = "";
+        refs.inputBF.value = "";
+        refs.inputBR.value = "";
+        refs.exerciseBox.innerHTML = "<h4>Modo ejercicios</h4><p>Pulsa <strong>Generar ejercicio</strong> para crear una situación nueva.</p>";
+        refs.solutionBox.innerHTML = "<h4>Solución paso a paso</h4><p>Cuando tengas un ejercicio, aquí aparecerá la resolución guiada.</p>";
+        state.currentExercise = null;
+        setFeedback("Campos limpios. Ingresa tres datos y deja uno vacío.", "ok");
+        updateVisual();
+        updateInterpretation();
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function pickRandom(arr) {
+        return arr[randomInt(0, arr.length - 1)];
+      }
+
+      function generateExercise() {
+        const type = pickRandom(["first", "second", "third"]);
+        const missingKey = pickRandom(keys);
+
+        let full;
+        let attempts = 0;
+
+        do {
+          attempts += 1;
+          full = {
+            F: randomInt(6, 30),
+            R: randomInt(6, 30),
+            BF: randomInt(2, 10),
+            BR: randomInt(2, 10)
+          };
+
+          if (type === "second" && full.BR >= full.BF) {
+            full.BR = randomInt(1, Math.max(1, full.BF - 1));
+            if (full.BR === 0) full.BR = 1;
+          }
+
+          if (type === "third" && full.BF >= full.BR) {
+            full.BF = randomInt(1, Math.max(1, full.BR - 1));
+            if (full.BF === 0) full.BF = 1;
+          }
+
+          const computed = computeMissing(full, missingKey);
+          if (Number.isFinite(computed) && computed > 0 && computed <= 60) {
+            full[missingKey] = Math.round(computed * 100) / 100;
+            break;
+          }
+        } while (attempts < 200);
+
+        refs.leverType.value = type;
+
+        const setOrBlank = (k) => {
+          if (k === missingKey) return "";
+          return formatNum(full[k]);
+        };
+
+        refs.inputF.value = setOrBlank("F");
+        refs.inputR.value = setOrBlank("R");
+        refs.inputBF.value = setOrBlank("BF");
+        refs.inputBR.value = setOrBlank("BR");
+
+        const typeText = leverInfo[type].title.toLowerCase();
+        const parts = [
+          missingKey !== "F" ? `fuerza de ${formatNum(full.F)} N` : null,
+          missingKey !== "R" ? `resistencia de ${formatNum(full.R)} N` : null,
+          missingKey !== "BF" ? `brazo de fuerza de ${formatNum(full.BF)} cm` : null,
+          missingKey !== "BR" ? `brazo de resistencia de ${formatNum(full.BR)} cm` : null
+        ].filter(Boolean);
+
+        const questionMap = {
+          F: "¿cuál es la fuerza?",
+          R: "¿cuál es la resistencia?",
+          BF: "¿cuál es el brazo de fuerza?",
+          BR: "¿cuál es el brazo de resistencia?"
+        };
+
+        const statement = `Una ${typeText} tiene ${parts.join(", ")}. Si el sistema está en equilibrio, ${questionMap[missingKey]}`;
+
+        state.currentExercise = {
+          type,
+          missingKey,
+          values: { ...full },
+          statement
+        };
+
+        refs.exerciseBox.innerHTML = `<h4>Modo ejercicios</h4><p>${statement}</p>`;
+        refs.solutionBox.innerHTML = "<h4>Solución paso a paso</h4><p>Pulsa <strong>Mostrar solución paso a paso</strong>.</p>";
+
+        setFeedback("Ejercicio generado. Resuélvelo con la fórmula de equilibrio.", "ok");
+        updateDidactic();
+        updateVisual();
+      }
+
+      function showStepByStepSolution() {
+        const values = getValues();
+        const validation = validateOneMissing(values);
+
+        if (!validation.ok) {
+          setFeedback("Para mostrar pasos debe haber exactamente un valor vacío.", "error");
+          return;
+        }
+
+        const solution = buildSolution(values, validation.missingKey);
+        if (!solution.ok) {
+          setFeedback(solution.message, "error");
+          return;
+        }
+
+        renderSolution(solution);
+        updateInterpretation({ key: solution.key, value: solution.value });
+        setFeedback("Se mostró la solución paso a paso.", "ok");
+      }
+
+      refs.btnCalc.addEventListener("click", calculateMissingValue);
+      refs.btnClear.addEventListener("click", clearAll);
+      refs.btnExercise.addEventListener("click", generateExercise);
+      refs.btnSolution.addEventListener("click", showStepByStepSolution);
+
+      refs.leverType.addEventListener("change", function () {
+        updateDidactic();
+        updateVisual();
+      });
+
+      [refs.inputF, refs.inputR, refs.inputBF, refs.inputBR].forEach((input) => {
+        input.addEventListener("input", function () {
+          updateVisual();
+          updateInterpretation();
+        });
+      });
+
+      updateDidactic();
+      updateVisual();
+    })();
+  </script>
+</body>
+</html>

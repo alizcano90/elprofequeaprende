@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini librería offline 3D - Cubo y esfera</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg1: #2d3440;
+      --bg2: #1b2028;
+      --bg3: #11151b;
+      --grid: rgba(255,255,255,0.07);
+      --panel: rgba(10,10,14,0.5);
+      --panel-border: rgba(255,255,255,0.08);
+      --text-soft: #dce3eb;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      color: white;
+      background: radial-gradient(circle at top, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 100%);
+    }
+
+    .ui {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 10;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(8px);
+    }
+
+    .ui h1 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .ui p {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.4;
+      font-size: 0.92rem;
+    }
+
+    .scene {
+      width: 100vw;
+      height: 100vh;
+      perspective: 1200px;
+      perspective-origin: 50% 35%;
+      overflow: hidden;
+    }
+
+    .world {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: rotateX(60deg) rotateZ(-24deg);
+    }
+
+    .ground {
+      position: absolute;
+      width: 1400px;
+      height: 1400px;
+      left: 50%;
+      top: 58%;
+      transform: translate3d(-50%, -50%, -140px) rotateX(90deg);
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(135deg, #222834, #171b22);
+      background-size: 60px 60px, 60px 60px, auto;
+      box-shadow: inset 0 0 80px rgba(0,0,0,0.45);
+    }
+
+    .object3d {
+      position: absolute;
+      transform-style: preserve-3d;
+    }
+
+    .face {
+      position: absolute;
+      backface-visibility: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sphere-layer {
+      position: absolute;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: inset -10px -16px 22px rgba(0,0,0,0.22), inset 12px 12px 18px rgba(255,255,255,0.08);
+    }
+
+    .shadow {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.36) 0%, rgba(0,0,0,0.14) 50%, rgba(0,0,0,0) 72%);
+      transform: rotateX(90deg);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .hint {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(10,10,14,0.45);
+      border: 1px solid var(--panel-border);
+      color: #eef2f7;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <h1>Mini librería offline 3D</h1>
+    <p>Base propia en HTML, CSS y JS puro. Por ahora crea <strong>cubos</strong> y <strong>esferas</strong>. Sin internet, sin dependencias, sin que CSS entre en terapia.</p>
+  </div>
+
+  <div class="scene">
+    <div class="world" id="world">
+      <div class="ground"></div>
+    </div>
+  </div>
+
+  <div class="hint">Siguiente paso: cilindro, cámara y grupos.</div>
+
+  <script>
+    class Mini3D {
+      constructor(world) {
+        this.world = world;
+      }
+
+      createObject({ x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0 } = {}) {
+        const obj = document.createElement('div');
+        obj.className = 'object3d';
+        this.setTransform(obj, { x, y, z, rx, ry, rz });
+        this.world.appendChild(obj);
+        return obj;
+      }
+
+      setTransform(el, { x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0 } = {}) {
+        el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+      }
+
+      cube({ x = 0, y = 0, z = 0, width = 140, height = 90, depth = 90, color = '#d14b40', rx = 0, ry = 0, rz = 0, shadow = true } = {}) {
+        const cube = this.createObject({ x, y, z, rx, ry, rz });
+        cube.style.width = width + 'px';
+        cube.style.height = height + 'px';
+
+        const front = this.face(width, height, this.shade(color, 1.08));
+        front.style.transform = `translateZ(${depth / 2}px)`;
+
+        const back = this.face(width, height, this.shade(color, 0.72));
+        back.style.transform = `rotateY(180deg) translateZ(${depth / 2}px)`;
+
+        const left = this.face(depth, height, this.shade(color, 0.82));
+        left.style.transformOrigin = 'left center';
+        left.style.transform = `rotateY(-90deg) translateZ(${depth / 2}px)`;
+
+        const right = this.face(depth, height, this.shade(color, 0.95));
+        right.style.transformOrigin = 'left center';
+        right.style.left = width + 'px';
+        right.style.transform = `rotateY(90deg) translateZ(${depth / 2}px)`;
+
+        const top = this.face(width, depth, this.shade(color, 1.16));
+        top.style.transformOrigin = 'top center';
+        top.style.transform = `rotateX(90deg) translateZ(${height / 2}px)`;
+
+        const bottom = this.face(width, depth, this.shade(color, 0.55));
+        bottom.style.top = height + 'px';
+        bottom.style.transformOrigin = 'top center';
+        bottom.style.transform = `rotateX(-90deg) translateZ(${height / 2}px)`;
+
+        cube.append(front, back, left, right, top, bottom);
+
+        if (shadow) {
+          cube.appendChild(this.makeShadow(width * 1.25, depth * 1.15, height / 2 + 32, -width * 0.12, -depth * 0.08));
+        }
+
+        return cube;
+      }
+
+      sphere({ x = 0, y = 0, z = 0, radius = 55, color = '#4f88ff', rx = 0, ry = 0, rz = 0, segments = 14, shadow = true } = {}) {
+        const sphere = this.createObject({ x, y, z, rx, ry, rz });
+        const diameter = radius * 2;
+
+        for (let i = 0; i < segments; i++) {
+          const t = segments === 1 ? 0 : i / (segments - 1);
+          const angle = -90 + t * 180;
+          const sliceRadius = Math.cos(angle * Math.PI / 180) * radius;
+          const layerSize = Math.max(8, Math.abs(sliceRadius) * 2);
+          const zPos = Math.sin(angle * Math.PI / 180) * radius;
+
+          const layer = document.createElement('div');
+          layer.className = 'sphere-layer';
+          layer.style.width = layerSize + 'px';
+          layer.style.height = layerSize + 'px';
+          layer.style.left = (diameter - layerSize) / 2 + 'px';
+          layer.style.top = (diameter - layerSize) / 2 + 'px';
+          layer.style.transform = `translateZ(${zPos}px)`;
+          layer.style.background = `radial-gradient(circle at 35% 30%, ${this.shade(color, 1.24)} 0%, ${this.shade(color, 1.05)} 28%, ${color} 58%, ${this.shade(color, 0.72)} 100%)`;
+          sphere.appendChild(layer);
+        }
+
+        sphere.style.width = diameter + 'px';
+        sphere.style.height = diameter + 'px';
+
+        if (shadow) {
+          sphere.appendChild(this.makeShadow(diameter * 1.1, diameter * 0.72, radius + 26, -diameter * 0.05, diameter * 0.12));
+        }
+
+        return sphere;
+      }
+
+      face(w, h, bg) {
+        const el = document.createElement('div');
+        el.className = 'face';
+        el.style.width = w + 'px';
+        el.style.height = h + 'px';
+        el.style.background = bg;
+        return el;
+      }
+
+      makeShadow(w, h, offsetZ, x = 0, y = 0) {
+        const s = document.createElement('div');
+        s.className = 'shadow';
+        s.style.width = w + 'px';
+        s.style.height = h + 'px';
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+        s.style.transform = `translateZ(${-offsetZ}px) rotateX(90deg)`;
+        return s;
+      }
+
+      shade(hex, factor = 1) {
+        const value = hex.replace('#', '');
+        const bigint = parseInt(value, 16);
+        let r = (bigint >> 16) & 255;
+        let g = (bigint >> 8) & 255;
+        let b = bigint & 255;
+
+        r = Math.max(0, Math.min(255, Math.round(r * factor)));
+        g = Math.max(0, Math.min(255, Math.round(g * factor)));
+        b = Math.max(0, Math.min(255, Math.round(b * factor)));
+
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+    }
+
+    const world = document.getElementById('world');
+    const mini3d = new Mini3D(world);
+
+    // Demo inicial de la librería
+    mini3d.cube({
+      x: 220,
+      y: 180,
+      z: 40,
+      width: 170,
+      height: 90,
+      depth: 90,
+      color: '#cf5347'
+    });
+
+    mini3d.cube({
+      x: 460,
+      y: 230,
+      z: 28,
+      width: 120,
+      height: 60,
+      depth: 120,
+      color: '#59a96a',
+      rz: 8
+    });
+
+    mini3d.sphere({
+      x: 700,
+      y: 170,
+      z: 55,
+      radius: 58,
+      color: '#5d8dff'
+    });
+
+    mini3d.sphere({
+      x: 860,
+      y: 240,
+      z: 42,
+      radius: 42,
+      color: '#f2b134'
+    });
+
+    // API global para seguir creciendo offline
+    window.Mini3D = mini3d;
+  </script>
+</body>
+</html>

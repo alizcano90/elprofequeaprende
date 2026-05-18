@@ -1,161 +1,162 @@
-<h2>Recursos interactivos</h2>
-<p class="text-muted">Haz clic en una tarjeta para abrir el recurso (cada carpeta tiene su propio index) o usa los
-  botones.</p>
-
-<style>
-  .card-resource {
-    border: 1px solid #eee;
-    border-radius: 12px;
-    transition: transform .2s ease, box-shadow .2s ease;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, .06);
-    cursor: pointer;
-    overflow: hidden;
-    background: #fff;
-    animation: float 5s ease-in-out infinite;
-  }
-
-  .card-resource:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
-  }
-
-  /* Estado "En construcción" */
-  .card-resource.wip {
-    cursor: not-allowed;
-    animation: none;
-    opacity: 0.9;
-  }
-
-  .card-resource.wip:hover {
-    transform: none;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, .06);
-  }
-
-  .card-emoji {
-    font-size: 42px;
-    line-height: 1;
-  }
-
-  .card-title {
-    font-weight: 600;
-    margin: 0;
-    font-size: 1rem;
-  }
-
-  .card-sub {
-    color: #6c757d;
-    font-size: .85rem;
-    margin: 2px 0 0;
-  }
-
-  @keyframes float {
-
-    0%,
-    100% {
-      transform: translateY(0)
-    }
-
-    50% {
-      transform: translateY(-6px)
-    }
-  }
-</style>
-
-<div class="row g-3">
-  <?php
+<?php
 
 // Archivo: resources.php
-// Guardado: 2025-10-09 09:20:36
+// Guardado: 2026-05-01 20:51:04
 // Autor: Andrés Lizcano
-  // Archivo: resources.php
-  // Guardado: 2025-10-09 09:17:23
-  // Autor: Andrés Lizcano
-  // Archivo: resources.php
-  // Guardado: 2025-10-09 09:11:48
-  // Autor: Andrés Lizcano
-  $baseDir = __DIR__ . '/../assets/files/EDUTECH OFFLINE';
-  $baseUrl = '/assets/files/' . rawurlencode('EDUTECH OFFLINE');
+$baseDir = __DIR__ . '/../assets/files/EDUTECH OFFLINE';
+$baseUrl = '/assets/files/' . rawurlencode('EDUTECH OFFLINE');
+$downloadBaseUrl = $baseUrl . '/descargas';
+$underConstruction = ['quizz'];
 
-  $emojiMap = [
-    'quizzoffline'     => '❓',
-    'ruleta_aleatoria' => '🎡',
-    'vectores'         => '📐',
-    'carreras'         => '🏁',
-    'dado'             => '🎲',
-    'moneda'           => '🪙',
-  ];
+$iconMap = [
+  'algebra visual' => 'bi-calculator',
+  'aprendo_teclado' => 'bi-keyboard',
+  'carreras' => 'bi-flag',
+  'dado' => 'bi-dice-5',
+  'grupos_suspenso' => 'bi-people',
+  'hala_cuerda_matematico' => 'bi-people-fill',
+  'moneda' => 'bi-coin',
+  'puzzlemath' => 'bi-puzzle',
+  'quizz' => 'bi-question-circle',
+  'ruleta_aleatoria' => 'bi-arrow-repeat',
+  'quizzoffline' => 'bi-question-circle',
+  'simulador_arduino_didactico' => 'bi-cpu',
+  'simulador_palancas' => 'bi-nut',
+  'vectores' => 'bi-bezier2',
+  'horarios_campeonatos' => 'bi-calendar-week',
+];
 
-  // Directorios en construcción (se muestran con 🚧 y sin enlaces)
-  $underConstruction = ['vectores', 'quizzoffline', 'quizz'];
+$descriptionMap = [
+  'algebra visual' => 'Modela trinomios con piezas y verifica factorizacion visual en la cuadricula.',
+  'aprendo_teclado' => 'Practica ubicacion de teclas y agilidad de escritura con actividades guiadas.',
+  'carreras' => 'Juego de velocidad y calculo mental para dinamizar competencias en clase.',
+  'dado' => 'Genera resultados aleatorios para retos numericos y actividades gamificadas.',
+  'grupos_suspenso' => 'Escribe nombres, deja que reboten y revela grupos con efecto dinamico y suspenso.',
+  'hala_cuerda_matematico' => 'Competencia por equipos para resolver ejercicios y avanzar en el tablero.',
+  'horarios_campeonatos' => 'Organiza cruces y horarios de torneos escolares de forma rapida y clara.',
+  'moneda' => 'Simula probabilidades con lanzamientos para explicar estadistica basica.',
+  'puzzlemath' => 'Resuelve rompecabezas matematicos para fortalecer logica y resolucion de problemas.',
+  'quizzoffline' => 'Banco de preguntas para evaluaciones rapidas sin depender de internet.',
+  'ruleta_aleatoria' => 'Selecciona preguntas, equipos o retos al azar para mantener la clase activa.',
+  'simulador_arduino_didactico' => 'Explora montajes, componentes y logica basica de Arduino en modo visual.',
+  'simulador_palancas' => 'Experimenta con apoyo, fuerza y resistencia para explicar tipos de palancas.',
+  'vectores' => 'Visualizador de magnitudes y direcciones para explicar conceptos vectoriales.',
+];
 
-  function prettyName(string $name): string
-  {
-    $name = str_replace(['_', '-'], ' ', $name);
-    return ucwords($name);
-  }
+$resourceOrder = [
+  'algebra visual',
+  'aprendo_teclado',
+  'carreras',
+  'dado',
+  'grupos_suspenso',
+  'hala_cuerda_matematico',
+  'horarios_campeonatos',
+  'moneda',
+  'puzzlemath',
+  'quizzoffline',
+  'ruleta_aleatoria',
+  'simulador_arduino_didactico',
+  'simulador_palancas',
+  'vectores',
+];
 
-  if (is_dir($baseDir)) {
-    $entries = array_diff(scandir($baseDir), ['.', '..']);
-    $hadAny = false;
+function epqa_pretty_name(string $name): string
+{
+  $name = str_replace(['_', '-'], ' ', $name);
+  return ucwords($name);
+}
 
-    foreach ($entries as $entry) {
-      $dirPath = $baseDir . DIRECTORY_SEPARATOR . $entry;
-      if (!is_dir($dirPath) || $entry[0] === '.') continue;
+function epqa_download_name(string $name): string
+{
+  return preg_replace('/[^A-Za-z0-9_-]+/', '_', $name) . '.zip';
+}
 
-      $key   = strtolower($entry);
-      $isWip = in_array($key, $underConstruction, true);
-
-      $indexFile = '';
-      if (is_file($dirPath . '/index.html')) $indexFile = 'index.html';
-      elseif (is_file($dirPath . '/index.php')) $indexFile = 'index.php';
-
-      // Si no hay index, solo mostramos la tarjeta si está en construcción
-      if ($indexFile === '' && !$isWip) continue;
-
-      $hadAny = true;
-
-      $emoji = $isWip ? '🚧' : ($emojiMap[$key] ?? '📁');
-      $title = prettyName($entry);
-      $url   = $indexFile ? ($baseUrl . '/' . rawurlencode($entry) . '/' . $indexFile) : '#';
-      $sub   = $isWip ? 'En construcción' : 'Abrir recurso';
-
-      // pequeña variación de animación por tarjeta
-      $delay = (mt_rand(0, 800)) / 1000; // 0s - 0.8s
-
-      $cardClasses = 'card-resource p-3' . ($isWip ? ' wip' : '');
-      $cardStyle   = "animation-delay: {$delay}s";
-      $cardAttrs   = $isWip
-        ? "style='{$cardStyle}' aria-disabled='true'"
-        : "style='{$cardStyle}' data-url='{$url}' onclick='window.open(this.dataset.url, \"_blank\", \"noopener\")'";
-
-      echo "<div class='col-12 col-sm-6 col-md-4 col-lg-3'>\n";
-      echo "  <div class='{$cardClasses}' {$cardAttrs}>\n";
-      echo "    <div class='d-flex align-items-center gap-3'>\n";
-      echo "      <div class='card-emoji' aria-hidden='true'>{$emoji}</div>\n";
-      echo "      <div>\n";
-      echo "        <p class='card-title'>{$title}</p>\n";
-      echo "        <p class='card-sub'>{$sub}</p>\n";
-      echo "        <div class='mt-2 d-flex gap-2'>\n";
-
-      if ($isWip) {
-        echo "          <button class='btn btn-outline-secondary btn-sm' disabled>Pronto</button>\n";
-      } else {
-        echo "          <a class='btn btn-primary btn-sm' href='{$url}' target='_blank' rel='noopener' onclick='event.stopPropagation()'>Abrir en línea</a>\n";
-        echo "          <a class='btn btn-outline-secondary btn-sm' href='{$url}' download onclick='event.stopPropagation()'>Descargar</a>\n";
-      }
-
-      echo "        </div>\n";
-      echo "      </div>\n";
-      echo "    </div>\n";
-      echo "  </div>\n";
-      echo "</div>\n";
+$resources = [];
+if (is_dir($baseDir)) {
+  $entries = array_diff(scandir($baseDir), ['.', '..']);
+  foreach ($entries as $entry) {
+    $dirPath = $baseDir . DIRECTORY_SEPARATOR . $entry;
+    if (!is_dir($dirPath) || $entry === 'descargas' || ($entry !== '' && $entry[0] === '.')) {
+      continue;
     }
 
-    if (!$hadAny) {
-      echo "<div class='col-12'><div class='alert alert-warning'>No hay recursos con index disponibles.</div></div>";
+    $key = strtolower($entry);
+    $isWip = in_array($key, $underConstruction, true);
+    $indexFile = '';
+    if (is_file($dirPath . '/index.html')) {
+      $indexFile = 'index.html';
+    } elseif (is_file($dirPath . '/index.php')) {
+      $indexFile = 'index.php';
     }
-  } else {
-    echo "<div class='col-12'><div class='alert alert-info'>No se encontró la carpeta de recursos.</div></div>";
+
+    if ($indexFile === '' && !$isWip) {
+      continue;
+    }
+
+    $resources[] = [
+      'key' => $key,
+      'title' => epqa_pretty_name($entry),
+      'is_wip' => $isWip,
+      'url' => $indexFile !== '' ? ($baseUrl . '/' . rawurlencode($entry) . '/' . $indexFile) : '#',
+      'download_url' => $downloadBaseUrl . '/' . rawurlencode(epqa_download_name($entry)),
+      'icon' => $iconMap[$key] ?? 'bi-folder2-open',
+      'description' => $descriptionMap[$key] ?? 'Recurso offline disponible para abrir o descargar.',
+    ];
   }
-  ?>
-</div>
+}
+
+usort($resources, static function (array $a, array $b) use ($resourceOrder): int {
+  $posA = array_search($a['key'], $resourceOrder, true);
+  $posB = array_search($b['key'], $resourceOrder, true);
+  $posA = $posA === false ? PHP_INT_MAX : $posA;
+  $posB = $posB === false ? PHP_INT_MAX : $posB;
+
+  if ($posA === $posB) {
+    return strcasecmp($a['title'], $b['title']);
+  }
+
+  return $posA <=> $posB;
+});
+?>
+
+<section class="container section-pad">
+  <div class="hero-block reveal-up">
+    <p class="eyebrow mb-2">Recursos offline</p>
+    <h1 class="hero-title">Biblioteca para abrir, proyectar o descargar</h1>
+    <p class="hero-subtitle mb-0">
+      Abre cada recurso para probarlo o descarga el paquete completo para llevarlo a clase sin depender de internet.
+    </p>
+  </div>
+</section>
+
+<section class="container pb-4">
+  <?php if (count($resources) > 0): ?>
+    <div class="resource-grid">
+      <?php foreach ($resources as $resource): ?>
+        <article class="resource-card <?= $resource['is_wip'] ? 'disabled' : '' ?> reveal-up">
+          <span class="resource-icon"><i
+              class="bi <?= htmlspecialchars($resource['icon'], ENT_QUOTES, 'UTF-8') ?>"></i></span>
+          <h2 class="h5 mb-0"><?= htmlspecialchars($resource['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+          <p class="meta-line mb-2">
+            <?= $resource['is_wip'] ? 'En construccion' : 'Disponible para abrir o descargar' ?>
+          </p>
+          <p class="resource-hover-tip"><?= htmlspecialchars($resource['description'], ENT_QUOTES, 'UTF-8') ?></p>
+          <div class="d-flex gap-2 mt-auto">
+            <?php if ($resource['is_wip']): ?>
+              <button class="btn btn-outline-secondary btn-sm" type="button" disabled>Pronto</button>
+            <?php else: ?>
+              <a class="btn btn-sm btn-main" href="<?= htmlspecialchars($resource['url'], ENT_QUOTES, 'UTF-8') ?>"
+                target="_blank" rel="noopener">Abrir</a>
+              <a class="btn btn-sm btn-alt" href="<?= htmlspecialchars($resource['download_url'], ENT_QUOTES, 'UTF-8') ?>"
+                download>Descargar</a>
+            <?php endif; ?>
+          </div>
+        </article>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <article class="note-box">
+      No se encontro la carpeta de recursos o no hay actividades con archivo de inicio disponible.
+    </article>
+  <?php endif; ?>
+</section>

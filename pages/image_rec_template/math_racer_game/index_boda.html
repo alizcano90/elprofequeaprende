@@ -1,0 +1,355 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Andrés & Saray | Nos casamos</title>
+  <meta name="description" content="Invitación de boda de Andrés y Saray · 25 de febrero de 2028" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: '#0F1A2E',
+            slateblue: '#2A3A52',
+            ivory: '#F8F3E8',
+            champagne: '#D9C8A2',
+            sunflower: '#E8C977',
+            sage: '#8E9C84'
+          },
+          fontFamily: {
+            serif: ['Cormorant Garamond', 'serif'],
+            sans: ['Manrope', 'sans-serif']
+          },
+          boxShadow: {
+            glow: '0 10px 40px rgba(15, 26, 46, 0.28)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 15% 10%, rgba(232, 201, 119, 0.08), transparent 28%),
+        radial-gradient(circle at 90% 20%, rgba(217, 200, 162, 0.09), transparent 26%),
+        linear-gradient(180deg, #0f1a2e 0%, #14213a 40%, #1b2945 100%);
+    }
+
+    .starfield::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(2px 2px at 15% 22%, rgba(255,255,255,0.50), transparent),
+        radial-gradient(1.6px 1.6px at 72% 18%, rgba(255,255,255,0.44), transparent),
+        radial-gradient(1.8px 1.8px at 35% 72%, rgba(255,255,255,0.38), transparent),
+        radial-gradient(1.4px 1.4px at 84% 66%, rgba(255,255,255,0.42), transparent),
+        radial-gradient(1.6px 1.6px at 58% 44%, rgba(255,255,255,0.40), transparent);
+      opacity: 0.65;
+    }
+
+    .constellation-line {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(125deg, transparent 34%, rgba(217, 200, 162, 0.22) 35%, transparent 36%),
+        linear-gradient(15deg, transparent 64%, rgba(142, 156, 132, 0.17) 65%, transparent 66%);
+      opacity: 0.65;
+    }
+
+    .glass {
+      background: rgba(248, 243, 232, 0.06);
+      border: 1px solid rgba(217, 200, 162, 0.24);
+      backdrop-filter: blur(8px);
+    }
+
+    .sunflower-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #e8c977;
+      box-shadow: 0 0 0 4px rgba(232, 201, 119, 0.14);
+    }
+
+    .img-overlay {
+      background: linear-gradient(180deg, rgba(15, 26, 46, 0.12), rgba(15, 26, 46, 0.62));
+    }
+  </style>
+</head>
+<body class="text-ivory font-sans antialiased">
+  <header class="fixed top-0 left-0 right-0 z-50">
+    <nav class="mx-auto mt-4 w-[min(1100px,94%)] rounded-full border border-champagne/30 bg-night/50 px-4 py-3 shadow-glow backdrop-blur-md">
+      <div class="flex items-center justify-between gap-4">
+        <a href="#inicio" class="font-serif text-2xl tracking-wide text-ivory">A & S</a>
+
+        <button id="menuBtn" class="inline-flex items-center rounded-lg border border-champagne/40 px-3 py-2 text-sm md:hidden" aria-label="Abrir menú">
+          Menú
+        </button>
+
+        <ul class="hidden items-center gap-5 text-sm font-medium md:flex">
+          <li><a href="#inicio" class="hover:text-sunflower transition">Inicio</a></li>
+          <li><a href="#historia" class="hover:text-sunflower transition">Historia</a></li>
+          <li><a href="#constelacion" class="hover:text-sunflower transition">Constelación</a></li>
+          <li><a href="#detalles" class="hover:text-sunflower transition">Detalles</a></li>
+          <li><a href="#galeria" class="hover:text-sunflower transition">Galería</a></li>
+          <li><a href="#rsvp" class="hover:text-sunflower transition">RSVP</a></li>
+          <li><a href="#ubicacion" class="hover:text-sunflower transition">Ubicación</a></li>
+        </ul>
+      </div>
+
+      <ul id="mobileMenu" class="mt-3 hidden flex-col gap-3 border-t border-champagne/20 pt-3 text-sm md:hidden">
+        <li><a class="mobile-link block" href="#inicio">Inicio</a></li>
+        <li><a class="mobile-link block" href="#historia">Historia</a></li>
+        <li><a class="mobile-link block" href="#constelacion">Constelación</a></li>
+        <li><a class="mobile-link block" href="#detalles">Detalles</a></li>
+        <li><a class="mobile-link block" href="#galeria">Galería</a></li>
+        <li><a class="mobile-link block" href="#rsvp">RSVP</a></li>
+        <li><a class="mobile-link block" href="#ubicacion">Ubicación</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="inicio" class="starfield relative isolate overflow-hidden px-4 pb-24 pt-36 md:pt-40">
+      <div class="constellation-line"></div>
+      <div class="mx-auto grid w-[min(1150px,96%)] gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+        <div data-aos="fade-up">
+          <p class="mb-3 inline-flex items-center gap-2 rounded-full border border-champagne/40 px-4 py-1 text-xs uppercase tracking-[0.25em] text-champagne">
+            <span class="sunflower-dot"></span>
+            Invitación
+          </p>
+          <h1 class="font-serif text-5xl leading-tight text-ivory sm:text-6xl md:text-7xl">Nos casamos</h1>
+          <p class="mt-4 font-serif text-4xl text-champagne md:text-5xl" data-edit="coupleNames">Andrés y Saray</p>
+          <p class="mt-3 text-lg text-ivory/80" data-edit="weddingDate">25 de febrero de 2028</p>
+          <p class="mt-6 max-w-xl text-base leading-relaxed text-ivory/80" data-edit="heroQuote">
+            Entre ecuaciones, melodías y cielos infinitos, descubrimos que el amor también es una ciencia: precisa, luminosa y eterna.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-4">
+            <a href="#rsvp" class="rounded-full bg-champagne px-7 py-3 text-sm font-semibold text-night transition hover:bg-sunflower">Confirmar asistencia</a>
+            <a href="#historia" class="rounded-full border border-ivory/30 px-7 py-3 text-sm font-semibold transition hover:border-champagne hover:text-champagne">Nuestra historia</a>
+          </div>
+        </div>
+
+        <div class="relative" data-aos="zoom-in" data-aos-delay="180">
+          <div class="absolute -left-8 top-8 h-28 w-28 rounded-full border border-champagne/35"></div>
+          <div class="absolute -right-8 bottom-8 h-20 w-20 rounded-full border border-sage/55"></div>
+          <figure class="relative overflow-hidden rounded-[2rem] border border-champagne/25 shadow-glow">
+            <img id="heroImage" src="https://images.unsplash.com/photo-1516589091380-5d8e87df6991?auto=format&fit=crop&w=1200&q=80" alt="Andrés y Saray" class="h-[520px] w-full object-cover" />
+            <div class="img-overlay absolute inset-0"></div>
+            <figcaption class="absolute bottom-6 left-6 right-6 text-sm text-ivory/90">
+              Donde el amor y el universo se encuentran.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-4 py-14">
+      <div class="mx-auto w-[min(920px,94%)] text-center" data-aos="fade-up">
+        <p class="font-serif text-3xl italic leading-relaxed text-ivory sm:text-4xl" data-edit="featuredQuote">
+          "Dos caminos, una misma órbita: cada paso juntos nos acerca al infinito."
+        </p>
+      </div>
+    </section>
+
+    <section id="historia" class="px-4 py-16">
+      <div class="mx-auto w-[min(1100px,95%)]">
+        <div class="mb-10" data-aos="fade-up">
+          <h2 class="font-serif text-4xl text-ivory md:text-5xl">Nuestra historia</h2>
+          <p class="mt-3 max-w-3xl text-ivory/80" data-edit="storyText">
+            Entre aulas, proyectos y conversaciones sin prisa, aprendimos que enseñar también es amar: compartir, construir y crecer. Nuestra historia nació entre ideas, se fortaleció con propósito y hoy celebra una promesa que mira al cielo con gratitud.
+          </p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-3">
+          <article class="glass rounded-3xl p-6" data-aos="fade-up">
+            <h3 class="font-serif text-2xl text-champagne">Encuentro</h3>
+            <p class="mt-2 text-sm text-ivory/80">Dos vocaciones por la enseñanza encontraron una conversación que no terminó nunca.</p>
+          </article>
+          <article class="glass rounded-3xl p-6" data-aos="fade-up" data-aos-delay="100">
+            <h3 class="font-serif text-2xl text-champagne">Propósito</h3>
+            <p class="mt-2 text-sm text-ivory/80">La ciencia, la curiosidad y la música se volvieron lenguaje común para caminar la vida.</p>
+          </article>
+          <article class="glass rounded-3xl p-6" data-aos="fade-up" data-aos-delay="200">
+            <h3 class="font-serif text-2xl text-champagne">Promesa</h3>
+            <p class="mt-2 text-sm text-ivory/80">Hoy celebramos la decisión de seguir descubriendo el universo, de la mano.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="constelacion" class="relative px-4 py-20">
+      <div class="absolute inset-0 opacity-30" style="background:radial-gradient(circle at 60% 40%, rgba(232,201,119,0.18), transparent 40%);"></div>
+      <div class="mx-auto grid w-[min(1100px,95%)] gap-8 lg:grid-cols-2 lg:items-start">
+        <div data-aos="fade-right">
+          <p class="text-xs uppercase tracking-[0.22em] text-champagne">Sección especial</p>
+          <h2 class="mt-2 font-serif text-4xl md:text-5xl">Nuestra constelación</h2>
+          <p class="mt-4 text-ivory/80" data-edit="constellationIntro">
+            Andrés y Saray son dos trayectorias que convergen con precisión hermosa: ingeniería, docencia, tecnología, música y una pasión compartida por comprender el cielo.
+          </p>
+        </div>
+
+        <div class="space-y-4" data-aos="fade-left">
+          <article class="glass rounded-2xl p-5">
+            <h3 class="font-serif text-2xl text-champagne">Andrés</h3>
+            <p class="mt-2 text-sm text-ivory/80">Ingeniero, docente por convicción, amante de la tecnología y de la música como forma de armonía.</p>
+          </article>
+          <article class="glass rounded-2xl p-5">
+            <h3 class="font-serif text-2xl text-champagne">Saray</h3>
+            <p class="mt-2 text-sm text-ivory/80">Docente dedicada a diseñar estrategias de aprendizaje que transforman procesos en posibilidades.</p>
+          </article>
+          <article class="glass rounded-2xl p-5">
+            <h3 class="font-serif text-2xl text-champagne">Órbita compartida</h3>
+            <p class="mt-2 text-sm text-ivory/80">La ciencia y la astronomía nos recuerdan que cada descubrimiento tiene más sentido cuando se comparte.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="detalles" class="px-4 py-20">
+      <div class="mx-auto w-[min(1100px,95%)]">
+        <div class="mb-10" data-aos="fade-up">
+          <h2 class="font-serif text-4xl md:text-5xl">Detalles del gran día</h2>
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="glass rounded-2xl p-5" data-aos="fade-up">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Ceremonia</p>
+            <p class="mt-2 text-lg" data-edit="ceremonyText">Templo San Gabriel</p>
+          </article>
+          <article class="glass rounded-2xl p-5" data-aos="fade-up" data-aos-delay="70">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Recepción</p>
+            <p class="mt-2 text-lg" data-edit="receptionText">Casa Jardín Boreal</p>
+          </article>
+          <article class="glass rounded-2xl p-5" data-aos="fade-up" data-aos-delay="120">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Hora</p>
+            <p class="mt-2 text-lg" data-edit="timeText">4:30 p.m.</p>
+          </article>
+          <article class="glass rounded-2xl p-5" data-aos="fade-up">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Lugar</p>
+            <p class="mt-2 text-lg" data-edit="placeText">Bogotá, Colombia</p>
+          </article>
+          <article class="glass rounded-2xl p-5" data-aos="fade-up" data-aos-delay="70">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Dress code</p>
+            <p class="mt-2 text-lg" data-edit="dressCodeText">Formal elegante</p>
+          </article>
+          <article class="glass rounded-2xl p-5" data-aos="fade-up" data-aos-delay="120">
+            <p class="text-xs uppercase tracking-[0.2em] text-sage">Recomendación</p>
+            <p class="mt-2 text-lg" data-edit="tipsText">Llegar 30 minutos antes</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-4 pb-14" id="countdown">
+      <div class="mx-auto w-[min(950px,95%)] rounded-3xl border border-champagne/25 bg-night/30 p-8 text-center shadow-glow" data-aos="zoom-in">
+        <h2 class="font-serif text-4xl">Cuenta regresiva</h2>
+        <p class="mt-2 text-ivory/80">Faltan para nuestro 25 de febrero de 2028</p>
+        <div class="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div class="glass rounded-2xl p-4"><p id="days" class="font-serif text-4xl">0</p><p class="text-xs uppercase tracking-[0.2em] text-ivory/70">Días</p></div>
+          <div class="glass rounded-2xl p-4"><p id="hours" class="font-serif text-4xl">0</p><p class="text-xs uppercase tracking-[0.2em] text-ivory/70">Horas</p></div>
+          <div class="glass rounded-2xl p-4"><p id="minutes" class="font-serif text-4xl">0</p><p class="text-xs uppercase tracking-[0.2em] text-ivory/70">Minutos</p></div>
+          <div class="glass rounded-2xl p-4"><p id="seconds" class="font-serif text-4xl">0</p><p class="text-xs uppercase tracking-[0.2em] text-ivory/70">Segundos</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="galeria" class="px-4 py-16">
+      <div class="mx-auto w-[min(1100px,95%)]">
+        <div class="mb-8" data-aos="fade-up">
+          <h2 class="font-serif text-4xl md:text-5xl">Galería</h2>
+          <p class="mt-2 text-ivory/80">Fragmentos de una historia escrita entre estrellas, girasoles y aprendizaje compartido.</p>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80" alt="Momento 1" data-aos="fade-up" />
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?auto=format&fit=crop&w=900&q=80" alt="Momento 2" data-aos="fade-up" data-aos-delay="70" />
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1495578942200-c5f7d2137def?auto=format&fit=crop&w=900&q=80" alt="Momento 3" data-aos="fade-up" data-aos-delay="120" />
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1460853514880-9449c4d2a3f8?auto=format&fit=crop&w=900&q=80" alt="Momento 4" data-aos="fade-up" />
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80" alt="Momento 5" data-aos="fade-up" data-aos-delay="70" />
+          <img class="h-72 w-full rounded-2xl border border-champagne/20 object-cover transition hover:scale-[1.01]" src="https://images.unsplash.com/photo-1529633983527-da2f4acb86f2?auto=format&fit=crop&w=900&q=80" alt="Momento 6" data-aos="fade-up" data-aos-delay="120" />
+        </div>
+      </div>
+    </section>
+
+    <section id="rsvp" class="px-4 py-20">
+      <div class="mx-auto w-[min(900px,95%)] rounded-3xl border border-champagne/25 bg-night/35 p-8 shadow-glow" data-aos="fade-up">
+        <h2 class="font-serif text-4xl md:text-5xl">Confirma tu asistencia</h2>
+        <p class="mt-2 text-ivory/80">Nos encantará celebrar contigo esta historia escrita entre estrellas.</p>
+
+        <form id="rsvpForm" class="mt-8 grid gap-4 sm:grid-cols-2">
+          <label class="block text-sm sm:col-span-2">Nombre completo
+            <input required type="text" class="mt-2 w-full rounded-xl border border-champagne/30 bg-ivory/95 px-4 py-3 text-night outline-none focus:ring-2 focus:ring-sunflower" placeholder="Tu nombre" />
+          </label>
+
+          <label class="block text-sm">WhatsApp o correo
+            <input required type="text" class="mt-2 w-full rounded-xl border border-champagne/30 bg-ivory/95 px-4 py-3 text-night outline-none focus:ring-2 focus:ring-sunflower" placeholder="Ej. +57 300... o correo@..." />
+          </label>
+
+          <label class="block text-sm">¿Asistirás?
+            <select required class="mt-2 w-full rounded-xl border border-champagne/30 bg-ivory/95 px-4 py-3 text-night outline-none focus:ring-2 focus:ring-sunflower">
+              <option value="">Selecciona</option>
+              <option>Sí, con mucha alegría</option>
+              <option>No podré asistir</option>
+            </select>
+          </label>
+
+          <label class="block text-sm sm:col-span-2">Mensaje opcional
+            <textarea rows="4" class="mt-2 w-full rounded-xl border border-champagne/30 bg-ivory/95 px-4 py-3 text-night outline-none focus:ring-2 focus:ring-sunflower" placeholder="Déjanos un mensaje"></textarea>
+          </label>
+
+          <button type="submit" class="sm:col-span-2 rounded-full bg-champagne px-7 py-3 text-sm font-semibold text-night transition hover:bg-sunflower">Enviar confirmación</button>
+          <p id="rsvpStatus" class="sm:col-span-2 text-sm text-sunflower"></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="ubicacion" class="px-4 pb-20">
+      <div class="mx-auto grid w-[min(1100px,95%)] gap-6 lg:grid-cols-2 lg:items-start">
+        <article class="glass rounded-3xl p-7" data-aos="fade-right">
+          <h2 class="font-serif text-4xl">Ubicación</h2>
+          <p class="mt-3 text-ivory/80" data-edit="addressText">Calle 00 #00-00, Bogotá, Colombia</p>
+          <p class="mt-3 text-sm text-ivory/75">Recomendación: usa apps de movilidad, llega con tiempo y guarda este enlace en favoritos.</p>
+          <a id="mapsBtn" href="https://maps.google.com" target="_blank" class="mt-5 inline-block rounded-full border border-champagne/40 px-6 py-3 text-sm font-semibold transition hover:bg-champagne hover:text-night">Abrir mapa</a>
+        </article>
+
+        <article class="glass rounded-3xl p-7" data-aos="fade-left">
+          <h2 class="font-serif text-4xl">Regalos</h2>
+          <p class="mt-3 text-ivory/80" data-edit="giftText">
+            Tu presencia será nuestro mejor regalo. Si deseas tener un detalle adicional, puedes apoyarnos en nuestro nuevo hogar con un aporte voluntario.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-champagne/25 px-4 py-10">
+    <div class="mx-auto w-[min(1100px,95%)] text-center">
+      <p class="font-serif text-3xl" data-edit="coupleNames">Andrés y Saray</p>
+      <p class="mt-1 text-ivory/75" data-edit="weddingDate">25 de febrero de 2028</p>
+      <p class="mt-4 text-sm text-ivory/80">Gracias por acompañarnos en esta historia escrita entre estrellas.</p>
+      <div class="mt-5 flex justify-center gap-2">
+        <span class="sunflower-dot"></span>
+        <span class="h-[1px] w-16 self-center bg-champagne/40"></span>
+        <span class="sunflower-dot"></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="script_boda.js"></script>
+</body>
+</html>

@@ -1,0 +1,757 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creador de Grupos con Suspenso</title>
+  <style>
+    :root {
+      --bg-1: #090d1f;
+      --bg-2: #060914;
+      --panel: rgba(17, 23, 45, 0.86);
+      --panel-soft: rgba(24, 31, 58, 0.7);
+      --line: rgba(126, 167, 255, 0.35);
+      --ink: #ecf3ff;
+      --muted: #b9caef;
+      --brand: #4cf7c2;
+      --accent: #69bcff;
+      --warn: #ffd35d;
+      --danger: #ff7b7b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(76, 247, 194, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 5%, rgba(105, 188, 255, 0.18), transparent 30%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    }
+
+    .app {
+      width: min(1100px, 94vw);
+      margin: 0 auto;
+      height: 100vh;
+      padding: 0.7rem 0.2rem 0.8rem;
+      display: grid;
+      gap: 0.7rem;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 1rem 1rem 1.1rem;
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2.2vw, 1.55rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0.35rem 0 0;
+      font-size: clamp(0.84rem, 1.4vw, 0.95rem);
+      line-height: 1.35;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+      margin-top: 0;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 0.72rem;
+      box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+      min-height: 0;
+    }
+
+    .stage-panel {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+
+    .panel h2 {
+      margin: 0 0 0.7rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: 1fr;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 86px;
+      max-height: 120px;
+      resize: vertical;
+      border: 1px solid rgba(126, 167, 255, 0.35);
+      border-radius: 12px;
+      background: rgba(9, 14, 31, 0.8);
+      color: var(--ink);
+      padding: 0.7rem;
+      font-size: 0.98rem;
+      line-height: 1.45;
+    }
+
+    textarea:focus,
+    select:focus,
+    button:focus {
+      outline: 2px solid rgba(76, 247, 194, 0.45);
+      outline-offset: 1px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    select {
+      border: 1px solid rgba(126, 167, 255, 0.35);
+      border-radius: 999px;
+      background: rgba(9, 14, 31, 0.82);
+      color: var(--ink);
+      padding: 0.42rem 0.7rem;
+      font-size: 0.95rem;
+      min-width: 165px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+      transform: none;
+    }
+
+    .btn-main {
+      color: #021118;
+      background: linear-gradient(135deg, var(--brand), #60fbe8);
+      box-shadow: 0 0 16px rgba(76, 247, 194, 0.35);
+    }
+
+    .btn-alt {
+      color: #dbe7ff;
+      background: linear-gradient(135deg, #355393, #4f7ed8);
+    }
+
+    .btn-danger {
+      color: #fff2f2;
+      background: linear-gradient(135deg, #a43f62, #d25555);
+    }
+
+    .status {
+      margin-top: 0.52rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      min-height: 1.2rem;
+    }
+
+    .status strong {
+      color: #fff;
+    }
+
+    .arena-wrap {
+      margin-top: 0.5rem;
+      border: 1px solid rgba(126, 167, 255, 0.24);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(12, 18, 38, 0.72), rgba(7, 11, 23, 0.82));
+      overflow: hidden;
+      position: relative;
+    }
+
+    .arena-top {
+      padding: 0.5rem 0.7rem;
+      border-bottom: 1px solid rgba(126, 167, 255, 0.2);
+      color: #d4e3ff;
+      font-size: 0.87rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .arena {
+      height: 100%;
+      min-height: 165px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 120%, rgba(76, 247, 194, 0.18), transparent 50%),
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.03) 0,
+          rgba(255, 255, 255, 0.03) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+    }
+
+    .student-chip {
+      position: absolute;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.5rem 0.7rem;
+      font-weight: 700;
+      font-size: 0.86rem;
+      color: #fff;
+      font-family: "Segoe UI", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+      white-space: nowrap;
+      user-select: none;
+      box-shadow: 0 10px 14px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      transform: translate3d(0, 0, 0);
+      transition: transform 0.2s ease;
+    }
+
+    .student-chip.chaos {
+      transform: scale(1.08);
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.32);
+    }
+
+    .groups-output {
+      display: grid;
+      gap: 0.55rem;
+      grid-template-columns: 1fr;
+      margin-top: 0.58rem;
+      max-height: 140px;
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .group-card {
+      background: var(--panel-soft);
+      border: 1px solid rgba(126, 167, 255, 0.24);
+      border-radius: 14px;
+      padding: 0.7rem 0.8rem;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: showCard 0.46s ease forwards;
+    }
+
+    @keyframes showCard {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .group-title {
+      margin: 0 0 0.35rem;
+      color: var(--brand);
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+    }
+
+    .members {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .member-pill {
+      background: rgba(105, 188, 255, 0.16);
+      border: 1px solid rgba(105, 188, 255, 0.3);
+      border-radius: 999px;
+      color: #e8f1ff;
+      font-size: 0.86rem;
+      padding: 0.3rem 0.56rem;
+    }
+
+    .suspense {
+      margin-top: 0.5rem;
+      min-height: 1.4rem;
+      font-size: 0.9rem;
+      color: var(--warn);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #9fb3df;
+      margin-top: 0.32rem;
+      margin-bottom: 0;
+    }
+
+    @media (min-width: 920px) {
+      .layout {
+        grid-template-columns: 1.02fr 1fr;
+      }
+      .groups-output {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-height: 780px) {
+      textarea {
+        min-height: 72px;
+        max-height: 94px;
+      }
+      .arena {
+        min-height: 145px;
+      }
+      .group-card {
+        padding: 0.55rem 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <h1>Creador de Grupos con Suspenso</h1>
+      <p class="subtitle">
+        Escribe los nombres, elige el tamano de grupo y pulsa ordenar. Veras una animacion con rebote y revelacion progresiva de grupos.
+      </p>
+    </section>
+
+    <section class="layout">
+      <article class="panel">
+        <h2>1) Lista de Estudiantes</h2>
+        <div class="form-grid">
+          <textarea id="namesInput" placeholder="Escribe un nombre por linea (tambien acepta comas).&#10;Ejemplo:&#10;Ana&#10;Luis&#10;Mariana&#10;Santiago"></textarea>
+          <div class="actions">
+            <button id="loadBtn" class="btn-main" type="button">Cargar estudiantes</button>
+            <button id="sampleBtn" class="btn-alt" type="button">Ejemplo rapido</button>
+            <button id="clearBtn" class="btn-danger" type="button">Limpiar</button>
+          </div>
+        </div>
+        <div id="status" class="status">Sin estudiantes cargados.</div>
+      </article>
+
+      <article class="panel">
+        <h2>2) Ordenar por Grupos</h2>
+        <div class="actions">
+          <select id="groupSizeSelect">
+            <option value="2">2 por grupo</option>
+            <option value="3" selected>3 por grupo</option>
+            <option value="4">4 por grupo</option>
+            <option value="5">5 por grupo</option>
+            <option value="6">6 por grupo</option>
+          </select>
+          <button id="organizeBtn" class="btn-main" type="button">Ordenar con suspenso</button>
+        </div>
+        <div id="suspense" class="suspense"></div>
+        <p class="hint">Tip: si queda 1 estudiante solo, el sistema lo reubica automaticamente en otro grupo.</p>
+        <div id="groupsOutput" class="groups-output"></div>
+      </article>
+    </section>
+
+    <section class="panel stage-panel">
+      <h2>3) Estudiantes Rebotando</h2>
+      <div class="arena-wrap">
+        <div class="arena-top">Vista dinamica de participantes (offline y responsive).</div>
+        <div id="arena" class="arena"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const emojis = [
+        "\uD83D\uDE80", // 🚀
+        "\uD83C\uDFAF", // 🎯
+        "\uD83D\uDD25", // 🔥
+        "\u2B50",       // ⭐
+        "\u26A1",       // ⚡
+        "\uD83E\uDDE0", // 🧠
+        "\uD83D\uDCD8", // 📘
+        "\uD83E\uDDE9", // 🧩
+        "\uD83C\uDF1F", // 🌟
+        "\uD83C\uDFAE", // 🎮
+        "\uD83D\uDCDA", // 📚
+        "\uD83C\uDF89", // 🎉
+        "\uD83C\uDFC6", // 🏆
+        "\uD83D\uDEE0\uFE0F" // 🛠️
+      ];
+      const palette = [
+        "linear-gradient(135deg,#4f7cff,#7bc6ff)",
+        "linear-gradient(135deg,#ff6a88,#ff9b6a)",
+        "linear-gradient(135deg,#16d9a5,#58ffd5)",
+        "linear-gradient(135deg,#a65cff,#e07cff)",
+        "linear-gradient(135deg,#ffb347,#ffd36c)",
+        "linear-gradient(135deg,#3ac4ff,#6fe8ff)"
+      ];
+
+      const state = {
+        participants: [],
+        chips: [],
+        running: false,
+        chaos: false,
+        mode: "free",
+        lastGroups: null
+      };
+
+      const groupPalette = [
+        "linear-gradient(135deg,#39b8ff,#5ee6ff)",
+        "linear-gradient(135deg,#53f3be,#7dffd7)",
+        "linear-gradient(135deg,#ff8a6e,#ffb18b)",
+        "linear-gradient(135deg,#a970ff,#d493ff)",
+        "linear-gradient(135deg,#ffd368,#ffe38f)",
+        "linear-gradient(135deg,#ff6ba2,#ffa1c3)"
+      ];
+
+      const els = {
+        namesInput: document.getElementById("namesInput"),
+        loadBtn: document.getElementById("loadBtn"),
+        sampleBtn: document.getElementById("sampleBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        groupSizeSelect: document.getElementById("groupSizeSelect"),
+        organizeBtn: document.getElementById("organizeBtn"),
+        status: document.getElementById("status"),
+        suspense: document.getElementById("suspense"),
+        groupsOutput: document.getElementById("groupsOutput"),
+        arena: document.getElementById("arena")
+      };
+
+      const sample = [
+        "Ana", "Luis", "Mariana", "Santiago", "Camila", "Juan",
+        "Valentina", "Mateo", "Isabella", "Daniel", "Lucia", "Nicolas"
+      ];
+
+      function parseNames(text) {
+        return Array.from(
+          new Set(
+            String(text || "")
+              .split(/[\n,;]+/)
+              .map(v => v.trim())
+              .filter(Boolean)
+          )
+        );
+      }
+
+      function randomEmoji(i) {
+        return emojis[i % emojis.length];
+      }
+
+      function randomPalette(i) {
+        return palette[i % palette.length];
+      }
+
+      function setStatus(text, strong) {
+        if (strong) {
+          els.status.innerHTML = "<strong>" + strong + "</strong> " + text;
+        } else {
+          els.status.textContent = text;
+        }
+      }
+
+      function buildParticipants(names) {
+        return names.map(function (name, i) {
+          return {
+            id: "p" + i + "_" + Math.random().toString(36).slice(2, 7),
+            name: name,
+            emoji: randomEmoji(i),
+            bg: randomPalette(i),
+            x: 16 + (i * 22),
+            y: 16 + ((i % 5) * 30),
+            vx: (Math.random() * 1.8) + 0.9,
+            vy: (Math.random() * 1.8) + 0.9,
+            w: 120,
+            h: 38,
+            tx: null,
+            ty: null,
+            groupIndex: null
+          };
+        });
+      }
+
+      function clearArena() {
+        els.arena.innerHTML = "";
+        state.chips = [];
+      }
+
+      function renderArena() {
+        clearArena();
+        const box = els.arena.getBoundingClientRect();
+
+        state.participants.forEach(function (p, i) {
+          const chip = document.createElement("div");
+          chip.className = "student-chip";
+          chip.textContent = p.name + " " + p.emoji;
+          chip.style.background = p.bg;
+          chip.setAttribute("data-id", p.id);
+          els.arena.appendChild(chip);
+
+          const rect = chip.getBoundingClientRect();
+          p.w = rect.width;
+          p.h = rect.height;
+          p.x = (i * 34) % Math.max(60, (box.width - p.w));
+          p.y = (i * 28) % Math.max(60, (box.height - p.h));
+          p.tx = null;
+          p.ty = null;
+          p.groupIndex = null;
+          chip.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+          state.chips.push(chip);
+        });
+
+        if (!state.running) {
+          state.running = true;
+          requestAnimationFrame(tick);
+        }
+      }
+
+      function tick() {
+        if (!state.running) return;
+        const box = els.arena.getBoundingClientRect();
+        const speed = state.chaos ? 2.5 : 1;
+
+        state.participants.forEach(function (p, i) {
+          if (state.mode === "grouped" && p.tx !== null && p.ty !== null) {
+            p.x += (p.tx - p.x) * 0.16;
+            p.y += (p.ty - p.y) * 0.16;
+          } else {
+            p.x += p.vx * speed;
+            p.y += p.vy * speed;
+
+            if (p.x <= 0 || p.x + p.w >= box.width) {
+              p.vx *= -1;
+              p.x = Math.max(0, Math.min(p.x, box.width - p.w));
+            }
+            if (p.y <= 0 || p.y + p.h >= box.height) {
+              p.vy *= -1;
+              p.y = Math.max(0, Math.min(p.y, box.height - p.h));
+            }
+          }
+
+          const chip = state.chips[i];
+          if (chip) {
+            chip.classList.toggle("chaos", state.chaos);
+            if (state.mode === "grouped" && p.groupIndex !== null) {
+              chip.style.zIndex = String(100 + p.groupIndex);
+              chip.style.background = p.bg;
+            } else {
+              chip.style.zIndex = "1";
+            }
+            chip.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+          }
+        });
+
+        requestAnimationFrame(tick);
+      }
+
+      function shuffle(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function buildGroups(names, size) {
+        const groups = [];
+        let idx = 0;
+        while (idx < names.length) {
+          groups.push(names.slice(idx, idx + size));
+          idx += size;
+        }
+
+        if (groups.length > 1) {
+          const last = groups[groups.length - 1];
+          if (last.length === 1) {
+            const target = groups.reduce(function (best, g, i) {
+              return g.length < groups[best].length ? i : best;
+            }, 0);
+            groups[target].push(last[0]);
+            groups.pop();
+          }
+        }
+        return groups;
+      }
+
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      function renderGroups(groups) {
+        els.groupsOutput.innerHTML = "";
+        groups.forEach(function (group, i) {
+          const card = document.createElement("article");
+          card.className = "group-card";
+          card.style.animationDelay = (i * 90) + "ms";
+
+          const title = document.createElement("h3");
+          title.className = "group-title";
+          title.textContent = "Grupo " + (i + 1);
+          card.appendChild(title);
+
+          const members = document.createElement("div");
+          members.className = "members";
+          group.forEach(function (name) {
+            const pill = document.createElement("span");
+            pill.className = "member-pill";
+            pill.textContent = name;
+            members.appendChild(pill);
+          });
+          card.appendChild(members);
+          els.groupsOutput.appendChild(card);
+        });
+      }
+
+      function arrangeParticipantsByGroups(groups) {
+        const box = els.arena.getBoundingClientRect();
+        if (!box.width || !box.height) return;
+
+        const cols = Math.ceil(Math.sqrt(groups.length));
+        const rows = Math.ceil(groups.length / cols);
+        const cellW = box.width / cols;
+        const cellH = box.height / rows;
+
+        groups.forEach(function (group, gIdx) {
+          const col = gIdx % cols;
+          const row = Math.floor(gIdx / cols);
+          const cellX = col * cellW;
+          const cellY = row * cellH;
+          const labelPadding = 18;
+          const innerPad = 8;
+          const usableW = Math.max(40, cellW - (innerPad * 2));
+          const usableH = Math.max(36, cellH - labelPadding - innerPad);
+
+          const memberCols = Math.max(1, Math.ceil(Math.sqrt(group.length)));
+          const memberRows = Math.max(1, Math.ceil(group.length / memberCols));
+
+          group.forEach(function (name, idx) {
+            const p = state.participants.find(function (v) { return v.name === name; });
+            if (!p) return;
+
+            const mc = idx % memberCols;
+            const mr = Math.floor(idx / memberCols);
+            const stepX = usableW / memberCols;
+            const stepY = usableH / memberRows;
+
+            p.tx = cellX + innerPad + (mc * stepX) + Math.max(0, (stepX - p.w) / 2);
+            p.ty = cellY + labelPadding + (mr * stepY) + Math.max(0, (stepY - p.h) / 2);
+            p.groupIndex = gIdx;
+            p.bg = groupPalette[gIdx % groupPalette.length];
+          });
+        });
+      }
+
+      async function organizeWithSuspense() {
+        if (!state.participants.length) {
+          setStatus("Primero debes cargar nombres.", "Atencion:");
+          return;
+        }
+
+        els.organizeBtn.disabled = true;
+        const size = Number(els.groupSizeSelect.value);
+        const names = state.participants.map(p => p.name);
+        const rounds = 11;
+
+        state.mode = "free";
+        state.chaos = true;
+        els.suspense.textContent = "Preparando sorteo...";
+        for (let r = 1; r <= rounds; r += 1) {
+          const temp = buildGroups(shuffle(names), size);
+          renderGroups(temp);
+          els.suspense.textContent = "Mezclando grupos... " + ".".repeat((r % 3) + 1);
+          await sleep(180 + (r * 18));
+        }
+        state.chaos = false;
+
+        const finalGroups = buildGroups(shuffle(names), size);
+        state.lastGroups = finalGroups;
+        els.groupsOutput.innerHTML = "";
+        for (let i = 0; i < finalGroups.length; i += 1) {
+          const partial = finalGroups.slice(0, i + 1);
+          renderGroups(partial);
+          els.suspense.textContent = "Revelando Grupo " + (i + 1) + "...";
+          await sleep(650);
+        }
+
+        arrangeParticipantsByGroups(finalGroups);
+        state.mode = "grouped";
+        els.suspense.textContent = "Listo. Grupos organizados con exito.";
+        setStatus("Se generaron " + finalGroups.length + " grupos.", "Completado:");
+        els.organizeBtn.disabled = false;
+      }
+
+      function loadFromInput() {
+        const names = parseNames(els.namesInput.value);
+        if (!names.length) {
+          setStatus("Escribe al menos un nombre para comenzar.", "Atencion:");
+          return;
+        }
+        state.mode = "free";
+        state.lastGroups = null;
+        state.participants = buildParticipants(names);
+        renderArena();
+        els.groupsOutput.innerHTML = "";
+        els.suspense.textContent = "";
+        setStatus("Participantes cargados: " + names.length, "Perfecto:");
+      }
+
+      function loadSample() {
+        els.namesInput.value = sample.join("\n");
+        loadFromInput();
+      }
+
+      function clearAll() {
+        state.mode = "free";
+        state.lastGroups = null;
+        state.participants = [];
+        clearArena();
+        els.namesInput.value = "";
+        els.groupsOutput.innerHTML = "";
+        els.suspense.textContent = "";
+        setStatus("Sin estudiantes cargados.");
+      }
+
+      els.loadBtn.addEventListener("click", loadFromInput);
+      els.sampleBtn.addEventListener("click", loadSample);
+      els.clearBtn.addEventListener("click", clearAll);
+      els.organizeBtn.addEventListener("click", organizeWithSuspense);
+
+      window.addEventListener("resize", function () {
+        if (!state.participants.length) return;
+        renderArena();
+        if (state.mode === "grouped" && state.lastGroups && state.lastGroups.length) {
+          arrangeParticipantsByGroups(state.lastGroups);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

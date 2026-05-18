@@ -1,118 +1,511 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Pista‑Emoji Mega Suspenso</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrera de Emoji-Corredores</title>
 <style>
-    /* ----------- Estilo general ------------ */
-    body{margin:0;background:#111;color:#0ff;text-align:center;
-         font-family:system-ui,sans-serif;}
-    h1{margin:20px 0 10px;}
-    textarea{width:90%;max-width:500px;height:80px;
-             background:#000;border:2px solid #0ff;color:#0ff;
-             padding:8px;border-radius:6px;resize:none;}
-    button{margin:10px 6px;padding:10px 22px;font-size:16px;font-weight:bold;
-           background:#0ff;color:#000;border:none;border-radius:6px;
-           cursor:pointer;box-shadow:0 0 12px #0ff;transition:.2s;}
-    button:hover{transform:scale(1.05);}
-    #winnerBox{margin:18px 0;font-size:24px;font-weight:bold;}
+    :root {
+        --bg: #1f1c2a;
+        --bg-soft: #2b2740;
+        --text: #f2ecff;
+        --muted: #d7cbe9;
+        --panel: #2e2a46;
+        --panel-border: #4f4a73;
+        --lane-a: #5b567f;
+        --lane-b: #4b466a;
+        --btn: #f6cbe2;
+        --btn-text: #2e2540;
+        --btn-disabled: #d6c6da;
+        --accent: #f3e4ff;
+        --winner: #f7e5a4;
+    }
 
-    /* ----------- Pista y corredores --------- */
-    #raceWrapper{width:95%;margin:20px auto 40px;}  /* 95 % de la página */
-    #raceArea{width:100%;}                          /* ocupa todo el wrapper */
-    .lane{position:relative;height:90px;margin:14px 0;
-          background:linear-gradient(#2b2b2b 0%,#1a1a1a 50%,#2b2b2b 100%);
-          border-radius:45px;overflow:hidden;}
-    .lane::after{content:'🏁';position:absolute;right:15px;top:50%;
-                 transform:translateY(-50%);font-size:32px;}
-    .runner{--clr:#0ff;position:absolute;left:0;top:50%;
-            width:80px;height:80px;transform:translateY(-50%);
-            border-radius:50%;background:var(--clr);
-            display:flex;flex-direction:column;align-items:center;
-            justify-content:center;gap:3px;
-            color:#000;font-size:13px;font-weight:bold;
-            box-shadow:0 0 15px var(--clr);user-select:none;}
-    .runner .emoji{font-size:30px;line-height:1;}
-    .winner{box-shadow:0 0 25px 6px gold;background:gold;color:#000;}
+    body[data-theme="light"] {
+        --bg: #fff7f3;
+        --bg-soft: #ffe9f1;
+        --text: #50334c;
+        --muted: #7a5472;
+        --panel: #fff2fa;
+        --panel-border: #efcfe2;
+        --lane-a: #ffd7df;
+        --lane-b: #ffd0ea;
+        --btn: #c6e8ff;
+        --btn-text: #2d4050;
+        --btn-disabled: #d9e2ea;
+        --accent: #fff;
+        --winner: #ffe9a8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top, var(--bg-soft) 0%, var(--bg) 70%);
+        color: var(--text);
+        text-align: center;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    h1 { margin: 18px 0 8px; font-size: clamp(1.2rem, 2.5vw, 2rem); }
+
+    #setupPanel {
+        width: min(900px, 94vw);
+        margin: 0 auto;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--panel-border);
+        background: color-mix(in srgb, var(--panel) 92%, white 8%);
+    }
+
+    .setup-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    #helpText {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+
+    #nameInput {
+        width: min(720px, 100%);
+        min-height: 72px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--panel-border);
+        background: var(--accent);
+        color: #2f213c;
+        resize: vertical;
+    }
+    #nameInput::placeholder {
+        color: #6b5a76;
+    }
+
+    #themeSelect {
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: var(--accent);
+        color: #2f213c;
+        font-weight: 700;
+    }
+    #themeSelect option {
+        color: #2f213c;
+    }
+
+    button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-weight: 800;
+        cursor: pointer;
+        background: var(--btn);
+        color: var(--btn-text);
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+        background: var(--btn-disabled);
+        opacity: .75;
+    }
+
+    #statusBox {
+        min-height: 24px;
+        margin-top: 8px;
+        font-size: 0.95rem;
+        color: var(--muted);
+    }
+
+    #raceWrapper {
+        --lane-h: 72px;
+        --lane-gap: 10px;
+        --runner-size: 58px;
+        --emoji-size: 24px;
+        --lane-start-x: 90px;
+        --lane-name-size: 13px;
+
+        width: min(1200px, 96vw);
+        margin: 16px auto 26px;
+    }
+
+    .lane {
+        position: relative;
+        height: var(--lane-h);
+        margin: var(--lane-gap) 0;
+        border-radius: calc(var(--lane-h) / 2);
+        background: linear-gradient(180deg, var(--lane-a), var(--lane-b));
+        overflow: hidden;
+    }
+
+    .lane::after {
+        content: "🏁";
+        position: absolute;
+        right: clamp(8px, 2vw, 16px);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: calc(var(--lane-h) * 0.5);
+        line-height: 1;
+    }
+
+    .lane-name {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+        max-width: calc(var(--lane-start-x) - 16px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: var(--lane-name-size);
+        font-weight: 800;
+        color: #2f213c;
+        background: color-mix(in srgb, var(--accent) 70%, transparent 30%);
+        border-radius: 999px;
+        padding: 4px 8px;
+        pointer-events: none;
+    }
+
+    .runner {
+        --clr: #ffb6c9;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: var(--runner-size);
+        height: var(--runner-size);
+        transform: translate(var(--lane-start-x), -50%) rotate(0deg);
+        border-radius: 50%;
+        background: var(--clr);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2f213c;
+        box-shadow: 0 4px 12px rgba(0,0,0,.16);
+        user-select: none;
+        will-change: transform;
+        padding: 2px;
+    }
+
+    .runner .emoji {
+        font-size: var(--emoji-size);
+        line-height: 1;
+    }
+
+    .winner {
+        background: var(--winner) !important;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--winner) 75%, #3a2f4d 25%);
+    }
+
+    #winnerBox {
+        min-height: 28px;
+        margin: 8px 0 4px;
+        font-weight: 800;
+        font-size: clamp(1rem, 2.2vw, 1.4rem);
+    }
+
+    body.racing #setupPanel {
+        display: none;
+    }
+
+    dialog {
+        border: none;
+        border-radius: 16px;
+        padding: 0;
+        width: min(420px, 92vw);
+        background: var(--panel);
+        color: var(--text);
+        box-shadow: 0 20px 55px rgba(0, 0, 0, .35);
+    }
+
+    dialog::backdrop {
+        background: rgba(26, 20, 38, .55);
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-body h2 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+    }
+
+    .modal-body p {
+        margin: 0 0 14px;
+        color: var(--muted);
+    }
 </style>
 </head>
-<body>
-<h1>🎳 Pista de Emoji‑Corredores</h1>
+<body data-theme="dark">
+<h1>🏁 Pista de Emoji-Corredores</h1>
 
-<p>Nombres separados por comas → “Crear pista” → “¡Girar!”</p>
-<textarea id="nameInput" placeholder="Ej: Ana, Beto, Carlos"></textarea><br>
-<button id="buildBtn">Crear pista</button>
-<button id="raceBtn"  disabled>¡Girar!</button>
+<section id="setupPanel" aria-label="Configuración de carrera">
+    <p id="helpText">Nombres separados por comas, crea la pista y luego inicia la carrera.</p>
+    <textarea id="nameInput" aria-label="Nombres de corredores" placeholder="Ej: Ana, Beto, Carlos"></textarea>
+    <div class="setup-row">
+        <label for="themeSelect">Tema:</label>
+        <select id="themeSelect" aria-label="Tema visual">
+            <option value="dark">Oscuro pastel</option>
+            <option value="light">Claro pastel</option>
+        </select>
+        <button id="buildBtn" type="button">Crear pista</button>
+        <button id="raceBtn" type="button" disabled>Iniciar carrera</button>
+    </div>
+    <div id="statusBox" aria-live="polite"></div>
+</section>
 
-<div id="raceWrapper"><div id="raceArea"></div></div>
-<div id="winnerBox"></div>
+<div id="raceWrapper">
+    <div id="raceArea"></div>
+</div>
+<div id="winnerBox" aria-live="polite"></div>
+
+<dialog id="winnerModal" aria-labelledby="winnerTitle">
+    <div class="modal-body">
+        <h2 id="winnerTitle">🏆 Carrera terminada</h2>
+        <p id="winnerMessage"></p>
+        <button id="closeModalBtn" type="button">Cerrar</button>
+    </div>
+</dialog>
 
 <script>
-/* ----------- Configuración -------------- */
-const MIN_SPEED = 0.4, MAX_SPEED = 3.2, CHANGE_CH = 0.02;
-const EMOJIS=['🐢','🐇','🦊','🐱','🐶','🐼','🐸','🐰','🐹','🐻',
-              '🦄','🐝','🦋','🐌','🐯','🦁','🐮','🐴'];
+const MIN_SPEED = 0.4;
+const MAX_SPEED = 3.2;
+const CHANGE_CH = 0.02;
+const EMOJIS = ['🐢', '🐇', '🦊', '🐱', '🐶', '🐼', '🐸', '🐰', '🐹', '🐻', '🦄', '🐝', '🦋', '🐌', '🐯', '🦁', '🐮', '🐴'];
 
-const $ = s=>document.querySelector(s);
-const nameInput=$('#nameInput'), buildBtn=$('#buildBtn'), raceBtn=$('#raceBtn');
-const raceArea=$('#raceArea'), winnerBox=$('#winnerBox');
+const $ = (s) => document.querySelector(s);
+const body = document.body;
+const nameInput = $('#nameInput');
+const buildBtn = $('#buildBtn');
+const raceBtn = $('#raceBtn');
+const raceArea = $('#raceArea');
+const raceWrapper = $('#raceWrapper');
+const winnerBox = $('#winnerBox');
+const statusBox = $('#statusBox');
+const themeSelect = $('#themeSelect');
+const winnerModal = $('#winnerModal');
+const winnerMessage = $('#winnerMessage');
+const closeModalBtn = $('#closeModalBtn');
 
-let runners=[], racing=false;
+let runners = [];
+let racing = false;
+let frameId = null;
+let raceToken = 0;
+let runnerSize = 58;
+let laneStartX = 90;
 
-/* ----------- Construir pista ------------ */
-function buildRace(){
-    const names=nameInput.value.trim().split(',').map(n=>n.trim()).filter(Boolean);
-    if(!names.length){alert('👀 ¡Escribe al menos un nombre!');return;}
-    raceArea.innerHTML=''; winnerBox.textContent=''; runners=[];
-    names.forEach(n=>{
-        const lane=document.createElement('div'); lane.className='lane';
-        const run=document.createElement('div'); run.className='runner';
-        const emoji=document.createElement('span'); emoji.className='emoji';
-        emoji.textContent=EMOJIS[Math.random()*EMOJIS.length|0];
-        const label=document.createElement('span'); label.textContent=n;
-        run.append(emoji,label); lane.appendChild(run); raceArea.appendChild(lane);
-        run.style.setProperty('--clr',`hsl(${Math.random()*360}deg,100%,50%)`);
-        runners.push({node:run,pos:0,
-                      speed:MIN_SPEED+Math.random()*(MAX_SPEED-MIN_SPEED)});
-    });
-    raceBtn.disabled=false;
+function setStatus(message) {
+    statusBox.textContent = message;
 }
 
-/* ------------- Carrera ------------------ */
-function startRace(){
-    if(racing||!runners.length)return;
-    racing=true; winnerBox.textContent='';
-    const meta = raceArea.clientWidth - 100;     // 95 % de página – bola
+function randomSpeed() {
+    return MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+}
 
-    function step(){
-        let winner=null;
-        runners.forEach(r=>{
-            if(Math.random()<CHANGE_CH){
-                r.speed=MIN_SPEED+Math.random()*(MAX_SPEED-MIN_SPEED);
-                r.node.animate([{filter:'brightness(180%)'},
-                                 {filter:'brightness(100%)'}],
-                                {duration:250});
+function randomPastelColor() {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 65;
+    const lightness = body.dataset.theme === 'light' ? 78 : 72;
+    return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function adaptTrackLayout(count, compactMode) {
+    const viewportH = window.innerHeight;
+    const reserveSpace = compactMode ? 120 : 330;
+    const usable = Math.max(220, viewportH - reserveSpace);
+
+    const laneGap = count > 12 ? 4 : count > 7 ? 6 : 10;
+    const laneHeight = clamp(Math.floor((usable - (count - 1) * laneGap) / Math.max(count, 1)), 34, 86);
+    runnerSize = clamp(Math.floor(laneHeight * 0.8), 26, 74);
+    const emojiSize = clamp(Math.floor(runnerSize * 0.42), 12, 30);
+    laneStartX = clamp(Math.floor(runnerSize * 1.45), 62, 130);
+    const laneNameSize = clamp(Math.floor(runnerSize * 0.23), 10, 16);
+
+    raceWrapper.style.setProperty('--lane-h', `${laneHeight}px`);
+    raceWrapper.style.setProperty('--lane-gap', `${laneGap}px`);
+    raceWrapper.style.setProperty('--runner-size', `${runnerSize}px`);
+    raceWrapper.style.setProperty('--emoji-size', `${emojiSize}px`);
+    raceWrapper.style.setProperty('--lane-start-x', `${laneStartX}px`);
+    raceWrapper.style.setProperty('--lane-name-size', `${laneNameSize}px`);
+}
+
+function resetRunnerVisual(runner) {
+    runner.pos = 0;
+    runner.speed = randomSpeed();
+    runner.node.classList.remove('winner');
+    runner.node.style.transform = `translate(${laneStartX}px, -50%) rotate(0deg)`;
+}
+
+function closeWinnerModal() {
+    if (typeof winnerModal.close === 'function' && winnerModal.open) {
+        winnerModal.close();
+    } else {
+        winnerModal.removeAttribute('open');
+    }
+}
+
+function openWinnerModal(text) {
+    winnerMessage.textContent = text;
+    if (typeof winnerModal.showModal === 'function') {
+        winnerModal.showModal();
+    } else {
+        winnerModal.setAttribute('open', 'open');
+    }
+}
+
+function buildRace() {
+    const names = nameInput.value
+        .trim()
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean);
+
+    if (!names.length) {
+        setStatus('Escribe al menos un nombre para crear la pista.');
+        raceBtn.disabled = true;
+        return;
+    }
+
+    if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+        frameId = null;
+    }
+
+    closeWinnerModal();
+    raceToken += 1;
+    racing = false;
+    body.classList.remove('racing');
+    raceArea.innerHTML = '';
+    winnerBox.textContent = '';
+    setStatus('');
+    runners = [];
+
+    adaptTrackLayout(names.length, false);
+
+    names.forEach((name) => {
+        const lane = document.createElement('div');
+        lane.className = 'lane';
+        lane.title = name;
+
+        const laneName = document.createElement('span');
+        laneName.className = 'lane-name';
+        laneName.textContent = name;
+
+        const run = document.createElement('div');
+        run.className = 'runner';
+
+        const emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+
+        run.append(emoji);
+        lane.append(laneName, run);
+        raceArea.appendChild(lane);
+
+        run.style.setProperty('--clr', randomPastelColor());
+        runners.push({ node: run, pos: 0, speed: randomSpeed(), name });
+    });
+
+    raceBtn.disabled = false;
+}
+
+function startRace() {
+    if (racing || !runners.length) return;
+
+    raceToken += 1;
+    const currentRace = raceToken;
+    racing = true;
+    winnerBox.textContent = '';
+    setStatus('');
+    buildBtn.disabled = true;
+    raceBtn.disabled = true;
+
+    if (runners.length > 1) {
+        body.classList.add('racing');
+    }
+
+    adaptTrackLayout(runners.length, runners.length > 1);
+
+    runners.forEach(resetRunnerVisual);
+    const finishLine = raceArea.clientWidth - runnerSize - laneStartX - 18;
+
+    function step() {
+        if (currentRace !== raceToken) return;
+
+        let winner = null;
+
+        runners.forEach((r) => {
+            if (Math.random() < CHANGE_CH) {
+                r.speed = randomSpeed();
+                r.node.animate(
+                    [{ filter: 'brightness(118%)' }, { filter: 'brightness(100%)' }],
+                    { duration: 250 }
+                );
             }
-            r.pos+=r.speed;
-            r.node.style.transform=`translate(${r.pos}px,-50%) rotate(${r.pos*3}deg)`;
-            if(!winner && r.pos>=meta) winner=r;
+
+            r.pos += r.speed;
+            r.node.style.transform = `translate(${laneStartX + r.pos}px, -50%) rotate(${r.pos * 3}deg)`;
+            if (!winner && r.pos >= finishLine) winner = r;
         });
 
-        if(winner){
+        if (winner) {
+            const winnerText = `Ganador: ${winner.name}`;
             winner.node.classList.add('winner');
-            winnerBox.textContent='🏆 Ganador: '+winner.node.lastChild.textContent;
-            winner.node.animate([{transform:`translate(${winner.pos}px,-50%) scale(1.25)`},
-                                  {transform:`translate(${winner.pos}px,-50%)`}],
-                                 {duration:600,iterations:4});
-            racing=false;
-        }else requestAnimationFrame(step);
+            winnerBox.textContent = `🏆 ${winnerText}`;
+            winner.node.animate(
+                [
+                    { transform: `translate(${laneStartX + winner.pos}px, -50%) scale(1.18)` },
+                    { transform: `translate(${laneStartX + winner.pos}px, -50%)` }
+                ],
+                { duration: 600, iterations: 4 }
+            );
+
+            openWinnerModal(winnerText);
+            racing = false;
+            frameId = null;
+            buildBtn.disabled = false;
+            raceBtn.disabled = false;
+            body.classList.remove('racing');
+            adaptTrackLayout(runners.length, false);
+            return;
+        }
+
+        frameId = requestAnimationFrame(step);
     }
-    requestAnimationFrame(step);
+
+    frameId = requestAnimationFrame(step);
 }
 
-/* ------------ Eventos ------------------- */
-buildBtn.addEventListener('click',buildRace);
-raceBtn .addEventListener('click',startRace);
+themeSelect.addEventListener('change', () => {
+    body.dataset.theme = themeSelect.value;
+    runners.forEach((r) => r.node.style.setProperty('--clr', randomPastelColor()));
+});
+
+closeModalBtn.addEventListener('click', closeWinnerModal);
+winnerModal.addEventListener('click', (e) => {
+    const rect = winnerModal.getBoundingClientRect();
+    const isInDialog = rect.top <= e.clientY && e.clientY <= rect.bottom && rect.left <= e.clientX && e.clientX <= rect.right;
+    if (!isInDialog) closeWinnerModal();
+});
+
+window.addEventListener('resize', () => {
+    if (!runners.length) return;
+    adaptTrackLayout(runners.length, body.classList.contains('racing'));
+});
+
+buildBtn.addEventListener('click', buildRace);
+raceBtn.addEventListener('click', startRace);
 </script>
 </body>
 </html>

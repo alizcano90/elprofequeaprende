@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Factorizacion Visual</title>
+  <style>
+    :root {
+      --bg-a: #f7fafc;
+      --bg-b: #edf3ff;
+      --panel: #ffffff;
+      --text: #0f1f2e;
+      --muted: #4a6176;
+      --line: #d8e4f0;
+      --accent: #1363df;
+      --accent-2: #0ea5a2;
+      --warn: #d97706;
+      --ok: #0f9d58;
+      --err: #c0392b;
+      --x2: #155eef;
+      --x: #0ea5a2;
+      --one: #f59e0b;
+      --cell-size: clamp(22px, 2.1vw, 34px);
+      --board-cols: 16;
+      --board-rows: 12;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 10% -20%, #dbe9ff 0%, transparent 70%),
+        radial-gradient(1000px 460px at 100% 0%, #dff7f6 0%, transparent 65%),
+        linear-gradient(145deg, var(--bg-a), var(--bg-b));
+      min-height: 100vh;
+    }
+
+    .app {
+      width: min(1240px, 94vw);
+      margin: 24px auto 42px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 24px rgba(15, 31, 46, 0.07);
+    }
+
+    .hero {
+      padding: 22px 22px 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .input-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .input-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid #bcd1e7;
+      background: #fbfdff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: #6ba4ff;
+      box-shadow: 0 0 0 3px rgba(19, 99, 223, 0.18);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 11px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+      color: #fff;
+      background: linear-gradient(135deg, #1768f2, #0f5bd8);
+      box-shadow: 0 6px 14px rgba(19, 99, 223, 0.26);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-subtle {
+      background: linear-gradient(135deg, #0ea5a2, #0b8f8d);
+      box-shadow: 0 6px 14px rgba(14, 165, 162, 0.25);
+    }
+
+    .btn-neutral {
+      background: linear-gradient(135deg, #5f7185, #4b5d70);
+      box-shadow: 0 6px 14px rgba(65, 82, 101, 0.26);
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .example-btn {
+      background: #f3f8ff;
+      color: #12406e;
+      border: 1px solid #cfe0f2;
+      box-shadow: none;
+      font-weight: 600;
+      padding: 8px 12px;
+    }
+
+    .example-btn:hover {
+      background: #ecf4ff;
+      transform: translateY(-1px);
+    }
+
+    .grid-layout {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr 1.35fr;
+      align-items: start;
+    }
+
+    .tray-panel h2,
+    .board-panel h2,
+    .result-panel h2,
+    .guide-panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.08rem;
+    }
+
+    .mini-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .tray {
+      min-height: 190px;
+      border: 1px dashed #bfd2e6;
+      background: linear-gradient(180deg, #f8fbff 0%, #f2f7fd 100%);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+      transition: border-color 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .tray.drop-active,
+    .board.drop-active {
+      border-color: #68a4ff;
+      box-shadow: inset 0 0 0 2px rgba(104, 164, 255, 0.25);
+    }
+
+    .empty-tray {
+      color: #6b8198;
+      font-size: 0.92rem;
+    }
+
+    .board-wrap {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .board {
+      position: relative;
+      width: calc(var(--cell-size) * var(--board-cols));
+      height: calc(var(--cell-size) * var(--board-rows));
+      border: 1px solid #bfd2e6;
+      border-radius: 14px;
+      background:
+        linear-gradient(#dbe9f7 1px, transparent 1px),
+        linear-gradient(90deg, #dbe9f7 1px, transparent 1px),
+        linear-gradient(150deg, #f9fcff 0%, #eef6ff 100%);
+      background-size:
+        var(--cell-size) var(--cell-size),
+        var(--cell-size) var(--cell-size),
+        100% 100%;
+      box-shadow: inset 0 0 18px rgba(16, 54, 95, 0.06);
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .board-success {
+      border-color: #55b06f;
+      animation: board-ok 0.65s ease;
+    }
+
+    .board-fail {
+      border-color: #da7c76;
+      animation: board-fail 0.6s ease;
+    }
+
+    .board-pieces {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .piece {
+      position: relative;
+      width: calc(var(--cell-size) * var(--w));
+      height: calc(var(--cell-size) * var(--h));
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #0d2235;
+      user-select: none;
+      cursor: grab;
+      touch-action: none;
+      border: 1px solid rgba(8, 30, 54, 0.24);
+      box-shadow: 0 7px 12px rgba(16, 40, 64, 0.18);
+      pointer-events: auto;
+      transform-origin: center;
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .piece-x {
+      padding-bottom: 18px;
+    }
+
+    .piece:hover {
+      transform: translateY(-1px);
+    }
+
+    .piece:active {
+      cursor: grabbing;
+    }
+
+    .piece-x2 {
+      background: linear-gradient(155deg, #7fb2ff 0%, #4b8ef7 100%);
+    }
+
+    .piece-x {
+      background: linear-gradient(150deg, #87e9e7 0%, #35bdb9 100%);
+    }
+
+    .piece-one {
+      background: linear-gradient(150deg, #ffd88a 0%, #f4b43f 100%);
+    }
+
+    .piece.on-board {
+      position: absolute;
+      left: calc(var(--cell-size) * var(--x));
+      top: calc(var(--cell-size) * var(--y));
+    }
+
+    .piece-label {
+      font-size: clamp(0.78rem, 1.5vw, 0.92rem);
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .rotate-btn {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      border: 1px solid rgba(9, 29, 47, 0.25);
+      background: rgba(255, 255, 255, 0.85);
+      color: #17344d;
+      border-radius: 7px;
+      padding: 1px 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1.15;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(9, 29, 47, 0.2);
+      transition: background 0.12s ease;
+    }
+
+    .rotate-btn:hover {
+      background: #ffffff;
+    }
+
+    .piece-hint {
+      margin-top: 8px;
+      color: #48627a;
+      font-size: 0.86rem;
+    }
+
+    .drag-ghost {
+      position: fixed;
+      z-index: 1000;
+      margin: 0;
+      pointer-events: none;
+      opacity: 0.83;
+      transform: scale(1.02);
+      box-shadow: 0 14px 28px rgba(16, 40, 64, 0.3);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result-panel {
+      border-left: 6px solid #c7d7e8;
+    }
+
+    .result-panel[data-state="ok"] {
+      border-left-color: #2f9d60;
+    }
+
+    .result-panel[data-state="warn"] {
+      border-left-color: #d0850f;
+    }
+
+    .result-panel[data-state="err"] {
+      border-left-color: #c9453b;
+    }
+
+    .result-box {
+      margin-top: 8px;
+      background: #f8fbff;
+      border: 1px solid #d6e5f4;
+      border-radius: 12px;
+      padding: 12px;
+      line-height: 1.45;
+      color: #18344d;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: #eef5ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid #d2e4fb;
+    }
+
+    .guide-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+
+    ol {
+      margin: 4px 0 0;
+      padding-left: 22px;
+      color: #2b4760;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #d6e3f0;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #f9fcff;
+      color: #27445e;
+      font-size: 0.9rem;
+    }
+
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      display: inline-block;
+    }
+
+    .dot-x2 { background: #4b8ef7; }
+    .dot-x { background: #35bdb9; }
+    .dot-one { background: #f4b43f; }
+
+    .notice {
+      margin-top: 8px;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .notice.show {
+      display: block;
+      animation: fade-in 0.2s ease;
+    }
+
+    .notice.info {
+      background: #eaf3ff;
+      color: #1e4e81;
+      border: 1px solid #bfd8f5;
+    }
+
+    .notice.warn {
+      background: #fff4df;
+      color: #825107;
+      border: 1px solid #f0d19d;
+    }
+
+    .notice.err {
+      background: #ffe9e8;
+      color: #8f2f2b;
+      border: 1px solid #f0b9b5;
+    }
+
+    .appear {
+      animation: rise-in 0.33s ease;
+    }
+
+    @keyframes rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes board-ok {
+      0% { box-shadow: 0 0 0 0 rgba(15, 157, 88, 0); }
+      45% { box-shadow: 0 0 0 6px rgba(15, 157, 88, 0.2); }
+      100% { box-shadow: 0 0 0 0 rgba(15, 157, 88, 0); }
+    }
+
+    @keyframes board-fail {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      50% { transform: translateX(2px); }
+      80% { transform: translateX(-1px); }
+      100% { transform: translateX(0); }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1040px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(98vw, 98vw);
+        margin-top: 12px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .input-row {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .example-btn {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <h1>Factorizacion Visual</h1>
+      <p class="subtitle">Representa el polinomio como area y descubre sus factores construyendo un rectangulo.</p>
+    </section>
+
+    <section class="panel input-panel">
+      <div class="input-grid">
+        <div class="input-row">
+          <input id="expressionInput" type="text" value="x^2 + 5x + 6" placeholder="Escribe una expresion: x^2 + 5x + 6" aria-label="Expresion algebraica">
+          <button id="generateBtn" type="button">Generar representacion</button>
+        </div>
+        <div class="examples">
+          <button class="example-btn" type="button" data-example="x^2 + 5x + 6">x^2 + 5x + 6</button>
+          <button class="example-btn" type="button" data-example="x^2 + 7x + 10">x^2 + 7x + 10</button>
+          <button class="example-btn" type="button" data-example="x^2 + 5x + 2">x^2 + 5x + 2</button>
+          <button class="example-btn" type="button" data-example="x^2 + 3x + 2">x^2 + 3x + 2</button>
+          <button class="example-btn" type="button" data-example="x^2 + 4x + 4">x^2 + 4x + 4</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel guide-panel">
+      <h2>Guia rapida</h2>
+      <div class="guide-grid">
+        <div>
+          <ol>
+            <li>Genera la expresion.</li>
+            <li>Arrastra las piezas al tablero.</li>
+            <li>Intenta completar un rectangulo.</li>
+            <li>Pulsa comprobar para validar.</li>
+          </ol>
+        </div>
+        <div>
+          <div class="legend">
+            <span class="legend-item"><span class="dot dot-x2"></span><strong>x^2</strong></span>
+            <span class="legend-item"><span class="dot dot-x"></span><strong>x</strong></span>
+            <span class="legend-item"><span class="dot dot-one"></span><strong>1</strong></span>
+          </div>
+          <p class="piece-hint">Tip: haz doble clic sobre una pieza <strong>x</strong> para cambiar su orientacion.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-layout">
+      <section id="trayPanel" class="panel tray-panel">
+        <h2>Bandeja de piezas</h2>
+        <p class="mini-text">Mueve piezas entre bandeja y tablero. El modelo usa una cuadricula logica para encajar cada bloque.</p>
+        <div id="pieceTray" class="tray" aria-label="Bandeja de piezas"></div>
+      </section>
+
+      <section class="panel board-panel">
+        <h2>Zona de construccion</h2>
+        <p class="mini-text">Forma un rectangulo. El bloque <span class="mono">x^2</span> debe quedar como esquina de referencia.</p>
+        <div class="board-wrap">
+          <div id="boardZone" class="board" aria-label="Tablero de construccion">
+            <div id="boardPiecesLayer" class="board-pieces"></div>
+          </div>
+        </div>
+        <div id="notice" class="notice info"></div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="actions">
+        <button id="checkBtn" type="button">Comprobar</button>
+        <button id="resetBtn" class="btn-subtle" type="button">Reiniciar construccion</button>
+        <button id="clearBtn" class="btn-neutral" type="button">Limpiar todo</button>
+        <button id="loadExampleBtn" class="btn-subtle" type="button">Cargar ejemplo</button>
+      </div>
+    </section>
+
+    <section id="resultPanel" class="panel result-panel" data-state="info">
+      <h2>Resultado</h2>
+      <div id="resultContent" class="result-box">Genera una expresion para comenzar.</div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const X_UNITS = 4;
+      const EXAMPLES = [
+        "x^2 + 5x + 6",
+        "x^2 + 7x + 10",
+        "x^2 + 5x + 2",
+        "x^2 + 3x + 2",
+        "x^2 + 4x + 4"
+      ];
+
+      const state = {
+        pieces: [],
+        initialPieces: [],
+        parsed: null,
+        factorPair: null,
+        board: { cols: 16, rows: 12 },
+        exampleIndex: 0,
+        generated: false,
+        drag: null
+      };
+
+      const els = {
+        expressionInput: document.getElementById("expressionInput"),
+        generateBtn: document.getElementById("generateBtn"),
+        pieceTray: document.getElementById("pieceTray"),
+        trayPanel: document.getElementById("trayPanel"),
+        boardZone: document.getElementById("boardZone"),
+        boardPiecesLayer: document.getElementById("boardPiecesLayer"),
+        checkBtn: document.getElementById("checkBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        loadExampleBtn: document.getElementById("loadExampleBtn"),
+        resultPanel: document.getElementById("resultPanel"),
+        resultContent: document.getElementById("resultContent"),
+        notice: document.getElementById("notice")
+      };
+
+      let pieceIdSeed = 0;
+      let noticeTimer = null;
+
+      function init() {
+        bindEvents();
+        applyBoardSize();
+        render();
+      }
+
+      function bindEvents() {
+        els.generateBtn.addEventListener("click", generateFromInput);
+        els.checkBtn.addEventListener("click", handleCheck);
+        els.resetBtn.addEventListener("click", resetConstruction);
+        els.clearBtn.addEventListener("click", clearAll);
+        els.loadExampleBtn.addEventListener("click", loadNextExample);
+        els.expressionInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+            generateFromInput();
+          }
+        });
+
+        document.querySelectorAll(".example-btn").forEach(function (button) {
+          button.addEventListener("click", function () {
+            const value = button.getAttribute("data-example") || "";
+            els.expressionInput.value = value;
+            generateFromInput();
+          });
+        });
+      }
+
+      function generateFromInput() {
+        const raw = els.expressionInput.value || "";
+        const parsed = parseExpression(raw);
+
+        if (!parsed.ok) {
+          state.generated = false;
+          state.pieces = [];
+          state.initialPieces = [];
+          state.parsed = null;
+          state.factorPair = null;
+          render();
+          setResult("err", "<strong>Entrada invalida.</strong><br>" + parsed.error);
+          showNotice(parsed.error, "err");
+          return;
+        }
+
+        if (parsed.a !== 1) {
+          state.generated = false;
+          state.pieces = [];
+          state.initialPieces = [];
+          state.parsed = parsed;
+          state.factorPair = null;
+          render();
+          setResult("warn", "<strong>Version inicial:</strong> por ahora solo se trabaja con trinomios monicos donde <span class='mono'>a = 1</span> en <span class='mono'>x^2 + bx + c</span>.");
+          showNotice("Esta version solo admite a = 1.", "warn");
+          return;
+        }
+
+        if (parsed.b < 0 || parsed.c < 0) {
+          state.generated = false;
+          state.pieces = [];
+          state.initialPieces = [];
+          state.parsed = parsed;
+          state.factorPair = null;
+          render();
+          setResult("warn", "<strong>Version inicial del modelo de area:</strong><br>usa valores no negativos para <span class='mono'>b</span> y <span class='mono'>c</span> para construir con piezas positivas.");
+          showNotice("Usa b y c no negativos para esta actividad visual.", "warn");
+          return;
+        }
+
+        if (parsed.b + parsed.c + 1 > 180) {
+          state.generated = false;
+          state.pieces = [];
+          state.initialPieces = [];
+          state.parsed = parsed;
+          state.factorPair = null;
+          render();
+          setResult("warn", "<strong>Demasiadas piezas para el tablero.</strong><br>Prueba una expresion con valores mas pequenos para mantener la actividad clara.");
+          showNotice("Demasiadas piezas para una construccion util en clase.", "warn");
+          return;
+        }
+
+        const factorPair = findFactorPair(parsed.b, parsed.c);
+        state.parsed = parsed;
+        state.factorPair = factorPair;
+        createPieces(parsed.b, parsed.c, factorPair);
+        adjustBoardSize(parsed, factorPair);
+        state.generated = true;
+        render();
+        triggerAppearance();
+        renderPrecheckResult(parsed, factorPair);
+
+        let note = "Piezas generadas. Arrastra y construye el rectangulo.";
+        if (parsed.compatMode) {
+          note += " Se interpreto tu entrada como x^2 + bx + c.";
+        }
+        showNotice(note, "info");
+      }
+
+      function parseExpression(rawInput) {
+        const text = String(rawInput || "").trim();
+        if (!text) {
+          return { ok: false, error: "Escribe una expresion, por ejemplo: x^2 + 5x + 6." };
+        }
+
+        const compact = text
+          .toLowerCase()
+          .replace(/\s+/g, "")
+          .replace(/−/g, "-");
+
+        if (!/^[0-9x+\-^]+$/.test(compact)) {
+          return { ok: false, error: "Solo se permiten numeros, x, +, -, ^ y espacios." };
+        }
+
+        const terms = compact.match(/[+-]?[^+-]+/g);
+        if (!terms || !terms.length) {
+          return { ok: false, error: "No pude identificar los terminos del polinomio." };
+        }
+
+        let a = 0;
+        let b = 0;
+        let c = 0;
+
+        for (const term of terms) {
+          if (term.includes("x^2")) {
+            const coeff = parseCoeff(term.replace("x^2", ""));
+            if (coeff === null) {
+              return { ok: false, error: "El termino de x^2 no tiene formato valido." };
+            }
+            a += coeff;
+          } else if (term.includes("x")) {
+            if (term.includes("^")) {
+              return { ok: false, error: "Solo se admite exponente 2 para el termino cuadratico." };
+            }
+            const coeff = parseCoeff(term.replace("x", ""));
+            if (coeff === null) {
+              return { ok: false, error: "El termino lineal no tiene formato valido." };
+            }
+            b += coeff;
+          } else {
+            if (!/^[-+]?\d+$/.test(term)) {
+              return { ok: false, error: "El termino constante no es un entero valido." };
+            }
+            c += Number(term);
+          }
+        }
+
+        let compatMode = false;
+        if (a === 0 && !compact.includes("x^2")) {
+          const m = compact.match(/^([+-]?x)([+-]\d*x)([+-]\d+)$/);
+          if (m) {
+            const aCompat = parseCoeff(m[1].replace("x", ""));
+            const bCompat = parseCoeff(m[2].replace("x", ""));
+            const cCompat = Number(m[3]);
+            if (aCompat !== null && bCompat !== null && Number.isInteger(cCompat)) {
+              a = aCompat;
+              b = bCompat;
+              c = cCompat;
+              compatMode = true;
+            }
+          }
+        }
+
+        return {
+          ok: true,
+          a: a,
+          b: b,
+          c: c,
+          compatMode: compatMode,
+          normalized: formatPolynomial(a, b, c)
+        };
+      }
+
+      function parseCoeff(raw) {
+        if (raw === "" || raw === "+") return 1;
+        if (raw === "-") return -1;
+        if (!/^[-+]?\d+$/.test(raw)) return null;
+        return Number(raw);
+      }
+
+      function formatPolynomial(a, b, c) {
+        const terms = [];
+        if (a !== 0) terms.push(formatTerm(a, "x^2", true));
+        if (b !== 0) terms.push(formatTerm(b, "x", terms.length === 0));
+        if (c !== 0 || terms.length === 0) terms.push(formatTerm(c, "", terms.length === 0));
+        return terms.join(" ");
+      }
+
+      function formatTerm(coeff, symbol, isFirst) {
+        const abs = Math.abs(coeff);
+        const sign = coeff >= 0 ? "+" : "-";
+        let body = "";
+
+        if (symbol) {
+          if (abs === 1) {
+            body = symbol;
+          } else {
+            body = abs + symbol;
+          }
+        } else {
+          body = String(abs);
+        }
+
+        if (isFirst) {
+          return coeff < 0 ? "-" + body : body;
+        }
+        return sign + " " + body;
+      }
+
+      function findFactorPair(b, c) {
+        const limit = Math.max(1, Math.abs(b), Math.abs(c)) + 60;
+        const seen = new Set();
+        const candidates = [];
+
+        for (let m = -limit; m <= limit; m += 1) {
+          const n = b - m;
+          if (m * n === c) {
+            const ordered = [m, n].sort(function (x, y) { return x - y; });
+            const key = ordered.join(",");
+            if (!seen.has(key)) {
+              seen.add(key);
+              candidates.push({ m: ordered[0], n: ordered[1] });
+            }
+          }
+        }
+
+        if (!candidates.length) return null;
+
+        candidates.sort(function (p, q) {
+          const pNeg = (p.m < 0 ? 1 : 0) + (p.n < 0 ? 1 : 0);
+          const qNeg = (q.m < 0 ? 1 : 0) + (q.n < 0 ? 1 : 0);
+          if (pNeg !== qNeg) return pNeg - qNeg;
+          const pSpread = Math.abs(p.m - p.n);
+          const qSpread = Math.abs(q.m - q.n);
+          return pSpread - qSpread;
+        });
+
+        return [candidates[0].m, candidates[0].n];
+      }
+
+      function createPieces(b, c, factorPair) {
+        pieceIdSeed = 0;
+        const pieces = [];
+
+        pieces.push({
+          id: nextPieceId("x2"),
+          type: "x2",
+          orientation: "h",
+          location: "tray",
+          x: null,
+          y: null
+        });
+
+        const xCount = Math.max(0, b);
+        let rightCountHint = 0;
+        if (factorPair && factorPair[0] >= 0 && factorPair[1] >= 0) {
+          rightCountHint = Math.max(factorPair[0], factorPair[1]);
+        }
+
+        for (let i = 0; i < xCount; i += 1) {
+          pieces.push({
+            id: nextPieceId("x"),
+            type: "x",
+            orientation: i < rightCountHint ? "v" : "h",
+            location: "tray",
+            x: null,
+            y: null
+          });
+        }
+
+        for (let j = 0; j < Math.max(0, c); j += 1) {
+          pieces.push({
+            id: nextPieceId("one"),
+            type: "one",
+            orientation: "h",
+            location: "tray",
+            x: null,
+            y: null
+          });
+        }
+
+        state.pieces = pieces;
+        state.initialPieces = clonePieces(pieces);
+      }
+
+      function adjustBoardSize(parsed, factorPair) {
+        const maxCols = 36;
+        const maxRows = 28;
+        let cols;
+        let rows;
+
+        if (factorPair && factorPair[0] >= 0 && factorPair[1] >= 0) {
+          // Tamano exacto del rectangulo solucion: (x + min)(x + max).
+          const bottom = Math.min(factorPair[0], factorPair[1]);
+          const right = Math.max(factorPair[0], factorPair[1]);
+          cols = X_UNITS + right;
+          rows = X_UNITS + bottom;
+          state.board.cols = clamp(cols, X_UNITS, maxCols);
+          state.board.rows = clamp(rows, X_UNITS, maxRows);
+        } else {
+          // Sin factorizacion entera: tamano adaptado al area total para explorar.
+          const totalArea = (X_UNITS * X_UNITS) + (Math.max(0, parsed.b) * X_UNITS) + Math.max(0, parsed.c);
+          const side = Math.ceil(Math.sqrt(Math.max(1, totalArea)));
+          cols = side;
+          rows = side;
+          state.board.cols = clamp(cols, 7, maxCols);
+          state.board.rows = clamp(rows, 7, maxRows);
+        }
+        applyBoardSize();
+      }
+
+      function applyBoardSize() {
+        els.boardZone.style.setProperty("--board-cols", String(state.board.cols));
+        els.boardZone.style.setProperty("--board-rows", String(state.board.rows));
+      }
+
+      function render() {
+        renderTray();
+        renderBoard();
+      }
+
+      function renderTray() {
+        const trayPieces = state.pieces.filter(function (piece) {
+          return piece.location === "tray";
+        });
+
+        els.pieceTray.innerHTML = "";
+
+        if (!trayPieces.length) {
+          const empty = document.createElement("span");
+          empty.className = "empty-tray";
+          empty.textContent = "No hay piezas en la bandeja.";
+          els.pieceTray.appendChild(empty);
+          return;
+        }
+
+        trayPieces.forEach(function (piece) {
+          const element = createPieceElement(piece, false);
+          els.pieceTray.appendChild(element);
+        });
+      }
+
+      function renderBoard() {
+        els.boardPiecesLayer.innerHTML = "";
+        state.pieces
+          .filter(function (piece) {
+            return piece.location === "board";
+          })
+          .forEach(function (piece) {
+            const element = createPieceElement(piece, true);
+            els.boardPiecesLayer.appendChild(element);
+          });
+      }
+
+      function createPieceElement(piece, onBoard) {
+        const size = getPieceGridSize(piece);
+        const node = document.createElement("div");
+        node.className = "piece piece-" + piece.type + (onBoard ? " on-board" : " on-tray");
+        node.style.setProperty("--w", String(size.w));
+        node.style.setProperty("--h", String(size.h));
+        node.setAttribute("data-id", piece.id);
+
+        if (onBoard) {
+          node.style.setProperty("--x", String(piece.x));
+          node.style.setProperty("--y", String(piece.y));
+        }
+
+        const label = document.createElement("span");
+        label.className = "piece-label";
+        label.textContent = piece.type === "x2" ? "x^2" : (piece.type === "x" ? "x" : "1");
+        node.appendChild(label);
+
+        if (piece.type === "x") {
+          const rotateButton = document.createElement("button");
+          rotateButton.type = "button";
+          rotateButton.className = "rotate-btn";
+          rotateButton.textContent = "Girar";
+          rotateButton.addEventListener("pointerdown", function (event) {
+            event.stopPropagation();
+          });
+          rotateButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleOrientation(piece.id);
+          });
+          node.appendChild(rotateButton);
+        }
+
+        node.addEventListener("pointerdown", startDrag);
+        node.addEventListener("dblclick", function () {
+          toggleOrientation(piece.id);
+        });
+
+        return node;
+      }
+
+      function startDrag(event) {
+        if (event.button !== 0 && event.pointerType !== "touch") return;
+
+        const pieceId = event.currentTarget.getAttribute("data-id");
+        const piece = getPiece(pieceId);
+        if (!piece) return;
+
+        event.preventDefault();
+
+        const source = event.currentTarget;
+        const sourceRect = source.getBoundingClientRect();
+        const cellSize = getBoardCellSize();
+        const ghost = source.cloneNode(true);
+        ghost.classList.add("drag-ghost");
+        ghost.style.width = sourceRect.width + "px";
+        ghost.style.height = sourceRect.height + "px";
+        document.body.appendChild(ghost);
+
+        state.drag = {
+          pieceId: pieceId,
+          fromLocation: piece.location,
+          ghost: ghost,
+          offsetX: event.clientX - sourceRect.left,
+          offsetY: event.clientY - sourceRect.top,
+          offsetCellX: (event.clientX - sourceRect.left) / cellSize,
+          offsetCellY: (event.clientY - sourceRect.top) / cellSize
+        };
+
+        moveGhost(event.clientX, event.clientY);
+        source.style.opacity = "0.45";
+
+        const onMove = function (ev) {
+          if (!state.drag) return;
+          moveGhost(ev.clientX, ev.clientY);
+          updateDropHighlight(ev.clientX, ev.clientY);
+        };
+
+        const onUp = function (ev) {
+          if (!state.drag) return;
+
+          const activePiece = getPiece(state.drag.pieceId);
+          const boardRect = els.boardZone.getBoundingClientRect();
+          const trayRect = els.pieceTray.getBoundingClientRect();
+          const trayPanelRect = els.trayPanel.getBoundingClientRect();
+
+          let placed = false;
+          if (pointInRect(ev.clientX, ev.clientY, boardRect)) {
+            const cell = pointToCell(ev.clientX, ev.clientY, boardRect, state.drag);
+            placed = placeOnBoard(activePiece, cell.x, cell.y);
+            if (!placed) {
+              showNotice("No encaja en esa posicion. Prueba otro lugar.", "warn");
+            }
+          } else if (
+            pointInRect(ev.clientX, ev.clientY, trayRect) ||
+            pointInRect(ev.clientX, ev.clientY, trayPanelRect)
+          ) {
+            moveToTray(activePiece);
+            placed = true;
+          }
+
+          cleanupDrag(source);
+          clearDropHighlight();
+          render();
+
+          if (placed) {
+            showNotice("Pieza movida.", "info", 900);
+          }
+
+          document.removeEventListener("pointermove", onMove);
+          document.removeEventListener("pointerup", onUp);
+        };
+
+        document.addEventListener("pointermove", onMove);
+        document.addEventListener("pointerup", onUp);
+      }
+
+      function cleanupDrag(source) {
+        if (state.drag && state.drag.ghost) {
+          state.drag.ghost.remove();
+        }
+        if (source) {
+          source.style.opacity = "1";
+        }
+        state.drag = null;
+      }
+
+      function moveGhost(clientX, clientY) {
+        const drag = state.drag;
+        if (!drag || !drag.ghost) return;
+        drag.ghost.style.left = (clientX - drag.offsetX) + "px";
+        drag.ghost.style.top = (clientY - drag.offsetY) + "px";
+      }
+
+      function updateDropHighlight(clientX, clientY) {
+        const boardRect = els.boardZone.getBoundingClientRect();
+        const trayRect = els.pieceTray.getBoundingClientRect();
+        els.boardZone.classList.toggle("drop-active", pointInRect(clientX, clientY, boardRect));
+        els.pieceTray.classList.toggle("drop-active", pointInRect(clientX, clientY, trayRect));
+      }
+
+      function clearDropHighlight() {
+        els.boardZone.classList.remove("drop-active");
+        els.pieceTray.classList.remove("drop-active");
+      }
+
+      function pointInRect(x, y, rect) {
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      }
+
+      function pointToCell(clientX, clientY, boardRect, dragInfo) {
+        const cellSize = getBoardCellSize();
+        const innerLeft = boardRect.left + ((boardRect.width - els.boardZone.clientWidth) / 2);
+        const innerTop = boardRect.top + ((boardRect.height - els.boardZone.clientHeight) / 2);
+        const offsetCellX = dragInfo ? dragInfo.offsetCellX : 0;
+        const offsetCellY = dragInfo ? dragInfo.offsetCellY : 0;
+        const x = Math.round(((clientX - innerLeft) / cellSize) - offsetCellX);
+        const y = Math.round(((clientY - innerTop) / cellSize) - offsetCellY);
+        return { x: x, y: y };
+      }
+
+      function getBoardCellSize() {
+        return els.boardZone.clientWidth / state.board.cols;
+      }
+
+      function placeOnBoard(piece, x, y) {
+        if (!piece) return false;
+        if (!canPlace(piece, x, y, piece.id)) return false;
+        piece.location = "board";
+        piece.x = x;
+        piece.y = y;
+        return true;
+      }
+
+      function moveToTray(piece) {
+        if (!piece) return;
+        piece.location = "tray";
+        piece.x = null;
+        piece.y = null;
+      }
+
+      function canPlace(piece, x, y, ignoreId) {
+        const size = getPieceGridSize(piece);
+        if (x < 0 || y < 0) return false;
+        if (x + size.w > state.board.cols || y + size.h > state.board.rows) return false;
+
+        for (const other of state.pieces) {
+          if (other.id === ignoreId) continue;
+          if (other.location !== "board") continue;
+
+          const otherSize = getPieceGridSize(other);
+          if (rectOverlap(x, y, size.w, size.h, other.x, other.y, otherSize.w, otherSize.h)) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+        return !(ax + aw <= bx || bx + bw <= ax || ay + ah <= by || by + bh <= ay);
+      }
+
+      function getPieceGridSize(piece) {
+        if (piece.type === "x2") return { w: X_UNITS, h: X_UNITS };
+        if (piece.type === "x") {
+          return piece.orientation === "v" ? { w: 1, h: X_UNITS } : { w: X_UNITS, h: 1 };
+        }
+        return { w: 1, h: 1 };
+      }
+
+      function toggleOrientation(pieceId) {
+        const piece = getPiece(pieceId);
+        if (!piece || piece.type !== "x") return;
+
+        const original = piece.orientation;
+        piece.orientation = original === "h" ? "v" : "h";
+
+        if (piece.location === "board" && !canPlace(piece, piece.x, piece.y, piece.id)) {
+          piece.orientation = original;
+          showNotice("No se puede rotar aqui porque chocaria con otra pieza.", "warn");
+          return;
+        }
+
+        render();
+      }
+
+      function handleCheck() {
+        if (!state.generated || !state.parsed) {
+          showNotice("Primero genera una expresion.", "warn");
+          setResult("warn", "Primero debes generar una representacion.");
+          return;
+        }
+
+        const parsed = state.parsed;
+        const pair = state.factorPair;
+
+        if (!pair) {
+          const roots = computeRoots(parsed.a, parsed.b, parsed.c);
+          const rootsText = roots
+            ? "<br>Raices aproximadas: <span class='mono'>" + roots.r1.toFixed(3) + "</span> y <span class='mono'>" + roots.r2.toFixed(3) + "</span>."
+            : "";
+          setResult(
+            "err",
+            "<strong>No se puede formar un rectangulo perfecto con lados enteros.</strong><br>" +
+            "No existen enteros m y n que cumplan m + n = " + parsed.b + " y m * n = " + parsed.c + "." +
+            rootsText
+          );
+          pulseBoard(false);
+          showNotice("Este trinomio no factoriza con enteros.", "err");
+          return;
+        }
+
+        const m = pair[0];
+        const n = pair[1];
+        const canVisual = m >= 0 && n >= 0 && parsed.b >= 0 && parsed.c >= 0;
+
+        if (!canVisual) {
+          setResult(
+            "warn",
+            "<strong>Factorizacion algebraica encontrada:</strong><br>" +
+            "<span class='mono'>" + formatFactorization(m, n) + "</span><br>" +
+            "Esta version visual se concentra en piezas positivas para el modelo de area."
+          );
+          showNotice("Hay factorizacion algebraica, pero no en el modo visual actual.", "warn");
+          return;
+        }
+
+        const check = validateLayout(m, n);
+        if (check.ok) {
+          const side1 = sideText(check.bottom);
+          const side2 = sideText(check.right);
+          setResult(
+            "ok",
+            "<strong>Excelente, construccion valida.</strong><br>" +
+            "Factorizacion: <span class='mono'>" + formatFactorization(check.bottom, check.right) + "</span><br>" +
+            "Lado 1: <span class='mono'>" + side1 + "</span><br>" +
+            "Lado 2: <span class='mono'>" + side2 + "</span>"
+          );
+          pulseBoard(true);
+          showNotice("Rectangulo correcto. Muy bien.", "info");
+        } else {
+          setResult(
+            "warn",
+            "<strong>Aun no coincide con un rectangulo correcto.</strong><br>" +
+            check.message +
+            "<br>Intenta organizar las piezas alrededor de <span class='mono'>x^2</span> y completar la esquina de unidades."
+          );
+          pulseBoard(false);
+          showNotice("Todavia no es una configuracion valida.", "warn");
+        }
+      }
+
+      function validateLayout(m, n) {
+        const boardPieces = state.pieces.filter(function (piece) {
+          return piece.location === "board";
+        });
+
+        if (boardPieces.length !== state.pieces.length) {
+          return { ok: false, message: "Faltan piezas por colocar en el tablero." };
+        }
+
+        const x2Pieces = boardPieces.filter(function (piece) {
+          return piece.type === "x2";
+        });
+
+        if (x2Pieces.length !== 1) {
+          return { ok: false, message: "Debe existir exactamente una pieza x^2 en el tablero." };
+        }
+
+        const occupancy = buildOccupancyMap(boardPieces);
+        if (!occupancy.ok) {
+          return { ok: false, message: occupancy.message };
+        }
+
+        const width = occupancy.maxX - occupancy.minX;
+        const height = occupancy.maxY - occupancy.minY;
+        const expectedA = { width: X_UNITS + m, height: X_UNITS + n };
+        const expectedB = { width: X_UNITS + n, height: X_UNITS + m };
+        const matchesExpectedSize =
+          (width === expectedA.width && height === expectedA.height) ||
+          (width === expectedB.width && height === expectedB.height);
+
+        if (!matchesExpectedSize) {
+          return {
+            ok: false,
+            message:
+              "El rectangulo armado mide " + width + " x " + height +
+              " cuadros, pero la factorizacion requiere " +
+              expectedA.width + " x " + expectedA.height +
+              " (o " + expectedB.width + " x " + expectedB.height + ")."
+          };
+        }
+
+        const expectedCells = width * height;
+        if (occupancy.occupied.size !== expectedCells) {
+          return {
+            ok: false,
+            message: "La cuadricula tiene huecos o sobrantes. Asegurate de completar un rectangulo sin espacios vacios."
+          };
+        }
+
+        for (let y = occupancy.minY; y < occupancy.maxY; y += 1) {
+          for (let x = occupancy.minX; x < occupancy.maxX; x += 1) {
+            if (!occupancy.occupied.has(x + "," + y)) {
+              return {
+                ok: false,
+                message: "Hay espacios vacios dentro del rectangulo. La solucion correcta no deja cuadros libres."
+              };
+            }
+          }
+        }
+
+        return { ok: true, bottom: height - X_UNITS, right: width - X_UNITS };
+      }
+
+      function buildOccupancyMap(boardPieces) {
+        const occupied = new Set();
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        for (const piece of boardPieces) {
+          if (!Number.isInteger(piece.x) || !Number.isInteger(piece.y)) {
+            return { ok: false, message: "Hay piezas con coordenadas invalidas en el tablero." };
+          }
+
+          const size = getPieceGridSize(piece);
+          for (let dy = 0; dy < size.h; dy += 1) {
+            for (let dx = 0; dx < size.w; dx += 1) {
+              const cellX = piece.x + dx;
+              const cellY = piece.y + dy;
+
+              if (cellX < 0 || cellY < 0 || cellX >= state.board.cols || cellY >= state.board.rows) {
+                return { ok: false, message: "Hay piezas fuera de la cuadricula del tablero." };
+              }
+
+              const key = cellX + "," + cellY;
+              if (occupied.has(key)) {
+                return { ok: false, message: "Hay piezas superpuestas. Ajusta la construccion para evitar cruces." };
+              }
+
+              occupied.add(key);
+              if (cellX < minX) minX = cellX;
+              if (cellY < minY) minY = cellY;
+              if (cellX + 1 > maxX) maxX = cellX + 1;
+              if (cellY + 1 > maxY) maxY = cellY + 1;
+            }
+          }
+        }
+
+        if (!occupied.size) {
+          return { ok: false, message: "No hay piezas ocupando la cuadricula." };
+        }
+
+        return {
+          ok: true,
+          occupied: occupied,
+          minX: minX,
+          minY: minY,
+          maxX: maxX,
+          maxY: maxY
+        };
+      }
+
+      function renderPrecheckResult(parsed, pair) {
+        const base = "<strong>Expresion:</strong> <span class='mono'>" + parsed.normalized + "</span><br>" +
+          "<strong>Coeficientes:</strong> a = " + parsed.a + ", b = " + parsed.b + ", c = " + parsed.c + ".";
+
+        if (pair) {
+          setResult(
+            "info",
+            base +
+            "<br><strong>Posible factorizacion entera:</strong> <span class='mono'>" + formatFactorization(pair[0], pair[1]) + "</span>" +
+            "<br>Ahora intenta construirla en el tablero y pulsa <strong>Comprobar</strong>."
+          );
+        } else {
+          const roots = computeRoots(parsed.a, parsed.b, parsed.c);
+          const rootsInfo = roots
+            ? "<br><strong>Raices aproximadas:</strong> <span class='mono'>" + roots.r1.toFixed(3) + "</span> y <span class='mono'>" + roots.r2.toFixed(3) + "</span>."
+            : "";
+          setResult(
+            "warn",
+            base +
+            "<br><strong>No hay factorizacion entera.</strong> Puedes construir para explorar el area, pero no habra rectangulo perfecto con lados enteros." +
+            rootsInfo
+          );
+        }
+      }
+
+      function computeRoots(a, b, c) {
+        const disc = b * b - 4 * a * c;
+        if (disc < 0) return null;
+        const sqrtD = Math.sqrt(disc);
+        return {
+          r1: (-b + sqrtD) / (2 * a),
+          r2: (-b - sqrtD) / (2 * a)
+        };
+      }
+
+      function setResult(stateKey, html) {
+        let normalized = "info";
+        if (stateKey === "ok") normalized = "ok";
+        if (stateKey === "warn") normalized = "warn";
+        if (stateKey === "err") normalized = "err";
+        els.resultPanel.setAttribute("data-state", normalized);
+        els.resultContent.innerHTML = html;
+      }
+
+      function showNotice(message, tone, ttl) {
+        if (!message) {
+          els.notice.className = "notice";
+          els.notice.textContent = "";
+          return;
+        }
+        els.notice.textContent = message;
+        els.notice.className = "notice show " + (tone || "info");
+
+        if (noticeTimer) {
+          clearTimeout(noticeTimer);
+          noticeTimer = null;
+        }
+        if (ttl !== 0) {
+          noticeTimer = setTimeout(function () {
+            els.notice.className = "notice";
+            els.notice.textContent = "";
+          }, typeof ttl === "number" ? ttl : 2300);
+        }
+      }
+
+      function pulseBoard(success) {
+        els.boardZone.classList.remove("board-success", "board-fail");
+        void els.boardZone.offsetWidth;
+        els.boardZone.classList.add(success ? "board-success" : "board-fail");
+      }
+
+      function resetConstruction() {
+        if (!state.initialPieces.length) {
+          showNotice("No hay una construccion activa para reiniciar.", "warn");
+          return;
+        }
+        state.pieces = clonePieces(state.initialPieces);
+        render();
+        showNotice("Construccion reiniciada.", "info");
+      }
+
+      function clearAll() {
+        state.pieces = [];
+        state.initialPieces = [];
+        state.parsed = null;
+        state.factorPair = null;
+        state.generated = false;
+        state.board = { cols: 16, rows: 12 };
+        applyBoardSize();
+        render();
+        els.expressionInput.value = "";
+        setResult("info", "Todo limpio. Escribe una nueva expresion para comenzar.");
+        showNotice("Panel limpio.", "info", 900);
+      }
+
+      function loadNextExample() {
+        const sample = EXAMPLES[state.exampleIndex % EXAMPLES.length];
+        state.exampleIndex += 1;
+        els.expressionInput.value = sample;
+        generateFromInput();
+      }
+
+      function triggerAppearance() {
+        const targets = [els.pieceTray, els.boardZone, els.resultPanel];
+        targets.forEach(function (node) {
+          node.classList.remove("appear");
+          void node.offsetWidth;
+          node.classList.add("appear");
+        });
+      }
+
+      function sideText(k) {
+        if (k === 0) return "x";
+        return k > 0 ? ("x + " + k) : ("x - " + Math.abs(k));
+      }
+
+      function formatFactorization(m, n) {
+        return "(" + sideText(m) + ")(" + sideText(n) + ")";
+      }
+
+      function clonePieces(list) {
+        return list.map(function (piece) {
+          return {
+            id: piece.id,
+            type: piece.type,
+            orientation: piece.orientation,
+            location: piece.location,
+            x: piece.x,
+            y: piece.y
+          };
+        });
+      }
+
+      function nextPieceId(prefix) {
+        pieceIdSeed += 1;
+        return prefix + "-" + pieceIdSeed;
+      }
+
+      function getPiece(pieceId) {
+        return state.pieces.find(function (piece) {
+          return piece.id === pieceId;
+        }) || null;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

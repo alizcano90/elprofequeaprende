@@ -1,0 +1,993 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Racer Duel 3D</title>
+  <style>
+    :root {
+      --bg-1: #090f1f;
+      --bg-2: #121b36;
+      --panel: rgba(20, 30, 58, 0.9);
+      --line: rgba(124, 153, 230, 0.35);
+      --text: #eef3ff;
+      --muted: #b8c7ea;
+      --neon-cyan: #39d9ff;
+      --neon-green: #74f39a;
+      --danger: #ff7b7b;
+      --track-w: min(45vw, 430px);
+      --track-h: min(66vh, 620px);
+      --track-tilt: 56deg;
+      --answer-z: 9px;
+      --car-z: 30px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, #1b2e62 0%, transparent 42%),
+        radial-gradient(circle at 85% 86%, #1a3f58 0%, transparent 45%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    }
+
+    .app {
+      width: min(1400px, calc(100% - 1rem));
+      margin: 0.65rem auto 1rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+      backdrop-filter: blur(7px);
+    }
+
+    .head {
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.25rem, 3.2vw, 1.95rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      margin: 0.24rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .badge {
+      border-radius: 999px;
+      border: 1px solid rgba(57, 217, 255, 0.55);
+      background: rgba(57, 217, 255, 0.14);
+      color: #c6f5ff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 0.34rem 0.7rem;
+      white-space: nowrap;
+    }
+
+    .global-bar {
+      padding: 0.65rem 1rem;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .global-time {
+      font-weight: 900;
+      font-size: 1.08rem;
+      color: #bff2ff;
+    }
+
+    .global-feedback {
+      min-height: 38px;
+      border-radius: 10px;
+      padding: 0.45rem 0.65rem;
+      font-weight: 800;
+      background: rgba(34, 55, 97, 0.45);
+      border: 1px solid rgba(128, 169, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .btn {
+      border: 1px solid rgba(116, 243, 154, 0.48);
+      background: linear-gradient(140deg, rgba(116, 243, 154, 0.2), rgba(57, 217, 255, 0.16));
+      color: #d5ffe4;
+      border-radius: 12px;
+      min-height: 40px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px); }
+
+    .duel {
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .player-card {
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.65rem;
+      border-radius: 16px;
+      border: 1px solid rgba(130, 164, 238, 0.28);
+      background: rgba(14, 23, 48, 0.72);
+    }
+
+    .player-card.p1 { box-shadow: inset 0 0 0 1px rgba(255, 102, 197, 0.22); }
+    .player-card.p2 { box-shadow: inset 0 0 0 1px rgba(93, 195, 255, 0.22); }
+
+    .player-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .player-head h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .controls-tag {
+      font-size: 0.78rem;
+      color: #c7d8ff;
+      background: rgba(43, 59, 97, 0.62);
+      border: 1px solid rgba(121, 152, 228, 0.4);
+      padding: 0.22rem 0.5rem;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .problem-box {
+      border-radius: 12px;
+      border: 1px solid rgba(128, 170, 255, 0.35);
+      background: rgba(21, 37, 72, 0.6);
+      padding: 0.55rem 0.7rem;
+    }
+
+    .problem-label {
+      margin: 0;
+      font-size: 0.74rem;
+      color: #cbe0ff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .problem-value {
+      margin: 0.15rem 0 0;
+      font-size: clamp(1.25rem, 3.6vw, 2rem);
+      font-weight: 900;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.42rem;
+    }
+
+    .stat {
+      border: 1px solid rgba(179, 198, 245, 0.24);
+      border-radius: 10px;
+      background: rgba(17, 23, 44, 0.65);
+      padding: 0.35rem 0.45rem;
+    }
+
+    .stat p { margin: 0; }
+    .stat .k { font-size: 0.72rem; color: #c1d2f4; }
+    .stat .v { font-size: 0.95rem; font-weight: 900; }
+
+    .track-stage {
+      width: var(--track-w);
+      height: var(--track-h);
+      perspective: 1100px;
+      perspective-origin: center 92%;
+      position: relative;
+      justify-self: center;
+    }
+
+    .track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid rgba(84, 179, 255, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(84, 179, 255, 0.2), 0 0 24px rgba(57, 217, 255, 0.18);
+      background:
+        linear-gradient(90deg, rgba(57,217,255,0.18) 0%, transparent 8%, transparent 92%, rgba(57,217,255,0.18) 100%),
+        linear-gradient(180deg, #1a233f, #0e1630);
+      transform-origin: center bottom;
+      transform: rotateX(var(--track-tilt)) scaleY(1.1);
+    }
+
+    .lane-markers {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image:
+        repeating-linear-gradient(to bottom, rgba(255,255,255,0.95) 0 22px, transparent 22px 50px),
+        linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.16) 46%, transparent 100%);
+      background-size: 9px 165px, 100% 100%;
+      background-repeat: repeat-y, no-repeat;
+      background-position: 50% 0, 0 0;
+      opacity: 0.84;
+    }
+
+    .start-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 85%;
+      height: 7px;
+      background: repeating-linear-gradient(90deg, #fff 0 24px, #1a233f 24px 48px);
+      z-index: 2;
+      opacity: 0.85;
+    }
+
+    .answers-layer,
+    .cars-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .answer-orb {
+      --scale: 1;
+      position: absolute;
+      width: clamp(68px, 18vw, 92px);
+      height: clamp(68px, 18vw, 92px);
+      transform-style: preserve-3d;
+      transform: translate(-50%, -50%) translateZ(var(--answer-z)) rotateX(var(--track-tilt)) rotateY(var(--spin)) scale(var(--scale));
+      animation: orb-spin 1.8s linear infinite;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: clamp(1.15rem, 2.8vw, 1.65rem);
+      text-shadow: 0 2px 5px rgba(0,0,0,0.45);
+    }
+
+    .orb-front,
+    .orb-back,
+    .orb-mid {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+    }
+
+    .orb-front {
+      transform: translateZ(11px);
+      background: radial-gradient(circle at 32% 30%, rgba(255,255,255,0.92) 0 12%, rgba(255,255,255,0.32) 13% 25%, #4f7fe2 53%, #1a2f5f 100%);
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+
+    .orb-back {
+      transform: translateZ(-11px) rotateY(180deg);
+      background: radial-gradient(circle at 32% 30%, rgba(255,255,255,0.46) 0 10%, rgba(255,255,255,0.2) 11% 22%, #345dac 58%, #162851 100%);
+      border: 2px solid rgba(255,255,255,0.32);
+      opacity: 0.95;
+    }
+
+    .orb-mid {
+      transform: rotateY(90deg);
+      background: linear-gradient(90deg, #1e356b, #5e89ea, #1e356b);
+      border: 2px solid rgba(255,255,255,0.28);
+      filter: brightness(0.85);
+    }
+
+    .orb-label {
+      position: relative;
+      z-index: 4;
+      transform: translateZ(14px);
+    }
+
+    @keyframes orb-spin {
+      from { --spin: 0deg; }
+      to { --spin: 360deg; }
+    }
+
+    .car3d {
+      position: absolute;
+      width: clamp(74px, 21vw, 100px);
+      height: clamp(112px, 26vw, 140px);
+      transform: translate(-50%, -50%) translateZ(var(--car-z)) rotateX(var(--track-tilt));
+      transform-style: preserve-3d;
+      transition: left 0.16s ease, transform 0.11s ease;
+      filter: drop-shadow(0 8px 11px rgba(0,0,0,0.48));
+    }
+
+    .car3d.moving { transform: translate(-50%, -50%) translateZ(var(--car-z)) rotateX(var(--track-tilt)) scale(1.03); }
+
+    .car-core,
+    .car-roof,
+    .car-front,
+    .car-back,
+    .car-under,
+    .car-side,
+    .wheel {
+      position: absolute;
+      border-radius: 8px;
+    }
+
+    .car-core {
+      inset: 20px 10px 12px;
+      transform: translateZ(20px);
+      border: 2px solid rgba(255,255,255,0.42);
+      background: linear-gradient(180deg, #ff77c8, #ff38a4 58%, #cf257f);
+    }
+
+    
+    .car-under {
+      inset: 24px 12px 12px;
+      transform: translateZ(6px);
+      border: 1px solid rgba(0,0,0,0.35);
+      background: linear-gradient(180deg, #5e0f3a, #2b0a1d);
+      box-shadow: 0 8px 14px rgba(0,0,0,0.35);
+    }
+    .car-roof {
+      left: 22%; right: 22%; top: 30%; height: 25%;
+      transform: translateZ(29px);
+      border: 2px solid rgba(255,255,255,0.62);
+      background: linear-gradient(180deg, #b9fbff, #61c9ff);
+      border-radius: 10px;
+    }
+
+    .car-front {
+      left: 19%; right: 19%; top: 14%; height: 9%;
+      transform: translateZ(14px);
+      border: 1px solid rgba(255,255,255,0.5);
+      background: linear-gradient(180deg, #ffe58d, #ffc24f);
+    }
+
+    .car-back {
+      left: 24%; right: 24%; bottom: 7%; height: 8%;
+      transform: translateZ(14px);
+      border: 1px solid rgba(255,255,255,0.45);
+      background: linear-gradient(180deg, #ff8f8f, #ff5858);
+    }
+
+    .car-side {
+      top: 30%; bottom: 20%; width: 13%;
+      transform: translateZ(14px);
+      background: #7e1f50;
+    }
+
+    .car-side.left { left: 2%; transform: rotateY(83deg) translateZ(14px); }
+    .car-side.right { right: 2%; transform: rotateY(-83deg) translateZ(14px); }
+    
+    .car-core::before,
+    .car-core::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      width: 16px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.33), rgba(0,0,0,0.12));
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .car-core::before {
+      left: -12px;
+      transform-origin: right center;
+      transform: rotateY(84deg) translateZ(-1px);
+    }
+
+    .car-core::after {
+      right: -12px;
+      transform-origin: left center;
+      transform: rotateY(-84deg) translateZ(-1px);
+    }
+
+    .wheel {
+      width: 16px;
+      height: 34px;
+      border-radius: 12px;
+      background: #0d1321;
+      border: 2px solid #3d4a6a;
+      transform: translateZ(12px);
+    }
+
+    .wheel.w1 { left: 0; top: 36%; }
+    .wheel.w2 { right: 0; top: 36%; }
+    .wheel.w3 { left: 0; top: 68%; }
+    .wheel.w4 { right: 0; top: 68%; }
+
+    .car-j2 .car-core { background: linear-gradient(180deg, #85dbff, #38abff 58%, #1f67c8); }
+    .car-j2 .car-side { background: #1f4e8f; }
+
+    .race-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 999;
+      background: rgba(4, 8, 18, 0.78);
+      padding: 0.9rem;
+    }
+
+    .race-card {
+      width: min(600px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(114,170,255,0.36);
+      background: rgba(14,24,50,0.95);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      padding: 1rem;
+      text-align: center;
+      display: grid;
+      gap: 0.6rem;
+      justify-items: center;
+    }
+
+    .race-card h2 { margin: 0; }
+    .race-card p { margin: 0; color: #c0d0f0; }
+
+    .seq {
+      min-height: 78px;
+      display: grid;
+      place-items: center;
+      width: 100%;
+    }
+
+    .seq-text {
+      font-size: clamp(1.4rem, 5vw, 2.5rem);
+      font-weight: 900;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: 0.28s ease;
+      text-shadow: 0 0 18px rgba(57,217,255,0.62);
+    }
+
+    .seq-text.show { opacity: 1; transform: scale(1.1); }
+
+    .flag { font-size: 2rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.35)); }
+
+    @media (max-width: 1020px) {
+      .duel { grid-template-columns: 1fr; }
+      :root { --track-w: min(95vw, 520px); --track-h: min(64vh, 560px); }
+    }
+
+    @media (max-width: 620px) {
+      .global-bar {
+        grid-template-columns: 1fr;
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+      .head { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="race-overlay" id="raceOverlay">
+    <div class="race-card">
+      <h2 id="overlayTitle">Math Racer Duel 3D</h2>
+      <p id="overlayText">J1: flechas ← → · J2: A D. Cada uno tiene su propia pregunta.</p>
+      <div class="seq"><div class="seq-text" id="seqText">En sus marcas</div></div>
+      <div class="flag">🏁</div>
+      <button class="btn" id="startBtn" type="button">Iniciar duelo</button>
+    </div>
+  </div>
+
+  <main class="app">
+    <section class="panel head">
+      <div>
+        <h1>Math Racer Duel 3D</h1>
+        <p class="subtitle">Dos pistas, dos preguntas, dos jugadores al mismo tiempo</p>
+      </div>
+      <span class="badge">Offline · 3D CSS</span>
+    </section>
+
+    <section class="panel global-bar">
+      <div class="global-time" id="globalTime">Tiempo global: 60s</div>
+      <div class="global-feedback" id="globalFeedback">Acierta para sumar +10 y ganar +2s.</div>
+      <button class="btn" id="resetBtn" type="button">Reiniciar</button>
+    </section>
+
+    <section class="duel">
+      <article class="player-card p1" id="cardP1">
+        <div class="player-head">
+          <h2>Jugador 1</h2>
+          <span class="controls-tag">Teclas: ← →</span>
+        </div>
+        <div class="problem-box">
+          <p class="problem-label">Operacion J1</p>
+          <p class="problem-value" id="problemP1">3 + 4 = ?</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><p class="k">Puntos</p><p class="v" id="scoreP1">20</p></div>
+          <div class="stat"><p class="k">Aciertos</p><p class="v" id="correctP1">0</p></div>
+          <div class="stat"><p class="k">Errores</p><p class="v" id="wrongP1">0</p></div>
+          <div class="stat"><p class="k">Nivel</p><p class="v" id="levelP1">1</p></div>
+        </div>
+        <div class="track-stage">
+          <div class="track" id="trackP1">
+            <div class="lane-markers" id="markersP1"></div>
+            <div class="start-line"></div>
+            <div class="answers-layer" id="answersP1"></div>
+            <div class="cars-layer">
+              <div class="car3d" id="carP1" style="left:50%;top:85%;">
+                <div class="car-core"></div><div class="car-under"></div><div class="car-roof"></div><div class="car-front"></div><div class="car-back"></div>
+                <div class="car-side left"></div><div class="car-side right"></div>
+                <div class="wheel w1"></div><div class="wheel w2"></div><div class="wheel w3"></div><div class="wheel w4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="player-card p2" id="cardP2">
+        <div class="player-head">
+          <h2>Jugador 2</h2>
+          <span class="controls-tag">Teclas: A D</span>
+        </div>
+        <div class="problem-box">
+          <p class="problem-label">Operacion J2</p>
+          <p class="problem-value" id="problemP2">8 - 2 = ?</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><p class="k">Puntos</p><p class="v" id="scoreP2">20</p></div>
+          <div class="stat"><p class="k">Aciertos</p><p class="v" id="correctP2">0</p></div>
+          <div class="stat"><p class="k">Errores</p><p class="v" id="wrongP2">0</p></div>
+          <div class="stat"><p class="k">Nivel</p><p class="v" id="levelP2">1</p></div>
+        </div>
+        <div class="track-stage">
+          <div class="track" id="trackP2">
+            <div class="lane-markers" id="markersP2"></div>
+            <div class="start-line"></div>
+            <div class="answers-layer" id="answersP2"></div>
+            <div class="cars-layer">
+              <div class="car3d car-j2" id="carP2" style="left:50%;top:85%;">
+                <div class="car-core"></div><div class="car-under"></div><div class="car-roof"></div><div class="car-front"></div><div class="car-back"></div>
+                <div class="car-side left"></div><div class="car-side right"></div>
+                <div class="wheel w1"></div><div class="wheel w2"></div><div class="wheel w3"></div><div class="wheel w4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const START_TIME = 60;
+    const START_SCORE = 20;
+    const lanePositions = [16.7, 50, 83.3];
+
+    const ui = {
+      overlay: document.getElementById("raceOverlay"),
+      overlayTitle: document.getElementById("overlayTitle"),
+      overlayText: document.getElementById("overlayText"),
+      seqText: document.getElementById("seqText"),
+      startBtn: document.getElementById("startBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      globalTime: document.getElementById("globalTime"),
+      globalFeedback: document.getElementById("globalFeedback"),
+
+      p1: {
+        problem: document.getElementById("problemP1"),
+        score: document.getElementById("scoreP1"),
+        correct: document.getElementById("correctP1"),
+        wrong: document.getElementById("wrongP1"),
+        level: document.getElementById("levelP1"),
+        markers: document.getElementById("markersP1"),
+        answers: document.getElementById("answersP1"),
+        car: document.getElementById("carP1")
+      },
+      p2: {
+        problem: document.getElementById("problemP2"),
+        score: document.getElementById("scoreP2"),
+        correct: document.getElementById("correctP2"),
+        wrong: document.getElementById("wrongP2"),
+        level: document.getElementById("levelP2"),
+        markers: document.getElementById("markersP2"),
+        answers: document.getElementById("answersP2"),
+        car: document.getElementById("carP2")
+      }
+    };
+
+    const game = {
+      running: false,
+      timeLeft: START_TIME,
+      totalDuration: START_TIME,
+      lastFrameTime: 0,
+      players: [
+        {
+          id: "J1",
+          keyLeft: "ArrowLeft",
+          keyRight: "ArrowRight",
+          lane: 1,
+          score: START_SCORE,
+          correct: 0,
+          wrong: 0,
+          level: 1,
+          speed: 220,
+          markersOffset: 0,
+          cubesY: -20,
+          roundPendingUntil: 0,
+          problem: null,
+          answers: [],
+          collisionLocked: false,
+          ui: ui.p1
+        },
+        {
+          id: "J2",
+          keyLeft: "A",
+          keyRight: "D",
+          lane: 1,
+          score: START_SCORE,
+          correct: 0,
+          wrong: 0,
+          level: 1,
+          speed: 220,
+          markersOffset: 0,
+          cubesY: -20,
+          roundPendingUntil: 0,
+          problem: null,
+          answers: [],
+          collisionLocked: false,
+          ui: ui.p2
+        }
+      ]
+    };
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = randomInt(0, i);
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function generateProblem(player) {
+      const elapsedRatio = (game.totalDuration - game.timeLeft) / game.totalDuration;
+      const hard = Math.min(1, Math.max(0, elapsedRatio + (player.level - 1) * 0.09));
+      const opType = randomInt(0, 2);
+
+      let a = 0, b = 0, answer = 0, text = "";
+      if (opType === 0) {
+        const max = hard < 0.5 ? 9 : 15;
+        a = randomInt(1, max); b = randomInt(1, max);
+        answer = a + b; text = `${a} + ${b}`;
+      } else if (opType === 1) {
+        const max = hard < 0.5 ? 16 : 24;
+        a = randomInt(6, max); b = randomInt(1, a - 1);
+        answer = a - b; text = `${a} - ${b}`;
+      } else {
+        const maxA = hard < 0.5 ? 9 : 12;
+        const maxB = hard < 0.5 ? 5 : 9;
+        a = randomInt(2, maxA); b = randomInt(2, maxB);
+        answer = a * b; text = `${a} × ${b}`;
+      }
+      return { text, answer };
+    }
+
+    function generateAnswers(correctAnswer) {
+      const options = new Set([correctAnswer]);
+      while (options.size < 3) {
+        const offset = randomInt(1, 7);
+        const sign = Math.random() < 0.5 ? -1 : 1;
+        let value = correctAnswer + offset * sign;
+        if (value < 0) value = correctAnswer + randomInt(2, 8);
+        options.add(value);
+      }
+      const vals = shuffle(Array.from(options));
+      const lanes = shuffle([0, 1, 2]);
+      return lanes.map((lane, idx) => ({ lane, value: vals[idx], isCorrect: vals[idx] === correctAnswer }));
+    }
+
+    function showGlobalFeedback(msg) {
+      ui.globalFeedback.textContent = msg;
+    }
+
+    function updatePlayerHUD(p) {
+      p.ui.problem.textContent = `${p.problem.text} = ?`;
+      p.ui.score.textContent = p.score;
+      p.ui.correct.textContent = p.correct;
+      p.ui.wrong.textContent = p.wrong;
+      p.ui.level.textContent = p.level;
+    }
+
+    function updateGlobalHUD() {
+      ui.globalTime.textContent = `Tiempo global: ${Math.ceil(Math.max(0, game.timeLeft))}s`;
+    }
+
+    function recomputeSpeed(p) {
+      const elapsedRatio = (game.totalDuration - game.timeLeft) / game.totalDuration;
+      const timeBoost = Math.max(0, elapsedRatio) * 170;
+      const levelBoost = (p.level - 1) * 26;
+      p.speed = 220 + timeBoost + levelBoost;
+    }
+
+    function renderCar(p) {
+      p.ui.car.style.left = `${lanePositions[p.lane]}%`;
+    }
+
+    function renderAnswers(p) {
+      p.ui.answers.innerHTML = "";
+      p.answers.forEach((ans) => {
+        const orb = document.createElement("div");
+        orb.className = "answer-orb";
+        orb.style.left = `${lanePositions[ans.lane]}%`;
+        orb.style.top = `${p.cubesY}%`;
+        const scale = Math.max(0.6, Math.min(1.25, 0.62 + p.cubesY / 125));
+        orb.style.setProperty("--scale", scale.toFixed(3));
+        orb.style.setProperty("--spin", `${(ans.lane + 1) * 40}deg`);
+
+        const front = document.createElement("div"); front.className = "orb-front";
+        const back = document.createElement("div"); back.className = "orb-back";
+        const mid = document.createElement("div"); mid.className = "orb-mid";
+        const label = document.createElement("div"); label.className = "orb-label"; label.textContent = ans.value;
+
+        orb.appendChild(back);
+        orb.appendChild(mid);
+        orb.appendChild(front);
+        orb.appendChild(label);
+        p.ui.answers.appendChild(orb);
+      });
+    }
+
+    function spawnRoundForPlayer(p) {
+      p.problem = generateProblem(p);
+      p.answers = generateAnswers(p.problem.answer);
+      p.cubesY = -20;
+      p.collisionLocked = false;
+      updatePlayerHUD(p);
+      renderAnswers(p);
+    }
+
+    function scheduleRound(p) {
+      const elapsedRatio = (game.totalDuration - game.timeLeft) / game.totalDuration;
+      const delay = Math.max(150, 390 - elapsedRatio * 230);
+      p.roundPendingUntil = performance.now() + delay;
+    }
+
+    function evaluateCollision(p) {
+      if (p.collisionLocked) return;
+      p.collisionLocked = true;
+
+      const selected = p.answers.find((a) => a.lane === p.lane);
+      if (!selected) return;
+
+      if (selected.isCorrect) {
+        p.score += 10;
+        p.correct += 1;
+        game.timeLeft = Math.min(99, game.timeLeft + 2);
+        showGlobalFeedback(`${p.id}: ¡Correcto! +10 y +2s`);
+      } else {
+        p.score = Math.max(0, p.score - 5);
+        p.wrong += 1;
+        showGlobalFeedback(`${p.id}: Ups, era ${p.problem.answer} (-5)`);
+      }
+
+      p.level = 1 + Math.floor(p.correct / 5);
+      recomputeSpeed(p);
+      scheduleRound(p);
+      updatePlayerHUD(p);
+      updateGlobalHUD();
+    }
+
+    function missPlayer(p) {
+      if (p.collisionLocked) return;
+      p.collisionLocked = true;
+      p.score = Math.max(0, p.score - 5);
+      p.wrong += 1;
+      showGlobalFeedback(`${p.id}: te pasaste. Era ${p.problem.answer}`);
+      recomputeSpeed(p);
+      scheduleRound(p);
+      updatePlayerHUD(p);
+    }
+
+    function movePlayerByKey(key) {
+      if (!game.running) return;
+      const up = key.length === 1 ? key.toUpperCase() : key;
+
+      for (const p of game.players) {
+        if (up === p.keyLeft) {
+          const prev = p.lane;
+          p.lane = Math.max(0, p.lane - 1);
+          if (p.lane !== prev) {
+            renderCar(p);
+            p.ui.car.classList.add("moving");
+            window.setTimeout(() => p.ui.car.classList.remove("moving"), 100);
+          }
+          return;
+        }
+        if (up === p.keyRight) {
+          const prev = p.lane;
+          p.lane = Math.min(2, p.lane + 1);
+          if (p.lane !== prev) {
+            renderCar(p);
+            p.ui.car.classList.add("moving");
+            window.setTimeout(() => p.ui.car.classList.remove("moving"), 100);
+          }
+          return;
+        }
+      }
+    }
+
+    function updatePlayer(p, dt, now) {
+      if (p.roundPendingUntil > 0) {
+        if (now >= p.roundPendingUntil) {
+          p.roundPendingUntil = 0;
+          spawnRoundForPlayer(p);
+        }
+        return;
+      }
+
+      p.cubesY += p.speed * dt * 0.12;
+      p.markersOffset += p.speed * dt * 0.45;
+      p.ui.markers.style.backgroundPosition = `50% ${p.markersOffset}px, 0 0`;
+      renderAnswers(p);
+
+      if (p.cubesY >= 80 && p.cubesY <= 91) {
+        evaluateCollision(p);
+      }
+
+      if (p.cubesY > 96) {
+        missPlayer(p);
+      }
+    }
+
+    function computeWinnerText() {
+      const p1 = game.players[0];
+      const p2 = game.players[1];
+      if (p1.score === p2.score) return `Empate | J1 ${p1.score} - J2 ${p2.score}`;
+      return p1.score > p2.score ? `Gana J1 | ${p1.score} - ${p2.score}` : `Gana J2 | ${p2.score} - ${p1.score}`;
+    }
+
+    function endGame() {
+      game.running = false;
+      ui.overlayTitle.textContent = "Tiempo terminado";
+      ui.overlayText.textContent = computeWinnerText();
+      ui.startBtn.textContent = "Jugar de nuevo";
+      ui.seqText.textContent = "🏁";
+      ui.seqText.classList.add("show");
+      ui.overlay.style.display = "grid";
+      showGlobalFeedback("Duelo finalizado.");
+    }
+
+    function resetAll() {
+      game.timeLeft = START_TIME;
+      game.totalDuration = START_TIME;
+      game.lastFrameTime = 0;
+
+      game.players.forEach((p) => {
+        p.lane = 1;
+        p.score = START_SCORE;
+        p.correct = 0;
+        p.wrong = 0;
+        p.level = 1;
+        p.speed = 220;
+        p.markersOffset = 0;
+        p.roundPendingUntil = 0;
+        renderCar(p);
+        spawnRoundForPlayer(p);
+      });
+
+      updateGlobalHUD();
+      showGlobalFeedback("¡Duelo iniciado! Cada jugador tiene su propia operación.");
+    }
+
+    function update(dt, now) {
+      game.timeLeft -= dt;
+      if (game.timeLeft <= 0) {
+        game.timeLeft = 0;
+        updateGlobalHUD();
+        endGame();
+        return;
+      }
+
+      game.players.forEach((p) => {
+        recomputeSpeed(p);
+        updatePlayer(p, dt, now);
+        updatePlayerHUD(p);
+      });
+
+      updateGlobalHUD();
+    }
+
+    function loop(ts) {
+      if (!game.running) return;
+      if (!game.lastFrameTime) game.lastFrameTime = ts;
+      const delta = Math.min(40, ts - game.lastFrameTime);
+      game.lastFrameTime = ts;
+      update(delta / 1000, ts);
+      if (game.running) requestAnimationFrame(loop);
+    }
+
+    function startGameAfterCountdown() {
+      resetAll();
+      if (!game.running) {
+        game.running = true;
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function playCountdown() {
+      const steps = ["En sus marcas", "Listos...", "¡YA!"];
+      let i = 0;
+      ui.startBtn.disabled = true;
+
+      const tick = () => {
+        ui.seqText.textContent = steps[i];
+        ui.seqText.classList.remove("show");
+        requestAnimationFrame(() => ui.seqText.classList.add("show"));
+
+        if (i === steps.length - 1) {
+          window.setTimeout(() => {
+            ui.overlay.style.display = "none";
+            ui.startBtn.disabled = false;
+            startGameAfterCountdown();
+          }, 620);
+          return;
+        }
+
+        i += 1;
+        window.setTimeout(tick, 760);
+      };
+
+      tick();
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key.toLowerCase() === "a" || e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        movePlayerByKey(e.key);
+      }
+    });
+
+    ui.startBtn.addEventListener("click", playCountdown);
+    ui.resetBtn.addEventListener("click", () => {
+      if (!game.running) {
+        ui.overlay.style.display = "none";
+      }
+      startGameAfterCountdown();
+    });
+
+    // Preview inicial
+    resetAll();
+  </script>
+</body>
+</html>
+
+  
+
+
+
+
+
