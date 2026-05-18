@@ -11,6 +11,13 @@ $navItems = [
     'planes' => 'Planes',
     'contacto' => 'Contacto',
 ];
+
+$authUser = null;
+try {
+    $authUser = current_user();
+} catch (Throwable $e) {
+    $authUser = null;
+}
 ?>
 <header class="site-header sticky-top">
   <nav class="navbar navbar-expand-lg">
@@ -29,6 +36,21 @@ $navItems = [
               <a class="nav-link<?= e(is_active($key, $currentPage)) ?>" data-nav="<?= e($key) ?>" href="<?= e(url($key)) ?>"><?= e($label) ?></a>
             </li>
           <?php endforeach; ?>
+          <?php if ($authUser): ?>
+            <li class="nav-item">
+              <a class="nav-link<?= e(is_active('mi-cuenta', $currentPage)) ?>" data-nav="mi-cuenta" href="<?= e(url('mi-cuenta')) ?>"><?= e(strtok((string)$authUser['full_name'], ' ') ?: 'Mi cuenta') ?></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/auth/logout.php">Salir</a>
+            </li>
+          <?php else: ?>
+            <li class="nav-item">
+              <a class="nav-link<?= e(is_active('login', $currentPage)) ?>" data-nav="login" href="<?= e(url('login')) ?>">Ingresar</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link<?= e(is_active('registro', $currentPage)) ?>" data-nav="registro" href="<?= e(url('registro')) ?>">Crear cuenta</a>
+            </li>
+          <?php endif; ?>
         </ul>
       </div>
     </div>

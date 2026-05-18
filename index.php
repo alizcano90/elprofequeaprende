@@ -2,6 +2,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/session.php';
+require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/flash.php';
+require_once __DIR__ . '/includes/auth.php';
+
+start_secure_session();
 
 $allowedPages = [
     'home' => [
@@ -43,6 +49,31 @@ $allowedPages = [
         'file' => __DIR__ . '/pages/contacto.php',
         'title' => 'Contacto | El Profe Que Aprende',
         'description' => 'Contacta a El Profe Que Aprende para recursos, capacitaciones, herramientas o propuestas institucionales.',
+    ],
+    'login' => [
+        'file' => __DIR__ . '/pages/login.php',
+        'title' => 'Ingresar | El Profe Que Aprende',
+        'description' => 'Inicia sesion con correo, celular, Google o Microsoft.',
+    ],
+    'registro' => [
+        'file' => __DIR__ . '/pages/registro.php',
+        'title' => 'Crear cuenta | El Profe Que Aprende',
+        'description' => 'Crea tu cuenta docente para acceder a recursos, herramientas y planes.',
+    ],
+    'mi-cuenta' => [
+        'file' => __DIR__ . '/pages/mi-cuenta.php',
+        'title' => 'Mi cuenta | El Profe Que Aprende',
+        'description' => 'Gestiona tu perfil, proveedores vinculados y acceso a la plataforma.',
+    ],
+    'recuperar-password' => [
+        'file' => __DIR__ . '/pages/recuperar-password.php',
+        'title' => 'Recuperar contrasena | El Profe Que Aprende',
+        'description' => 'Solicita un enlace para recuperar el acceso a tu cuenta.',
+    ],
+    'verificar-correo' => [
+        'file' => __DIR__ . '/pages/verificar-correo.php',
+        'title' => 'Verificar correo | El Profe Que Aprende',
+        'description' => 'Verifica el correo electronico asociado a tu cuenta.',
     ],
 ];
 

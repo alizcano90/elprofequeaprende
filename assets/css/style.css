@@ -443,6 +443,150 @@ a:hover {
   box-shadow: 0 0 0 0.2rem rgba(65, 246, 185, 0.15);
 }
 
+.auth-flash-wrap {
+  padding-top: 1rem;
+}
+
+.auth-alert {
+  border-radius: 14px;
+  font-weight: 900;
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+}
+
+.auth-alert-danger {
+  background: #ffe4e4;
+  border: 2px solid #b42318;
+  color: #7a1b12;
+}
+
+.auth-alert-success {
+  background: #dcfce7;
+  border: 2px solid #15803d;
+  color: #14532d;
+}
+
+.auth-alert-warning {
+  background: #fff4c2;
+  border: 2px solid #a16207;
+  color: #713f12;
+}
+
+.auth-page {
+  display: grid;
+  place-items: center;
+}
+
+.auth-card {
+  background: var(--paper, #f7fbff);
+  border: 3px solid #17233a;
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 #17233a;
+  color: #17233a;
+  max-width: 560px;
+  padding: 1.45rem;
+  width: 100%;
+}
+
+.auth-card h1 {
+  color: #17233a;
+  margin-bottom: 0.35rem;
+}
+
+.auth-muted {
+  color: #243149;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-form label,
+.auth-check {
+  color: #17233a;
+  font-weight: 900;
+}
+
+.auth-form input {
+  background: #ffffff;
+  border: 2px solid #17233a;
+  border-radius: 12px;
+  color: #17233a;
+  font-weight: 800;
+  padding: 0.78rem 0.9rem;
+  width: 100%;
+}
+
+.auth-form input:focus {
+  border-color: #006eaf;
+  box-shadow: 0 0 0 0.2rem rgba(0, 110, 175, 0.16);
+  outline: none;
+}
+
+.auth-check {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.social-auth-grid {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1rem 0;
+}
+
+.btn-social {
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #17233a;
+  border-radius: 14px;
+  color: #17233a;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.55rem;
+  justify-content: center;
+  padding: 0.78rem 1rem;
+  text-decoration: none;
+}
+
+.btn-social:hover {
+  background: #e4f5ff;
+  color: #17233a;
+}
+
+.auth-separator {
+  align-items: center;
+  color: #243149;
+  display: flex;
+  font-weight: 900;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  background: rgba(23, 35, 58, 0.25);
+  content: "";
+  flex: 1;
+  height: 2px;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.auth-links a {
+  color: #005b95;
+  font-weight: 900;
+}
+
 @media (max-width: 991.98px) {
   .platform-grid,
   .platform-split,

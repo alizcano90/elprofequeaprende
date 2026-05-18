@@ -10,7 +10,11 @@ function getConnection(): PDO
     }
 
     $localConfig = __DIR__ . '/config.local.php';
+    $databaseLocalConfig = __DIR__ . '/database.local.php';
     $config = is_file($localConfig) ? require $localConfig : [];
+    if (is_file($databaseLocalConfig)) {
+        $config = array_replace($config, require $databaseLocalConfig);
+    }
 
     $host = getenv('DB_HOST') ?: ($config['db_host'] ?? null);
     $name = getenv('DB_NAME') ?: ($config['db_name'] ?? null);

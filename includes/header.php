@@ -28,3 +28,6 @@ $canonical = site_url(url($currentPage === '404' ? 'home' : $currentPage));
 <body class="stem-playground platform-page">
   <?php require __DIR__ . '/nav.php'; ?>
   <main class="site-main">
+    <div class="container auth-flash-wrap">
+      <?php flash_render(); ?>
+    </div>
