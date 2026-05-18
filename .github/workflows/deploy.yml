@@ -11,11 +11,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy files via rsync over SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 22
-          script: |
-            rsync -avz --delete --exclude=".git*" --exclude=".github" $GITHUB_WORKSPACE/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
+        uses: easingthemes/ssh-deploy@v5.1.0
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.SSH_HOST }}
+          REMOTE_USER: ${{ secrets.SSH_USER }}
+          REMOTE_PORT: 22
+          SOURCE: "./"
+          TARGET: ${{ secrets.SSH_PATH }}
+          ARGS: "-rlgoDzvc --delete"
+          EXCLUDE: "/.git/, /.github/, .env, config/config.local.php, storage/visit_counter.json, storage/cache/, storage/tmp/"
