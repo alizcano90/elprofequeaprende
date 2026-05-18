@@ -10,14 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy files via rsync over SSH
-        uses: easingthemes/ssh-deploy@v5.1.0
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.SSH_HOST }}
-          REMOTE_USER: ${{ secrets.SSH_USER }}
-          REMOTE_PORT: 22
-          SOURCE: "./"
-          TARGET: ${{ secrets.SSH_PATH }}
-          ARGS: "-rlgoDzvc --delete"
-          EXCLUDE: "/.git/, /.github/, .env, config/config.local.php, storage/visit_counter.json, storage/cache/, storage/tmp/"
+      - name: Deploy files via SCP over SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          target: ${{ secrets.SSH_PATH }}
+          overwrite: true
+          source: "index.php,index.html,.htaccess,.env.example,assets,includes,pages,config,database,admin,README.md,RESUMEN_PROYECTO_PARA_CHATGPT.md"
