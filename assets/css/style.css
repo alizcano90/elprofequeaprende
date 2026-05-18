@@ -270,7 +270,7 @@ a:hover {
 }
 
 .list-clean {
-  color: #cfdbf7;
+  color: #f2f7ff;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -278,6 +278,7 @@ a:hover {
 
 .list-clean li {
   border-bottom: 1px solid rgba(122, 214, 255, 0.13);
+  color: inherit;
   padding: 0.58rem 0;
 }
 
@@ -896,7 +897,7 @@ a:hover {
 }
 
 .meta-line {
-  color: var(--muted);
+  color: #c9d8f4;
   font-size: 0.93rem;
 }
 
@@ -908,7 +909,7 @@ a:hover {
 
 .list-clean li {
   border-bottom: 1px dashed rgba(122, 214, 255, 0.24);
-  color: #d8e7ff;
+  color: inherit;
   padding: 0.6rem 0;
 }
 
@@ -1801,7 +1802,20 @@ a:hover {
 .stem-playground .eyebrow,
 .stem-playground .meta-line,
 .stem-playground .hero-subtitle {
-  color: #445268;
+  color: #243149;
+}
+
+.stem-playground .surface-card .list-clean,
+.stem-playground .contact-panel .list-clean,
+.stem-playground .note-box .list-clean {
+  color: #162238;
+  font-weight: 800;
+}
+
+.stem-playground .surface-card .list-clean li,
+.stem-playground .contact-panel .list-clean li,
+.stem-playground .note-box .list-clean li {
+  border-bottom-color: rgba(23, 35, 58, 0.22);
 }
 
 .stem-playground .pill {
