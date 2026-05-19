@@ -4,7 +4,10 @@ $localMessageType = 'error';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        error_log('login POST recibido');
         verify_csrf();
+        error_log('login CSRF valido');
+
         $identifier = clean_text($_POST['identifier'] ?? '');
         $password = (string)($_POST['password'] ?? '');
         $remember = isset($_POST['remember']);
@@ -17,25 +20,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $user = find_user_by_identifier($identifier);
-        if (!$user || empty($user['password_hash']) || !password_verify($password, (string)$user['password_hash'])) {
-            record_login_attempt($identifier, false, $user['id'] ?? null);
-            audit_log($user['id'] ?? null, 'login_failed', ['identifier' => $identifier]);
-            throw new RuntimeException('Datos de acceso incorrectos.');
+        error_log('login usuario encontrado=' . ($user ? '1' : '0'));
+
+        if (!$user) {
+            record_login_attempt($identifier, false, null, 'user_not_found');
+            audit_log(null, 'login_failed', ['identifier' => $identifier, 'failure_reason' => 'user_not_found']);
+            throw new RuntimeException('Usuario no encontrado.');
         }
+
+        $hasPasswordHash = !empty($user['password_hash']);
+        error_log('login password_hash presente=' . ($hasPasswordHash ? '1' : '0'));
+        if (!$hasPasswordHash) {
+            record_login_attempt($identifier, false, (int)$user['id'], 'missing_password');
+            audit_log((int)$user['id'], 'login_failed', ['identifier' => $identifier, 'failure_reason' => 'missing_password']);
+            throw new RuntimeException('Cuenta sin contraseña configurada.');
+        }
+
+        $passwordOk = password_verify($password, (string)$user['password_hash']);
+        error_log('login password_verify=' . ($passwordOk ? '1' : '0'));
+        if (!$passwordOk) {
+            record_login_attempt($identifier, false, (int)$user['id'], 'wrong_password');
+            audit_log((int)$user['id'], 'login_failed', ['identifier' => $identifier, 'failure_reason' => 'wrong_password']);
+            throw new RuntimeException('Contraseña incorrecta.');
+        }
+
         if (in_array($user['status'], ['blocked', 'deleted'], true)) {
-            record_login_attempt($identifier, false, (int)$user['id']);
-            throw new RuntimeException('Esta cuenta no puede ingresar. Contacta soporte.');
+            record_login_attempt($identifier, false, (int)$user['id'], 'account_' . $user['status']);
+            audit_log((int)$user['id'], 'login_failed', ['identifier' => $identifier, 'failure_reason' => 'account_' . $user['status']]);
+            throw new RuntimeException('Cuenta bloqueada.');
         }
 
         record_login_attempt($identifier, true, (int)$user['id']);
+        error_log('login intento insertado success=1');
         login_user($user, $remember);
-        flash('success', 'Sesión iniciada correctamente.');
+        error_log('login sesion iniciada user_id=' . (int)$user['id']);
+        flash('success', 'Sesion iniciada correctamente.');
         safe_redirect('/?pg=mi-cuenta');
     } catch (PDOException $e) {
-        error_log('login failed: ' . $e->getMessage());
-        $localMessage = 'No pudimos iniciar sesión en este momento. Intenta nuevamente.';
-    } catch (Throwable $e) {
+        error_log('login SQL error: ' . $e->getMessage());
+        $localMessage = 'No pudimos iniciar sesion en este momento. Intenta nuevamente.';
+    } catch (RuntimeException $e) {
         $localMessage = $e->getMessage();
+    } catch (Throwable $e) {
+        error_log('login unexpected error: ' . $e->getMessage());
+        $localMessage = 'Error interno controlado.';
     }
 }
 ?>

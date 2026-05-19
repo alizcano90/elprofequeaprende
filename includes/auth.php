@@ -143,19 +143,27 @@ function login_user(array $user, bool $remember = false): void
     $_SESSION['role'] = (string)$user['role'];
     $_SESSION['full_name'] = (string)$user['full_name'];
 
-    $stmt = getConnection()->prepare('UPDATE users SET last_login_at = NOW(), last_login_ip = :ip, updated_at = NOW() WHERE id = :id');
-    $stmt->execute(['ip' => client_ip(), 'id' => (int)$user['id']]);
+    try {
+        $stmt = getConnection()->prepare('UPDATE users SET last_login_at = NOW(), last_login_ip = :ip, updated_at = NOW() WHERE id = :id');
+        $stmt->execute(['ip' => client_ip(), 'id' => (int)$user['id']]);
+    } catch (Throwable $e) {
+        error_log('login_user last_login update failed: ' . $e->getMessage());
+    }
 
-    $sessionHash = hash('sha256', session_id());
-    $expires = $remember ? 'DATE_ADD(NOW(), INTERVAL 30 DAY)' : 'DATE_ADD(NOW(), INTERVAL 12 HOUR)';
-    $sql = "INSERT INTO user_sessions (user_id, session_id_hash, ip_address, user_agent, expires_at, created_at)
-            VALUES (:user_id, :hash, :ip, :ua, $expires, NOW())";
-    getConnection()->prepare($sql)->execute([
-        'user_id' => (int)$user['id'],
-        'hash' => $sessionHash,
-        'ip' => client_ip(),
-        'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
-    ]);
+    try {
+        $sessionHash = hash('sha256', session_id());
+        $expires = $remember ? 'DATE_ADD(NOW(), INTERVAL 30 DAY)' : 'DATE_ADD(NOW(), INTERVAL 12 HOUR)';
+        $sql = "INSERT INTO user_sessions (user_id, session_id_hash, ip_address, user_agent, expires_at, created_at)
+                VALUES (:user_id, :hash, :ip, :ua, $expires, NOW())";
+        getConnection()->prepare($sql)->execute([
+            'user_id' => (int)$user['id'],
+            'hash' => $sessionHash,
+            'ip' => client_ip(),
+            'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+        ]);
+    } catch (Throwable $e) {
+        error_log('login_user session audit insert failed: ' . $e->getMessage());
+    }
 
     audit_log((int)$user['id'], 'login_success');
 }
@@ -182,20 +190,44 @@ function client_ip(): string
 function audit_log(?int $userId, string $event, array $meta = []): void
 {
     try {
+        $metadataColumn = auth_audit_logs_column();
+        $provider = isset($meta['provider']) ? (string)$meta['provider'] : null;
+        $identifier = isset($meta['identifier']) ? (string)$meta['identifier'] : null;
+        $metadata = $meta ? json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+
         $stmt = getConnection()->prepare(
-            'INSERT INTO auth_audit_logs (user_id, event_type, ip_address, user_agent, meta_json, created_at)
-             VALUES (:user_id, :event_type, :ip, :ua, :meta, NOW())'
+            "INSERT INTO auth_audit_logs (user_id, event_type, provider, identifier, {$metadataColumn}, created_at)
+             VALUES (:user_id, :event_type, :provider, :identifier, :metadata, NOW())"
         );
         $stmt->execute([
             'user_id' => $userId,
             'event_type' => $event,
-            'ip' => client_ip(),
-            'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
-            'meta' => $meta ? json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+            'provider' => $provider,
+            'identifier' => $identifier,
+            'metadata' => $metadata,
         ]);
     } catch (Throwable $e) {
         error_log('audit_log failed: ' . $e->getMessage());
     }
+}
+
+function auth_audit_logs_column(): string
+{
+    static $column = null;
+    if ($column !== null) {
+        return $column;
+    }
+
+    try {
+        $stmt = getConnection()->query('SHOW COLUMNS FROM auth_audit_logs');
+        $columns = array_map(static fn (array $row): string => (string)$row['Field'], $stmt->fetchAll());
+        $column = in_array('metadata', $columns, true) ? 'metadata' : 'meta_json';
+    } catch (Throwable $e) {
+        error_log('auth_audit_logs_column failed: ' . $e->getMessage());
+        $column = 'metadata';
+    }
+
+    return $column;
 }
 
 function too_many_login_attempts(string $identifier): bool
@@ -208,19 +240,24 @@ function too_many_login_attempts(string $identifier): bool
     return (int)$stmt->fetchColumn() >= 6;
 }
 
-function record_login_attempt(string $identifier, bool $success, ?int $userId = null): void
+function record_login_attempt(string $identifier, bool $success, ?int $userId = null, ?string $failureReason = null): void
 {
-    $stmt = getConnection()->prepare(
-        'INSERT INTO login_attempts (user_id, identifier, ip_address, user_agent, success, attempted_at)
-         VALUES (:user_id, :identifier, :ip, :ua, :success, NOW())'
-    );
-    $stmt->execute([
-        'user_id' => $userId,
-        'identifier' => strtolower($identifier),
-        'ip' => client_ip(),
-        'ua' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
-        'success' => $success ? 1 : 0,
-    ]);
+    try {
+        $stmt = getConnection()->prepare(
+            'INSERT INTO login_attempts (identifier, ip_address, success, failure_reason, attempted_at)
+             VALUES (:identifier, :ip_address, :success, :failure_reason, NOW())'
+        );
+        $stmt->execute([
+            'identifier' => strtolower($identifier),
+            'ip_address' => client_ip(),
+            'success' => $success ? 1 : 0,
+            'failure_reason' => $success ? null : $failureReason,
+        ]);
+        error_log('login attempt inserted: success=' . ($success ? '1' : '0') . ' identifier_hash=' . hash('sha256', strtolower($identifier)));
+    } catch (Throwable $e) {
+        error_log('record_login_attempt failed: ' . $e->getMessage());
+        throw $e;
+    }
 }
 
 function find_oauth_identity(string $provider, string $providerUserId): ?array
