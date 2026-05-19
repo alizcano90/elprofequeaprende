@@ -972,6 +972,157 @@ a:hover {
   font-weight: 900;
 }
 
+.sinapsis-public .stem-section-head p,
+.sinapsis-dashboard .dashboard-hero p,
+.sinapsis-admin .dashboard-hero p {
+  color: #243149;
+}
+
+.sinapsis-price {
+  color: #005b95;
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-weight: 950;
+  margin: 0.35rem 0;
+}
+
+.sinapsis-family-card,
+.sinapsis-student-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sinapsis-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.sinapsis-tabs a,
+.mini-button {
+  background: #e4f5ff;
+  border: 2px solid #17233a;
+  border-radius: 999px;
+  color: #17233a;
+  font-weight: 900;
+  padding: 0.45rem 0.8rem;
+  text-decoration: none;
+}
+
+.sinapsis-tabs a:hover,
+.mini-button:hover {
+  background: #dcfce7;
+  color: #17233a;
+}
+
+.sinapsis-stat {
+  background: linear-gradient(135deg, #ffffff, #e4f5ff);
+  border: 3px solid #17233a;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 #17233a;
+  color: #17233a;
+  padding: 1rem;
+}
+
+.sinapsis-stat strong {
+  display: block;
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-weight: 950;
+}
+
+.sinapsis-stat span {
+  color: #243149;
+  font-weight: 900;
+}
+
+.challenge-card,
+.receipt-card {
+  background: #ffffff;
+  border: 2px solid rgba(23, 35, 58, 0.28);
+  border-radius: 16px;
+  color: #17233a;
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+  padding: 0.9rem;
+}
+
+.challenge-card strong,
+.receipt-card strong {
+  color: #17233a;
+  font-weight: 950;
+}
+
+.challenge-card p,
+.receipt-card span {
+  color: #243149;
+  font-weight: 800;
+}
+
+.badge-status,
+.challenge-status,
+.receipt-status {
+  border: 2px solid #17233a;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1;
+  padding: 0.35rem 0.55rem;
+  width: max-content;
+}
+
+.badge-active,
+.badge-paid,
+.badge-validated {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.badge-inactive,
+.badge-cancelled,
+.badge-returned {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.badge-pending,
+.badge-assigned,
+.badge-partial {
+  background: #fef3c7;
+  color: #7c2d12;
+}
+
+.badge-overdue {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.badge-in_progress,
+.badge-submitted,
+.badge-paused,
+.badge-scholarship,
+.badge-graduated {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.inline-form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mini-input {
+  background: #ffffff;
+  border: 2px solid #17233a;
+  border-radius: 10px;
+  color: #17233a;
+  font-weight: 800;
+  max-width: 140px;
+  padding: 0.42rem 0.55rem;
+}
+
 @media (max-width: 991.98px) {
   .dashboard-hero,
   .dashboard-grid,

@@ -67,6 +67,11 @@ $allowedPages = [
         'title' => 'Familia Sinapsis | El Profe Que Aprende',
         'description' => 'Panel familiar para consultar avances de estudiantes de TecnoClan Sinapsis.',
     ],
+    'sinapsis-estudiante' => [
+        'file' => __DIR__ . '/pages/sinapsis-estudiante.php',
+        'title' => 'Mis retos Sinapsis | El Profe Que Aprende',
+        'description' => 'Panel del estudiante para consultar y entregar retos de TecnoClan Sinapsis.',
+    ],
     'admin-sinapsis' => [
         'file' => __DIR__ . '/pages/admin-sinapsis.php',
         'title' => 'Admin Sinapsis | El Profe Que Aprende',

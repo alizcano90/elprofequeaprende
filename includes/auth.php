@@ -56,9 +56,60 @@ function require_role(string $role): void
     require_login();
     $user = current_user();
     if (!$user || $user['role'] !== $role) {
-        http_response_code(403);
-        exit('Acceso no autorizado.');
+        flash('warning', 'No tienes permisos para acceder a esta seccion.');
+        header('Location: /?pg=dashboard');
+        exit;
     }
+}
+
+function user_has_role(string $role): bool
+{
+    $user = current_user();
+    return $user !== null && ($user['role'] ?? '') === $role;
+}
+
+function is_superadmin(): bool
+{
+    return user_has_role('superadmin');
+}
+
+function is_admin(): bool
+{
+    return user_has_role('admin') || is_superadmin();
+}
+
+function is_guardian(): bool
+{
+    return user_has_role('guardian');
+}
+
+function is_student_user(): bool
+{
+    return user_has_role('student');
+}
+
+function require_superadmin(): void
+{
+    require_login();
+    if (!is_superadmin()) {
+        flash('warning', 'Esta seccion es exclusiva del superusuario.');
+        header('Location: /?pg=dashboard');
+        exit;
+    }
+}
+
+function require_any_role(array $roles, bool $superadminAllowed = true): void
+{
+    require_login();
+    $user = current_user();
+    $role = (string)($user['role'] ?? '');
+    if (($superadminAllowed && $role === 'superadmin') || in_array($role, $roles, true)) {
+        return;
+    }
+
+    flash('warning', 'No tienes permisos para acceder a esta seccion.');
+    header('Location: /?pg=dashboard');
+    exit;
 }
 
 function normalize_phone(?string $phone): ?string

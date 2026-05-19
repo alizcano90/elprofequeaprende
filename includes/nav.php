@@ -8,23 +8,49 @@ try {
     $authUser = null;
 }
 
-$navItems = $authUser ? [
-    'dashboard' => 'Dashboard',
-    'recursos' => 'Recursos',
-    'herramientas' => 'Herramientas',
-    'sinapsis' => 'Sinapsis',
-    'mi-cuenta' => 'Mi cuenta',
-] : [
-    'home' => 'Inicio',
-    'recursos' => 'Recursos',
-    'capacitaciones' => 'Capacitaciones',
-    'herramientas' => 'Herramientas',
-    'tips' => 'Tips',
-    'sinapsis' => 'Sinapsis',
-    'quien-soy' => 'Quién soy',
-    'planes' => 'Planes',
-    'contacto' => 'Contacto',
-];
+$role = (string)($authUser['role'] ?? '');
+
+if ($authUser && $role === 'superadmin') {
+    $navItems = [
+        'dashboard' => 'Dashboard',
+        'admin-sinapsis' => 'Admin Sinapsis',
+        'sinapsis-familia' => 'Sinapsis Familia',
+        'sinapsis-estudiante' => 'Mis retos',
+        'mi-cuenta' => 'Mi cuenta',
+    ];
+} elseif ($authUser && $role === 'guardian') {
+    $navItems = [
+        'dashboard' => 'Dashboard',
+        'sinapsis-familia' => 'Sinapsis Familia',
+        'mi-cuenta' => 'Mi cuenta',
+    ];
+} elseif ($authUser && $role === 'student') {
+    $navItems = [
+        'dashboard' => 'Dashboard',
+        'sinapsis-estudiante' => 'Mis retos',
+        'mi-cuenta' => 'Mi cuenta',
+    ];
+} elseif ($authUser) {
+    $navItems = [
+        'dashboard' => 'Dashboard',
+        'recursos' => 'Recursos',
+        'herramientas' => 'Herramientas',
+        'sinapsis' => 'TecnoClan Sinapsis',
+        'mi-cuenta' => 'Mi cuenta',
+    ];
+} else {
+    $navItems = [
+        'home' => 'Inicio',
+        'recursos' => 'Recursos',
+        'capacitaciones' => 'Capacitaciones',
+        'herramientas' => 'Herramientas',
+        'tips' => 'Tips',
+        'sinapsis' => 'TecnoClan Sinapsis',
+        'quien-soy' => 'Quien soy',
+        'planes' => 'Planes',
+        'contacto' => 'Contacto',
+    ];
+}
 ?>
 <header class="site-header sticky-top">
   <nav class="navbar navbar-expand-lg">
@@ -44,20 +70,12 @@ $navItems = $authUser ? [
             </li>
           <?php endforeach; ?>
           <?php if ($authUser): ?>
-            <?php if (($authUser['role'] ?? '') === 'admin'): ?>
-              <li class="nav-item">
-                <a class="nav-link<?= e(is_active('admin-sinapsis', $currentPage)) ?>" data-nav="admin-sinapsis" href="<?= e(url('admin-sinapsis')) ?>">Admin Sinapsis</a>
-              </li>
-            <?php endif; ?>
             <li class="nav-item">
               <a class="nav-link" href="/auth/logout.php">Salir</a>
             </li>
           <?php else: ?>
             <li class="nav-item">
               <a class="nav-link<?= e(is_active('login', $currentPage)) ?>" data-nav="login" href="<?= e(url('login')) ?>">Ingresar</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link<?= e(is_active('registro', $currentPage)) ?>" data-nav="registro" href="<?= e(url('registro')) ?>">Crear cuenta</a>
             </li>
           <?php endif; ?>
         </ul>
