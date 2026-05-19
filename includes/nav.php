@@ -1,23 +1,30 @@
 <?php
 declare(strict_types=1);
 
-$navItems = [
-    'home' => 'Inicio',
-    'recursos' => 'Recursos',
-    'capacitaciones' => 'Capacitaciones',
-    'herramientas' => 'Herramientas',
-    'tips' => 'Tips',
-    'instituciones' => 'Instituciones',
-    'planes' => 'Planes',
-    'contacto' => 'Contacto',
-];
-
 $authUser = null;
 try {
     $authUser = current_user();
 } catch (Throwable $e) {
     $authUser = null;
 }
+
+$navItems = $authUser ? [
+    'dashboard' => 'Dashboard',
+    'recursos' => 'Recursos',
+    'herramientas' => 'Herramientas',
+    'sinapsis' => 'Sinapsis',
+    'mi-cuenta' => 'Mi cuenta',
+] : [
+    'home' => 'Inicio',
+    'recursos' => 'Recursos',
+    'capacitaciones' => 'Capacitaciones',
+    'herramientas' => 'Herramientas',
+    'tips' => 'Tips',
+    'sinapsis' => 'Sinapsis',
+    'quien-soy' => 'Quién soy',
+    'planes' => 'Planes',
+    'contacto' => 'Contacto',
+];
 ?>
 <header class="site-header sticky-top">
   <nav class="navbar navbar-expand-lg">
@@ -37,9 +44,11 @@ try {
             </li>
           <?php endforeach; ?>
           <?php if ($authUser): ?>
-            <li class="nav-item">
-              <a class="nav-link<?= e(is_active('mi-cuenta', $currentPage)) ?>" data-nav="mi-cuenta" href="<?= e(url('mi-cuenta')) ?>"><?= e(strtok((string)$authUser['full_name'], ' ') ?: 'Mi cuenta') ?></a>
-            </li>
+            <?php if (($authUser['role'] ?? '') === 'admin'): ?>
+              <li class="nav-item">
+                <a class="nav-link<?= e(is_active('admin-sinapsis', $currentPage)) ?>" data-nav="admin-sinapsis" href="<?= e(url('admin-sinapsis')) ?>">Admin Sinapsis</a>
+              </li>
+            <?php endif; ?>
             <li class="nav-item">
               <a class="nav-link" href="/auth/logout.php">Salir</a>
             </li>

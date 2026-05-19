@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         login_user($user, $remember);
         error_log('login sesion iniciada user_id=' . (int)$user['id']);
         flash('success', 'Sesion iniciada correctamente.');
-        safe_redirect('/?pg=mi-cuenta');
+        safe_redirect('/?pg=dashboard');
     } catch (PDOException $e) {
         error_log('login SQL error: ' . $e->getMessage());
         $localMessage = 'No pudimos iniciar sesion en este momento. Intenta nuevamente.';

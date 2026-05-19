@@ -691,6 +691,307 @@ a:hover {
   }
 }
 
+.dashboard-page,
+.sinapsis-section,
+.about-page {
+  color: #17233a;
+}
+
+.dashboard-hero,
+.sinapsis-hero-content,
+.about-profile {
+  background: var(--paper, #f7fbff);
+  border: 3px solid #17233a;
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 #17233a;
+  color: #17233a;
+  padding: clamp(1.4rem, 4vw, 2.4rem);
+}
+
+.dashboard-hero {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+}
+
+.dashboard-hero h1,
+.sinapsis-hero h1,
+.about-profile h1 {
+  color: #17233a;
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  margin-bottom: 0.55rem;
+}
+
+.dashboard-hero p,
+.sinapsis-hero p,
+.about-profile p {
+  color: #243149;
+  font-weight: 800;
+  line-height: 1.65;
+}
+
+.dashboard-status,
+.schedule-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.dashboard-status span,
+.schedule-pills span {
+  background: #e4f5ff;
+  border: 2px solid #17233a;
+  border-radius: 999px;
+  color: #17233a;
+  font-weight: 900;
+  padding: 0.45rem 0.75rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.plan-card,
+.dashboard-card,
+.sinapsis-card,
+.partnership-card,
+.admin-table-wrap {
+  background: var(--paper, #f7fbff);
+  border: 3px solid #17233a;
+  border-radius: 20px;
+  box-shadow: 5px 5px 0 #17233a;
+  color: #17233a;
+  padding: 1.25rem;
+}
+
+.plan-card h2,
+.dashboard-card h3,
+.sinapsis-card h3,
+.admin-table-wrap h2 {
+  color: #17233a;
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  font-weight: 900;
+}
+
+.plan-status {
+  color: #006eaf;
+  font-weight: 900;
+}
+
+.dashboard-stat-grid,
+.dashboard-card-grid,
+.sinapsis-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-card-grid,
+.sinapsis-card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #e4f5ff, #dcfce7);
+  border: 3px solid #17233a;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 #17233a;
+  color: #17233a;
+  padding: 1rem;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.stat-card span,
+.dashboard-card p,
+.sinapsis-card p {
+  color: #243149;
+  font-weight: 800;
+}
+
+.dashboard-card i,
+.sinapsis-card i {
+  color: #006eaf;
+  font-size: 2rem;
+}
+
+.dashboard-card a,
+.sinapsis-card a {
+  color: #005b95;
+  font-weight: 900;
+}
+
+.dashboard-card.wide {
+  min-height: 100%;
+}
+
+.sinapsis-hero {
+  padding: 3rem 0 1.5rem;
+}
+
+.sinapsis-hero-content {
+  background:
+    linear-gradient(135deg, rgba(228, 245, 255, 0.96), rgba(220, 252, 231, 0.96)),
+    var(--paper, #f7fbff);
+}
+
+.sinapsis-hero h2 {
+  color: #006eaf;
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  font-weight: 900;
+}
+
+.sinapsis-section {
+  padding: 2.2rem 0;
+}
+
+.sinapsis-card.schedule {
+  display: grid;
+  gap: 1rem;
+}
+
+.sinapsis-gallery {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sinapsis-photo-card {
+  aspect-ratio: 4 / 3;
+  border: 3px solid #17233a;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 #17233a;
+  overflow: hidden;
+}
+
+.sinapsis-photo-card img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.sinapsis-placeholder,
+.about-placeholder {
+  align-items: center;
+  background: linear-gradient(135deg, var(--brand), var(--accent-2));
+  color: #03110f;
+  display: flex;
+  flex-direction: column;
+  font-size: 1.2rem;
+  font-weight: 900;
+  gap: 0.4rem;
+  height: 100%;
+  justify-content: center;
+  min-height: 180px;
+  width: 100%;
+}
+
+.partnership-card,
+.about-profile {
+  align-items: center;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 180px 1fr;
+}
+
+.about-photo {
+  aspect-ratio: 1;
+  border: 3px solid #17233a;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0 #17233a;
+  overflow: hidden;
+}
+
+.about-photo img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.progress-timeline {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.progress-item {
+  background: #ffffff;
+  border: 2px solid rgba(23, 35, 58, 0.24);
+  border-radius: 14px;
+  padding: 0.85rem;
+}
+
+.progress-item strong,
+.progress-item span {
+  display: block;
+}
+
+.progress-item span {
+  color: #006eaf;
+  font-weight: 900;
+}
+
+.admin-panel .surface-card,
+.admin-form {
+  color: #17233a;
+}
+
+.admin-form textarea,
+.admin-form select {
+  background: #ffffff;
+  border: 2px solid #17233a;
+  border-radius: 12px;
+  color: #17233a;
+  font-weight: 800;
+  padding: 0.78rem 0.9rem;
+  width: 100%;
+}
+
+.admin-table {
+  border-collapse: collapse;
+  color: #17233a;
+  width: 100%;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid rgba(23, 35, 58, 0.18);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.admin-table th {
+  color: #006eaf;
+  font-weight: 900;
+}
+
+@media (max-width: 991.98px) {
+  .dashboard-hero,
+  .dashboard-grid,
+  .partnership-card,
+  .about-profile {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-card-grid,
+  .sinapsis-card-grid,
+  .sinapsis-gallery {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 991.98px) {
   .platform-grid,
   .platform-split,

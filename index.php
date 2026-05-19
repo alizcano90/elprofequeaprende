@@ -6,6 +6,8 @@ require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/flash.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/dashboard.php';
+require_once __DIR__ . '/includes/sinapsis.php';
 
 start_secure_session();
 
@@ -49,6 +51,31 @@ $allowedPages = [
         'file' => __DIR__ . '/pages/contacto.php',
         'title' => 'Contacto | El Profe Que Aprende',
         'description' => 'Contacta a El Profe Que Aprende para recursos, capacitaciones, herramientas o propuestas institucionales.',
+    ],
+    'dashboard' => [
+        'file' => __DIR__ . '/pages/dashboard.php',
+        'title' => 'Dashboard | El Profe Que Aprende',
+        'description' => 'Centro de control para usuarios de El Profe Que Aprende.',
+    ],
+    'sinapsis' => [
+        'file' => __DIR__ . '/pages/sinapsis.php',
+        'title' => 'TecnoClan Sinapsis | El Profe Que Aprende',
+        'description' => 'Escuela presencial de pensamiento computacional para ninos y jovenes en Garzon, Huila.',
+    ],
+    'sinapsis-familia' => [
+        'file' => __DIR__ . '/pages/sinapsis-familia.php',
+        'title' => 'Familia Sinapsis | El Profe Que Aprende',
+        'description' => 'Panel familiar para consultar avances de estudiantes de TecnoClan Sinapsis.',
+    ],
+    'admin-sinapsis' => [
+        'file' => __DIR__ . '/pages/admin-sinapsis.php',
+        'title' => 'Admin Sinapsis | El Profe Que Aprende',
+        'description' => 'Administracion de estudiantes y avances de TecnoClan Sinapsis.',
+    ],
+    'quien-soy' => [
+        'file' => __DIR__ . '/pages/quien-soy.php',
+        'title' => 'Quien soy | El Profe Que Aprende',
+        'description' => 'Perfil de Andres Fabian Lizcano Corrales, creador de El Profe Que Aprende.',
     ],
     'login' => [
         'file' => __DIR__ . '/pages/login.php',
