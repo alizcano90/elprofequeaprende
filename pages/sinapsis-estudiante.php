@@ -56,7 +56,11 @@ $students = is_superadmin() ? sinapsis_all_students($pdo) : ($student ? [$studen
     </article>
   <?php endif; ?>
 
-  <?php foreach ($students as $student): $challenges = sinapsis_challenges_for_student($pdo, (int)$student['id']); $progress = sinapsis_progress_for_student($pdo, (int)$student['id']); ?>
+  <?php foreach ($students as $student):
+      $studentIsActive = (string)$student['status'] === 'active';
+      $challenges = ($studentIsActive || is_superadmin()) ? sinapsis_challenges_for_student($pdo, (int)$student['id']) : [];
+      $progress = sinapsis_progress_for_student($pdo, (int)$student['id']);
+  ?>
     <article class="sinapsis-student-card dashboard-card wide reveal-up">
       <i class="bi bi-controller"></i>
       <h2><?= e((string)$student['full_name']) ?></h2>
@@ -68,6 +72,7 @@ $students = is_superadmin() ? sinapsis_all_students($pdo) : ($student ? [$studen
       <article class="dashboard-card wide reveal-up">
         <i class="bi bi-list-check"></i>
         <h3>Retos pendientes y en progreso</h3>
+        <?php if (!$studentIsActive && !is_superadmin()): ?><p>Tu perfil esta inactivo temporalmente. Comunicate con TecnoClan Sinapsis para revisar tu acceso.</p><?php endif; ?>
         <?php if (!$challenges): ?><p>Aun no tienes retos asignados.</p><?php endif; ?>
         <?php foreach ($challenges as $challenge): ?>
           <form method="post" class="challenge-card">

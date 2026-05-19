@@ -5,6 +5,7 @@ $pdo = getConnection();
 $plan = get_current_user_plan($pdo, (int)$user['id']);
 $stats = get_dashboard_stats($pdo, (int)$user['id']);
 $firstName = strtok((string)$user['full_name'], ' ') ?: (string)$user['full_name'];
+$role = (string)($user['role'] ?? '');
 ?>
 <section class="container section-pad dashboard-page">
   <div class="dashboard-hero reveal-up">
@@ -59,6 +60,15 @@ $firstName = strtok((string)$user['full_name'], ' ') ?: (string)$user['full_name
       ['sinapsis', 'bi-diagram-3', 'TecnoClan Sinapsis', 'Conoce la escuela presencial de pensamiento computacional.'],
       ['mi-cuenta', 'bi-person-circle', 'Mi cuenta', 'Gestiona tus datos y proveedores vinculados.'],
     ];
+    if ($role === 'guardian') {
+        $cards[] = ['sinapsis-familia', 'bi-people-fill', 'Panel familiar', 'Consulta retos, avances y recibos de tus estudiantes.'];
+    }
+    if ($role === 'student') {
+        $cards[] = ['sinapsis-estudiante', 'bi-controller', 'Mis retos', 'Revisa tus retos y envia avances para validacion.'];
+    }
+    if ($role === 'superadmin') {
+        $cards[] = ['admin-sinapsis', 'bi-shield-lock-fill', 'Admin Sinapsis', 'Gestiona estudiantes, acudientes, retos y recibos.'];
+    }
     foreach ($cards as $card):
     ?>
       <article class="dashboard-card reveal-up">

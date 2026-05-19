@@ -4,12 +4,17 @@
 ALTER TABLE users
   MODIFY COLUMN role ENUM('superadmin','admin','teacher','institution','guardian','student') NOT NULL DEFAULT 'teacher';
 
+-- Superusuario principal solicitado por el propietario del sitio.
+-- No modifica contrasena ni datos sensibles.
+UPDATE users SET role = 'superadmin', updated_at = NOW() WHERE email = 'anfaliz@gmail.com';
+
 CREATE TABLE IF NOT EXISTS sinapsis_groups (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
   category ENUM('kids','teens','lhlc','general') NOT NULL DEFAULT 'general',
   schedule_label VARCHAR(160) NOT NULL,
   capacity INT UNSIGNED NULL,
+  monthly_fee_cop INT UNSIGNED NOT NULL DEFAULT 80000,
   status ENUM('active','inactive') NOT NULL DEFAULT 'active',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -17,11 +22,23 @@ CREATE TABLE IF NOT EXISTS sinapsis_groups (
   KEY idx_sinapsis_groups_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO sinapsis_groups (id, name, category, schedule_label, capacity, status) VALUES
-(1, 'Grupo Lunes 3:30', 'general', 'Lunes 3:30 p. m. a 4:30 p. m.', 12, 'active'),
-(2, 'Grupo Lunes 4:40', 'general', 'Lunes 4:40 p. m. a 5:40 p. m.', 12, 'active'),
-(3, 'Grupo Martes 3:30', 'general', 'Martes 3:30 p. m. a 4:30 p. m.', 12, 'active'),
-(4, 'Grupo Martes 4:40', 'general', 'Martes 4:40 p. m. a 5:40 p. m.', 12, 'active');
+ALTER TABLE sinapsis_groups ADD COLUMN IF NOT EXISTS monthly_fee_cop INT UNSIGNED NOT NULL DEFAULT 80000 AFTER capacity;
+ALTER TABLE sinapsis_groups ADD COLUMN IF NOT EXISTS status ENUM('active','inactive') NOT NULL DEFAULT 'active' AFTER monthly_fee_cop;
+ALTER TABLE sinapsis_groups ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
+INSERT INTO sinapsis_groups (id, name, category, schedule_label, capacity, monthly_fee_cop, status) VALUES
+(1, 'TecnoClan Kids - Scratch, LEGO y Storytelling', 'kids', 'Lunes 3:30 p. m. a 4:30 p. m.', 12, 80000, 'active'),
+(2, 'TecnoClan Teens - Scratch y Videojuegos', 'teens', 'Lunes 4:40 p. m. a 5:40 p. m.', 12, 80000, 'active'),
+(3, 'TecnoClan Kids - Scratch, LEGO y Storytelling', 'kids', 'Martes 3:30 p. m. a 4:30 p. m.', 12, 80000, 'active'),
+(4, 'TecnoClan Teens - Scratch y Videojuegos', 'teens', 'Martes 4:40 p. m. a 5:40 p. m.', 12, 80000, 'active'),
+(5, 'Ruta Lighthouse LC - Micro:bit y MakeCode', 'lhlc', 'Miercoles 4:00 p. m. a 5:00 p. m.', 12, 80000, 'active')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  category = VALUES(category),
+  schedule_label = VALUES(schedule_label),
+  monthly_fee_cop = VALUES(monthly_fee_cop),
+  status = VALUES(status),
+  updated_at = NOW();
 
 CREATE TABLE IF NOT EXISTS sinapsis_students (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

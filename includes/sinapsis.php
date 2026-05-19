@@ -53,7 +53,7 @@ function sinapsis_groups(PDO $pdo): array
     if (!table_exists($pdo, 'sinapsis_groups')) {
         return [];
     }
-    return $pdo->query("SELECT id, name, category, schedule_label FROM sinapsis_groups WHERE status = 'active' ORDER BY id")->fetchAll();
+    return $pdo->query("SELECT id, name, category, schedule_label, monthly_fee_cop FROM sinapsis_groups WHERE status = 'active' ORDER BY id")->fetchAll();
 }
 
 function sinapsis_students_for_guardian(PDO $pdo, int $guardianUserId): array
@@ -229,11 +229,12 @@ function sinapsis_next_receipt(PDO $pdo, int $studentId, int $guardianUserId): ?
 function sinapsis_admin_summary(PDO $pdo): array
 {
     if (!sinapsis_schema_ready($pdo)) {
-        return ['active_students' => 0, 'guardians' => 0, 'pending' => 0, 'submitted' => 0, 'pending_payments' => 0, 'overdue_payments' => 0, 'month_income' => 0];
+        return ['active_students' => 0, 'guardians' => 0, 'active_challenges' => 0, 'pending' => 0, 'submitted' => 0, 'pending_payments' => 0, 'overdue_payments' => 0, 'month_income' => 0];
     }
     return [
         'active_students' => (int)$pdo->query("SELECT COUNT(*) FROM sinapsis_students WHERE status = 'active'")->fetchColumn(),
         'guardians' => (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'guardian' AND status = 'active'")->fetchColumn(),
+        'active_challenges' => (int)$pdo->query("SELECT COUNT(*) FROM sinapsis_challenges WHERE status = 'active'")->fetchColumn(),
         'pending' => (int)$pdo->query("SELECT COUNT(*) FROM sinapsis_student_challenges WHERE status IN ('assigned','in_progress')")->fetchColumn(),
         'submitted' => (int)$pdo->query("SELECT COUNT(*) FROM sinapsis_student_challenges WHERE status = 'submitted'")->fetchColumn(),
         'pending_payments' => (int)$pdo->query("SELECT COUNT(*) FROM sinapsis_payment_receipts WHERE status IN ('pending','partial')")->fetchColumn(),
@@ -309,6 +310,12 @@ function sinapsis_create_guardian_and_student(PDO $pdo, array $data): array
         }
 
         $groupId = (int)($data['group_id'] ?? 0) ?: null;
+        $monthlyFee = SINAPSIS_MONTHLY_FEE;
+        if ($groupId) {
+            $feeStmt = $pdo->prepare('SELECT monthly_fee_cop FROM sinapsis_groups WHERE id = :id LIMIT 1');
+            $feeStmt->execute(['id' => $groupId]);
+            $monthlyFee = (int)($feeStmt->fetchColumn() ?: SINAPSIS_MONTHLY_FEE);
+        }
         $category = clean_text($data['category'] ?? 'kids');
         $route = clean_text($data['route_current'] ?? '');
         $stmt = $pdo->prepare(
@@ -349,11 +356,11 @@ function sinapsis_create_guardian_and_student(PDO $pdo, array $data): array
             'group_id' => $groupId,
             'category' => in_array($category, ['kids', 'teens', 'lhlc'], true) ? $category : 'kids',
             'route_current' => $route,
-            'monthly_fee' => SINAPSIS_MONTHLY_FEE,
+            'monthly_fee' => $monthlyFee,
         ]);
 
         if (!empty($data['create_current_receipt'])) {
-            sinapsis_create_receipt($pdo, $studentId, $guardianId, (int)date('Y'), (int)date('n'), (string)date('Y-m-10'));
+            sinapsis_create_receipt($pdo, $studentId, $guardianId, (int)date('Y'), (int)date('n'), (string)date('Y-m-10'), $monthlyFee);
         }
 
         $pdo->commit();

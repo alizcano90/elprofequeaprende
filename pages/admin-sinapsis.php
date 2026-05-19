@@ -47,12 +47,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'assign_challenge') {
             $challengeId = (int)($_POST['challenge_id'] ?? 0);
             $studentId = (int)($_POST['student_id'] ?? 0);
+            $groupId = (int)($_POST['assign_group_id'] ?? 0);
             $category = clean_text($_POST['assign_category'] ?? '');
             if (!$challengeId) {
                 throw new RuntimeException('Selecciona un reto.');
             }
             if ($studentId > 0) {
                 $targets = [$studentId];
+            } elseif ($groupId > 0) {
+                $stmt = $pdo->prepare('SELECT id FROM sinapsis_students WHERE status = "active" AND group_id = :group_id');
+                $stmt->execute(['group_id' => $groupId]);
+                $targets = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
             } else {
                 $stmt = $pdo->prepare('SELECT id FROM sinapsis_students WHERE status = "active" AND (:category = "" OR category = :category)');
                 $stmt->execute(['category' => $category]);
@@ -115,17 +120,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $localMessage = 'Recibo generado correctamente.';
         }
 
+        if ($action === 'generate_month_receipts') {
+            $year = (int)($_POST['year'] ?? date('Y'));
+            $month = (int)($_POST['month'] ?? date('n'));
+            $dueDate = clean_text($_POST['due_date'] ?? date('Y-m-10'));
+            $stmt = $pdo->query(
+                'SELECT s.id AS student_id, gs.guardian_user_id, COALESCE(g.monthly_fee_cop, e.monthly_fee_cop, 80000) AS fee
+                 FROM sinapsis_students s
+                 INNER JOIN sinapsis_guardian_students gs ON gs.student_id = s.id AND gs.is_primary = 1 AND gs.status = "active"
+                 LEFT JOIN sinapsis_enrollments e ON e.student_id = s.id AND e.status = "active"
+                 LEFT JOIN sinapsis_groups g ON g.id = COALESCE(s.group_id, e.group_id)
+                 WHERE s.status = "active"'
+            );
+            $created = 0;
+            foreach ($stmt->fetchAll() as $row) {
+                sinapsis_create_receipt($pdo, (int)$row['student_id'], (int)$row['guardian_user_id'], $year, $month, $dueDate, (int)$row['fee']);
+                $created++;
+            }
+            $localMessage = 'Recibos del mes generados para ' . $created . ' estudiante(s) activos.';
+        }
+
         if ($action === 'update_receipt_status') {
             $status = clean_text($_POST['status'] ?? 'pending');
             $stmt = $pdo->prepare(
                 'UPDATE sinapsis_payment_receipts
-                 SET status = :status, paid_at = IF(:status_paid = "paid", NOW(), paid_at), reference = :reference, updated_at = NOW()
+                 SET status = :status, paid_at = IF(:status_paid = "paid", NOW(), paid_at), payment_method = :payment_method, reference = :reference, internal_notes = :internal_notes, updated_at = NOW()
                  WHERE id = :id'
             );
             $stmt->execute([
                 'status' => $status,
                 'status_paid' => $status,
+                'payment_method' => clean_text($_POST['payment_method'] ?? '') ?: null,
                 'reference' => clean_text($_POST['reference'] ?? ''),
+                'internal_notes' => clean_text($_POST['internal_notes'] ?? ''),
                 'id' => (int)($_POST['receipt_id'] ?? 0),
             ]);
             $localMessage = 'Estado del recibo actualizado.';
@@ -202,6 +229,7 @@ foreach ($students as $studentRow) {
   <div class="dashboard-stat-grid">
     <article class="sinapsis-stat"><strong><?= (int)$summary['active_students'] ?></strong><span>Estudiantes activos</span></article>
     <article class="sinapsis-stat"><strong><?= (int)$summary['guardians'] ?></strong><span>Acudientes activos</span></article>
+    <article class="sinapsis-stat"><strong><?= (int)$summary['active_challenges'] ?></strong><span>Retos activos</span></article>
     <article class="sinapsis-stat"><strong><?= (int)$summary['pending'] ?></strong><span>Retos pendientes</span></article>
     <article class="sinapsis-stat"><strong><?= (int)$summary['submitted'] ?></strong><span>Retos enviados</span></article>
     <article class="sinapsis-stat"><strong><?= (int)$summary['pending_payments'] ?></strong><span>Pagos pendientes</span></article>
@@ -259,7 +287,7 @@ foreach ($students as $studentRow) {
       <?php foreach ($students as $s): ?>
         <tr>
           <td><?= e((string)$s['full_name']) ?></td><td><?= e((string)($s['visible_category'] ?: $s['category'])) ?></td><td><span class="badge-status badge-<?= e((string)$s['status']) ?>"><?= e(sinapsis_badge((string)$s['status'])) ?></span></td><td><?= e((string)($s['guardian_email'] ?? 'Sin vincular')) ?></td><td><?= e((string)($s['group_name'] ?? $s['schedule_label'] ?? '')) ?></td>
-          <td><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="action" value="update_student_status"><input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>"><button class="mini-button" name="status" value="<?= (string)$s['status'] === 'active' ? 'inactive' : 'active' ?>"><?= (string)$s['status'] === 'active' ? 'Inhabilitar' : 'Habilitar' ?></button></form></td>
+          <td><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="action" value="update_student_status"><input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>"><a class="mini-button" href="#avances">Registrar avance</a><a class="mini-button" href="#retos">Asignar reto</a><a class="mini-button" href="#recibos">Generar recibo</a><button class="mini-button" name="status" value="<?= (string)$s['status'] === 'active' ? 'inactive' : 'active' ?>"><?= (string)$s['status'] === 'active' ? 'Inhabilitar' : 'Habilitar' ?></button></form></td>
         </tr>
       <?php endforeach; ?>
     </tbody></table>
@@ -292,8 +320,9 @@ foreach ($students as $studentRow) {
     <form method="post" class="surface-card admin-form"><div class="surface-card-body">
       <h2>Asignar reto</h2><?= csrf_field() ?><input type="hidden" name="action" value="assign_challenge">
       <div class="form-group"><label>Reto</label><select class="form-control" name="challenge_id"><?php foreach ($activeChallenges as $c): ?><option value="<?= (int)$c['id'] ?>"><?= e((string)$c['title']) ?></option><?php endforeach; ?></select></div>
-      <div class="form-group"><label>Estudiante especifico</label><select class="form-control" name="student_id"><option value="0">Asignar por categoria</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>"><?= e((string)$s['full_name']) ?></option><?php endforeach; ?></select></div>
-      <div class="form-group"><label>Categoria si no eliges estudiante</label><select class="form-control" name="assign_category"><option value="">Todos activos</option><option value="kids">kids</option><option value="teens">teens</option><option value="lhlc">lhlc</option></select></div>
+      <div class="form-group"><label>Estudiante especifico</label><select class="form-control" name="student_id"><option value="0">Asignar por grupo o categoria</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>"><?= e((string)$s['full_name']) ?></option><?php endforeach; ?></select></div>
+      <div class="form-group"><label>Grupo si no eliges estudiante</label><select class="form-control" name="assign_group_id"><option value="0">Sin grupo especifico</option><?php foreach ($groups as $group): ?><option value="<?= (int)$group['id'] ?>"><?= e((string)$group['name']) ?> - <?= e((string)$group['schedule_label']) ?></option><?php endforeach; ?></select></div>
+      <div class="form-group"><label>Categoria si no eliges estudiante ni grupo</label><select class="form-control" name="assign_category"><option value="">Todos activos</option><option value="kids">kids</option><option value="teens">teens</option><option value="lhlc">lhlc</option></select></div>
       <button class="btn-auth-primary" type="submit">Asignar</button>
     </div></form>
   </div>
@@ -334,10 +363,16 @@ foreach ($students as $studentRow) {
       <div class="auth-grid"><div class="form-group"><label>Valor</label><input class="form-control" type="number" name="amount_cop" value="<?= SINAPSIS_MONTHLY_FEE ?>"></div><div class="form-group"><label>Vencimiento</label><input class="form-control" type="date" name="due_date" value="<?= e(date('Y-m-10')) ?>"></div></div>
       <button class="btn-auth-primary" type="submit">Generar recibo</button>
     </div></form>
-    <article class="dashboard-card wide"><i class="bi bi-credit-card"></i><h3>Pagos</h3><p>No hay integracion con Mercado Pago todavia. El campo metodo queda preparado para futuro uso como <strong>mercado_pago</strong>.</p></article>
+    <form method="post" class="surface-card admin-form"><div class="surface-card-body">
+      <h2>Generar recibos del mes</h2><?= csrf_field() ?><input type="hidden" name="action" value="generate_month_receipts">
+      <p>Crea o actualiza recibos para todos los estudiantes activos con acudiente principal.</p>
+      <div class="auth-grid"><div class="form-group"><label>Ano</label><input class="form-control" type="number" name="year" value="<?= e(date('Y')) ?>"></div><div class="form-group"><label>Mes</label><input class="form-control" type="number" name="month" min="1" max="12" value="<?= e(date('n')) ?>"></div></div>
+      <div class="form-group"><label>Fecha de vencimiento</label><input class="form-control" type="date" name="due_date" value="<?= e(date('Y-m-10')) ?>"></div>
+      <button class="btn-auth-primary" type="submit">Generar recibos masivos</button>
+    </div></form>
   </div>
   <div class="admin-table-wrap reveal-up mt-4"><h2>Recibos</h2><table class="admin-table"><thead><tr><th>Estudiante</th><th>Acudiente</th><th>Periodo</th><th>Valor</th><th>Vence</th><th>Estado</th><th>Accion</th></tr></thead><tbody>
-    <?php foreach ($receipts as $r): ?><tr><td><?= e((string)$r['student_name']) ?></td><td><?= e((string)$r['guardian_name']) ?></td><td><?= e((string)$r['month']) ?>/<?= e((string)$r['year']) ?></td><td><?= e(sinapsis_money((int)$r['amount_cop'])) ?></td><td><?= e((string)$r['due_date']) ?></td><td><span class="receipt-status badge-<?= e((string)$r['status']) ?>"><?= e(sinapsis_badge((string)$r['status'])) ?></span></td><td><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="action" value="update_receipt_status"><input type="hidden" name="receipt_id" value="<?= (int)$r['id'] ?>"><input class="mini-input" name="reference" placeholder="Ref."><select name="status" class="mini-input"><option value="paid">Pagado</option><option value="pending">Pendiente</option><option value="overdue">Vencido</option><option value="partial">Parcial</option><option value="scholarship">Becado</option><option value="cancelled">Cancelado</option></select><button class="mini-button">Actualizar</button></form></td></tr><?php endforeach; ?>
+    <?php foreach ($receipts as $r): ?><tr><td><?= e((string)$r['student_name']) ?></td><td><?= e((string)$r['guardian_name']) ?></td><td><?= e((string)$r['month']) ?>/<?= e((string)$r['year']) ?></td><td><?= e(sinapsis_money((int)$r['amount_cop'])) ?></td><td><?= e((string)$r['due_date']) ?></td><td><span class="receipt-status badge-<?= e((string)$r['status']) ?>"><?= e(sinapsis_badge((string)$r['status'])) ?></span></td><td><form method="post" class="inline-form"><?= csrf_field() ?><input type="hidden" name="action" value="update_receipt_status"><input type="hidden" name="receipt_id" value="<?= (int)$r['id'] ?>"><input class="mini-input" name="reference" placeholder="Ref."><input class="mini-input" name="internal_notes" placeholder="Notas"><select name="payment_method" class="mini-input"><option value="">Metodo</option><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="mercado_pago">Mercado Pago</option><option value="other">Otro</option></select><select name="status" class="mini-input"><option value="paid">Pagado</option><option value="pending">Pendiente</option><option value="overdue">Vencido</option><option value="partial">Parcial</option><option value="scholarship">Becado</option><option value="cancelled">Cancelado</option></select><button class="mini-button">Actualizar</button></form></td></tr><?php endforeach; ?>
   </tbody></table></div>
 </section>
 

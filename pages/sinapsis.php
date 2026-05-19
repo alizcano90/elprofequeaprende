@@ -48,6 +48,7 @@
         <span>Lunes o martes</span>
         <span>3:30 p. m. a 4:30 p. m.</span>
         <span>4:40 p. m. a 5:40 p. m.</span>
+        <span>Ruta Lighthouse LC: miercoles 4:00 p. m. a 5:00 p. m.</span>
       </div>
       <p>Los grupos se organizan segun edad, nivel y disponibilidad. Los cupos son limitados para mantener acompanamiento cercano.</p>
     </article>

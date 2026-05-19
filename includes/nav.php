@@ -14,8 +14,7 @@ if ($authUser && $role === 'superadmin') {
     $navItems = [
         'dashboard' => 'Dashboard',
         'admin-sinapsis' => 'Admin Sinapsis',
-        'sinapsis-familia' => 'Sinapsis Familia',
-        'sinapsis-estudiante' => 'Mis retos',
+        'sinapsis' => 'TecnoClan Sinapsis',
         'mi-cuenta' => 'Mi cuenta',
     ];
 } elseif ($authUser && $role === 'guardian') {
