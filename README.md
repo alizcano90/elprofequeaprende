@@ -1,14 +1,50 @@
-# ElProfeQueAprende.com – Scaffold PHP 8.2 + Bootstrap
+# ElProfeQueAprende.com
 
-## Pasos rápidos
+Sitio PHP 8 para recursos educativos de El Profe Que Aprende.
 
-1. Clona este repo y sube tus materiales a `/resources/`.
-2. En tu repositorio de GitHub, ve a **Settings → Secrets → Actions** y define:
-   - `SSH_HOST`
-   - `SSH_USER`
-   - `SSH_KEY` (clave privada en formato PEM)
-   - `SSH_PATH` (directorio destino, p. ej. `/var/www/profequeaprende`)
-3. `git add . && git commit -m "Initial scaffold" && git push origin main`
-4. Cada *push* a `main` ejecutará el despliegue automático vía `rsync`.
+## EPQA Horarios Inteligentes
 
-¡Listo para aprender y compartir! 💻📚
+Modulo creado en `/horarios` para generar, auditar, editar y exportar horarios escolares con reglas P0/P1/P2.
+
+### Archivos principales
+
+- `/horarios/index.php`: interfaz web del modulo.
+- `/horarios/api/*.php`: endpoints PHP puros para seed, importacion, auditoria, versionado y exportacion.
+- `/horarios/assets/app.js`: editor visual, heuristica inicial, drag-and-drop, auditoria y exportes.
+- `/horarios/assets/styles.css`: diseno visual del modulo.
+- `/horarios/sql/001_create_tables.sql`: creacion de tablas MySQL/MariaDB.
+- `/horarios/sql/002_seed_catalogs.sql`: catalogos iniciales y usuario admin local.
+- `/horarios/data/horario_seed_epqa.json`: JSON semilla.
+
+### Instalacion en hosting PHP
+
+1. Suba la carpeta `/horarios` al hosting, de forma que abra en:
+   `https://elprofequeaprende.com/horarios/`
+
+2. En phpMyAdmin, seleccione la base de datos del sitio y ejecute en este orden:
+   - `horarios/sql/001_create_tables.sql`
+   - `horarios/sql/002_seed_catalogs.sql`
+
+3. Configure la conexion MySQL igual que el resto del sitio:
+   - Variables de entorno `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET`; o
+   - archivo local `config/database.local.php`.
+
+4. Entre a `/horarios/`. Si MySQL no esta disponible, el modulo abre en modo demostracion usando `horarios/data/horario_seed_epqa.json`.
+
+### Prompt SQL para phpMyAdmin
+
+Use este texto si quiere pedirle a phpMyAdmin/IA que cree las tablas:
+
+```sql
+-- Ejecutar primero:
+SOURCE horarios/sql/001_create_tables.sql;
+
+-- Ejecutar despues:
+SOURCE horarios/sql/002_seed_catalogs.sql;
+```
+
+Si phpMyAdmin no acepta `SOURCE`, abra cada archivo `.sql`, copie su contenido completo y ejecutelo en la pestana SQL.
+
+### Regla de publicacion
+
+Una version solo puede marcarse como `FINAL` cuando la auditoria tenga `P0 = 0`. El boton `Publicar PDF final` queda deshabilitado mientras exista cualquier P0 en `NO CUMPLE`.

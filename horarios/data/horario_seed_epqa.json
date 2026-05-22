@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": {
+    "name": "EPQA Horarios Inteligentes",
+    "institution": "Institucion Educativa Rural Filo de Platanares",
+    "version": "semilla-2026-05",
+    "timezone": "America/Bogota"
+  },
+  "sites": [
+    { "id": "filo", "name": "Filo", "type": "principal" },
+    { "id": "rural", "name": "Sedes rurales", "type": "rural" }
+  ],
+  "days": ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"],
+  "periods": {
+    "primary": [
+      { "id": 1, "label": "H1" },
+      { "id": 2, "label": "H2" },
+      { "id": 3, "label": "H3" },
+      { "id": 4, "label": "H4" },
+      { "id": 5, "label": "H5" }
+    ],
+    "secondary": [
+      { "id": 1, "label": "H1" },
+      { "id": 2, "label": "H2" },
+      { "id": 3, "label": "H3" },
+      { "id": 4, "label": "H4" },
+      { "id": 5, "label": "H5" },
+      { "id": 6, "label": "H6" }
+    ]
+  },
+  "groups": {
+    "primary": ["1F", "2F", "3F", "4F", "5F"],
+    "secondary": ["6F", "7F", "8F", "9F", "10F", "11F"]
+  },
+  "rooms": [
+    { "id": "aula", "name": "Aula", "site": "filo", "capacity": 99 },
+    { "id": "sala-ti", "name": "Sala TI", "site": "filo", "capacity": 1 },
+    { "id": "cancha", "name": "Cancha", "site": "filo", "capacity": 1 }
+  ],
+  "subjects": [
+    "Castellano",
+    "Matematicas",
+    "Tecnologia e Informatica",
+    "DPC",
+    "Emprendimiento",
+    "Educacion Fisica",
+    "Fisica",
+    "Quimica",
+    "Biologia",
+    "Ingles",
+    "Sociales",
+    "Artistica",
+    "Religion",
+    "Etica"
+  ],
+  "teachers": [
+    { "id": "andres", "name": "Andres", "role": "editor", "exceptionMin22": false },
+    { "id": "raducha", "name": "Raducha", "role": "teacher", "exceptionMin22": false },
+    { "id": "chavarro", "name": "Chavarro", "role": "teacher", "exceptionMin22": false },
+    { "id": "camilo", "name": "Camilo", "role": "teacher", "exceptionMin22": false },
+    { "id": "hernan", "name": "Hernan", "role": "teacher", "exceptionMin22": false },
+    { "id": "karen", "name": "Karen", "role": "teacher", "exceptionMin22": false },
+    { "id": "jissel", "name": "Jissel", "role": "teacher", "exceptionMin22": false },
+    { "id": "alex", "name": "Alex", "role": "teacher", "exceptionMin22": true }
+  ],
+  "criticalRules": [
+    { "id": "weekday-only", "priority": "P0", "name": "Clase solo lunes a viernes" },
+    { "id": "no-teacher-overlap", "priority": "P0", "name": "Docente sin doble ocupacion" },
+    { "id": "no-group-overlap", "priority": "P0", "name": "Grupo sin doble ocupacion" },
+    { "id": "no-room-overlap", "priority": "P0", "name": "Sala TI y Cancha capacidad 1 por sede" },
+    { "id": "keep-original-load", "priority": "P0", "name": "No reasignar docente/materia/grado sin autorizacion" },
+    { "id": "pe-court-two", "priority": "P0", "name": "Educacion Fisica en Cancha y bloque real de 2h" },
+    { "id": "andres-load", "priority": "P0", "name": "Andres 27h y bloques definidos" },
+    { "id": "secondary-min-load", "priority": "P0", "name": "Docente secundaria minimo 22h salvo excepcion" }
+  ],
+  "teacherSiteRules": [
+    { "teacher": "Andres", "days": { "Lunes": "filo", "Martes": "filo", "Miercoles": "filo", "Jueves": "filo", "Viernes": "filo" }, "priority": "P0" }
+  ],
+  "roomRules": [
+    { "subjects": ["Tecnologia e Informatica", "DPC", "Emprendimiento"], "room": "Sala TI", "priority": "P0" },
+    { "subjects": ["Educacion Fisica"], "room": "Cancha", "priority": "P0" }
+  ],
+  "blockRules": [
+    { "teacher": "Andres", "groups": ["6F", "7F", "8F", "9F"], "minConsecutive": 2, "exactBlock": 2, "priority": "P0" },
+    { "teacher": "Andres", "groups": ["10F", "11F"], "minConsecutive": 3, "priority": "P0" },
+    { "teacher": "Hernan", "subjects": ["Fisica", "Quimica"], "groups": ["10F", "11F"], "minConsecutive": 2, "priority": "P1" },
+    { "teacher": "Karen", "subjects": ["Matematicas"], "groups": ["10F", "11F"], "minConsecutive": 2, "priority": "P1" },
+    { "teacher": "Jissel", "subjects": ["Artistica"], "groups": ["6F", "7F", "8F", "9F"], "minConsecutive": 2, "priority": "P2" }
+  ],
+  "assignments": [
+    { "id": "and-6-ti", "site": "filo", "level": "secondary", "group": "6F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-7-ti", "site": "filo", "level": "secondary", "group": "7F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-8-ti", "site": "filo", "level": "secondary", "group": "8F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-9-ti", "site": "filo", "level": "secondary", "group": "9F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-10-ti", "site": "filo", "level": "secondary", "group": "10F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 3 },
+    { "id": "and-11-ti", "site": "filo", "level": "secondary", "group": "11F", "subject": "Tecnologia e Informatica", "teacher": "Andres", "room": "Sala TI", "hours": 3 },
+    { "id": "and-10-dpc", "site": "filo", "level": "secondary", "group": "10F", "subject": "DPC", "teacher": "Andres", "room": "Sala TI", "hours": 3 },
+    { "id": "and-11-emp", "site": "filo", "level": "secondary", "group": "11F", "subject": "Emprendimiento", "teacher": "Andres", "room": "Sala TI", "hours": 3 },
+    { "id": "and-6-emp", "site": "filo", "level": "secondary", "group": "6F", "subject": "Emprendimiento", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-7-dpc", "site": "filo", "level": "secondary", "group": "7F", "subject": "DPC", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-8-dpc", "site": "filo", "level": "secondary", "group": "8F", "subject": "DPC", "teacher": "Andres", "room": "Sala TI", "hours": 2 },
+    { "id": "and-9-emp", "site": "filo", "level": "secondary", "group": "9F", "subject": "Emprendimiento", "teacher": "Andres", "room": "Sala TI", "hours": 1 },
+    { "id": "rad-6-ef", "site": "filo", "level": "secondary", "group": "6F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "rad-7-ef", "site": "filo", "level": "secondary", "group": "7F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "rad-8-ef", "site": "filo", "level": "secondary", "group": "8F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "rad-9-ef", "site": "filo", "level": "secondary", "group": "9F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "rad-10-ef", "site": "filo", "level": "secondary", "group": "10F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "rad-11-ef", "site": "filo", "level": "secondary", "group": "11F", "subject": "Educacion Fisica", "teacher": "Raducha", "room": "Cancha", "hours": 2 },
+    { "id": "cha-4-ef", "site": "filo", "level": "primary", "group": "4F", "subject": "Educacion Fisica", "teacher": "Chavarro", "room": "Cancha", "hours": 2 },
+    { "id": "cam-6-cast", "site": "filo", "level": "secondary", "group": "6F", "subject": "Castellano", "teacher": "Camilo", "room": "Aula", "hours": 4 },
+    { "id": "cam-7-cast", "site": "filo", "level": "secondary", "group": "7F", "subject": "Castellano", "teacher": "Camilo", "room": "Aula", "hours": 4 },
+    { "id": "her-10-fis", "site": "filo", "level": "secondary", "group": "10F", "subject": "Fisica", "teacher": "Hernan", "room": "Aula", "hours": 3 },
+    { "id": "her-11-qui", "site": "filo", "level": "secondary", "group": "11F", "subject": "Quimica", "teacher": "Hernan", "room": "Aula", "hours": 3 },
+    { "id": "kar-10-mat", "site": "filo", "level": "secondary", "group": "10F", "subject": "Matematicas", "teacher": "Karen", "room": "Aula", "hours": 4 },
+    { "id": "kar-11-mat", "site": "filo", "level": "secondary", "group": "11F", "subject": "Matematicas", "teacher": "Karen", "room": "Aula", "hours": 4 },
+    { "id": "jis-6-art", "site": "filo", "level": "secondary", "group": "6F", "subject": "Artistica", "teacher": "Jissel", "room": "Aula", "hours": 2 },
+    { "id": "jis-7-art", "site": "filo", "level": "secondary", "group": "7F", "subject": "Artistica", "teacher": "Jissel", "room": "Aula", "hours": 2 }
+  ],
+  "initialSlots": [
+    { "loadId": "and-6-ti", "day": "Lunes", "period": 1 },
+    { "loadId": "and-6-ti", "day": "Lunes", "period": 2 },
+    { "loadId": "and-7-ti", "day": "Martes", "period": 1 },
+    { "loadId": "and-7-ti", "day": "Martes", "period": 2 },
+    { "loadId": "and-8-ti", "day": "Miercoles", "period": 1 },
+    { "loadId": "and-8-ti", "day": "Miercoles", "period": 2 },
+    { "loadId": "and-9-ti", "day": "Jueves", "period": 1 },
+    { "loadId": "and-9-ti", "day": "Jueves", "period": 2 },
+    { "loadId": "and-10-ti", "day": "Lunes", "period": 3 },
+    { "loadId": "and-10-ti", "day": "Lunes", "period": 4 },
+    { "loadId": "and-10-ti", "day": "Lunes", "period": 5 },
+    { "loadId": "and-11-ti", "day": "Martes", "period": 3 },
+    { "loadId": "and-11-ti", "day": "Martes", "period": 4 },
+    { "loadId": "and-11-ti", "day": "Martes", "period": 5 }
+  ]
+}
