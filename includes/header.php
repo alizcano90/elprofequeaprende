@@ -36,7 +36,7 @@ $canonical = site_url(url($currentPage === '404' ? 'home' : $currentPage));
   <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
 </head>
 
-<body class="stem-playground platform-page">
+<body class="stem-playground platform-page page-<?= e($currentPage) ?>">
   <?php require __DIR__ . '/nav.php'; ?>
   <main class="site-main">
     <div class="container auth-flash-wrap">

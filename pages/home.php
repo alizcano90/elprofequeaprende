@@ -1,98 +1,193 @@
-<section class="stem-hero platform-hero">
-  <div class="container stem-hero-grid">
-    <div class="stem-hero-copy reveal-up">
-      <p class="stem-label"><i class="bi bi-stars"></i> Plataforma educativa para docentes</p>
-      <h1>El Profe Que Aprende</h1>
-      <p class="stem-lead">Plataforma practica para docentes que quieren crear, organizar y dinamizar sus clases con IA, recursos offline y herramientas digitales.</p>
-      <p class="platform-support">Creamos recursos educativos, capacitaciones y herramientas pensadas para docentes reales, con aulas reales y tiempos reales. Tecnologia util, sencilla y aplicable incluso en contextos de baja conectividad.</p>
-      <div class="stem-actions">
-        <a class="btn-main" href="<?= e(url('recursos')) ?>"><i class="bi bi-folder2-open"></i> Explorar recursos</a>
-        <a class="btn-alt" href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-easel2"></i> Ver capacitaciones</a>
-        <a class="btn-alt" href="<?= e(url('herramientas')) ?>"><i class="bi bi-tools"></i> Probar herramientas</a>
-      </div>
-    </div>
-    <div class="stem-lab-board reveal-up" aria-label="Resumen de la plataforma">
-      <div class="lab-top">
-        <span>Ecosistema</span>
-        <strong>EPQA</strong>
-      </div>
-      <div class="lab-kit service-kit">
-        <a href="<?= e(url('recursos')) ?>"><i class="bi bi-wifi-off"></i> Offline</a>
-        <a href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-robot"></i> IA docente</a>
-        <a href="<?= e(url('herramientas')) ?>"><i class="bi bi-calendar-week"></i> Horarios</a>
-        <a href="<?= e(url('planes')) ?>"><i class="bi bi-gem"></i> Pro</a>
-      </div>
-    </div>
-  </div>
-</section>
+<?php
+$user = null;
+try {
+    $user = current_user();
+} catch (Throwable $e) {
+    $user = null;
+}
+$role = (string)($user['role'] ?? '');
+$firstName = $user ? (strtok((string)$user['full_name'], ' ') ?: (string)$user['full_name']) : 'Docente';
 
-<section class="container section-pad" id="ecosistema">
-  <div class="stem-section-head reveal-up">
-    <p class="stem-label"><i class="bi bi-diagram-3-fill"></i> Ecosistema de la plataforma</p>
-    <h2>Seis lineas para aprender, crear y organizar mejor</h2>
-  </div>
-  <div class="stem-path-grid platform-grid">
-    <?php
-    $ecosystem = [
-        ['recursos', 'bi-folder2-open', 'Recursos educativos offline', 'Guias interactivas HTML, simuladores, actividades STEM/Arduino, herramientas de aula y paquetes por grado que pueden funcionar sin depender de Internet.'],
-        ['capacitaciones', 'bi-robot', 'Capacitaciones con IA para docentes', 'Formaciones practicas para crear guias interactivas, recursos digitales y materiales de clase usando inteligencia artificial, sin necesidad de saber programar.'],
-        ['herramientas', 'bi-tools', 'Herramientas online', 'Utilidades digitales para docentes: generador de horarios, ruletas, grupos aleatorios, generadores de rubricas, organizacion de clases y mas.'],
-        ['tips', 'bi-lightbulb-fill', 'Tips y contenido gratuito', 'Tutoriales de ofimatica, IA practica, productividad docente, Excel, Word, plantillas y soluciones rapidas para el trabajo diario.'],
-        ['instituciones', 'bi-building-fill-check', 'Servicios para instituciones', 'Capacitaciones, licencias institucionales, kits offline, acompanamiento STEM y personalizacion de recursos para colegios, sedes, cooperativas y fundaciones.'],
-        ['planes', 'bi-gem', 'Monetizacion y planes', 'Recursos premium, cursos, suscripcion Pro, licencias institucionales y contenido gratuito apoyado por Google AdSense.'],
+$launcherCards = [
+    [
+        'tone' => 'cyan',
+        'badge' => 'Recursos',
+        'icon' => '<i class="bi bi-book-half"></i>',
+        'title' => 'Recursos educativos',
+        'text' => 'Guias interactivas, simuladores, actividades STEM y materiales listos para usar.',
+        'href' => url('recursos'),
+        'action' => 'Explorar recursos',
+    ],
+    [
+        'tone' => 'purple',
+        'badge' => 'IA',
+        'icon' => '<i class="bi bi-robot"></i>',
+        'title' => 'Capacitaciones con IA',
+        'text' => 'Aprende a crear guias interactivas y recursos digitales usando inteligencia artificial.',
+        'href' => url('capacitaciones'),
+        'action' => 'Ver capacitaciones',
+    ],
+    [
+        'tone' => 'orange',
+        'badge' => 'Tiempo',
+        'icon' => '<i class="bi bi-tools"></i>',
+        'title' => 'Herramientas docentes',
+        'text' => 'Utilidades para organizar, dinamizar y ahorrar tiempo en el aula.',
+        'href' => url('herramientas'),
+        'action' => 'Probar herramientas',
+    ],
+    [
+        'tone' => 'green',
+        'badge' => 'Horarios',
+        'icon' => '<i class="bi bi-calendar-week"></i>',
+        'title' => 'Generador de horarios',
+        'text' => 'Crea y organiza horarios escolares con acceso directo al modulo de horarios.',
+        'href' => url('horarios'),
+        'action' => 'Abrir horarios',
+    ],
+    [
+        'tone' => 'violet',
+        'badge' => 'Sinapsis',
+        'icon' => '<img src="/assets/img/icons/ts.ico" alt="" aria-hidden="true">',
+        'title' => 'TecnoClan Sinapsis',
+        'text' => 'Escuela presencial de pensamiento computacional para ninos y jovenes en Garzon, Huila.',
+        'href' => url('sinapsis'),
+        'action' => 'Conocer Sinapsis',
+    ],
+];
+
+if ($user) {
+    $launcherCards[] = [
+        'tone' => 'blue',
+        'badge' => 'Cuenta',
+        'icon' => '<i class="bi bi-speedometer2"></i>',
+        'title' => 'Dashboard',
+        'text' => 'Continua desde tu centro de control con acceso a tu plan y herramientas.',
+        'href' => url('dashboard'),
+        'action' => 'Ir al dashboard',
     ];
-    foreach ($ecosystem as $index => $item):
-    ?>
-      <a class="stem-path-card platform-card reveal-up tone-<?= (int)$index % 6 ?>" href="<?= e(url($item[0])) ?>">
-        <i class="bi <?= e($item[1]) ?>"></i>
-        <span>Linea de la plataforma</span>
-        <h3><?= e($item[2]) ?></h3>
-        <p><?= e($item[3]) ?></p>
-      </a>
-    <?php endforeach; ?>
-  </div>
-</section>
+} else {
+    $launcherCards[] = [
+        'tone' => 'blue',
+        'badge' => 'Acceso',
+        'icon' => '<i class="bi bi-person-circle"></i>',
+        'title' => 'Ingresar / Crear cuenta',
+        'text' => 'Accede a tu dashboard, planes, recursos y seguimiento familiar.',
+        'href' => url('login'),
+        'action' => 'Ingresar',
+    ];
+}
 
-<section class="stem-band">
-  <div class="container">
-    <div class="stem-section-head reveal-up">
-      <p class="stem-label"><i class="bi bi-award-fill"></i> Producto destacado</p>
+$roleShortcuts = [];
+if ($role === 'guardian') {
+    $roleShortcuts[] = [
+        'tone' => 'cyan',
+        'icon' => '<i class="bi bi-people-fill"></i>',
+        'title' => 'Panel familiar',
+        'text' => 'Consulta retos, avances y recibos de tus estudiantes.',
+        'href' => url('sinapsis-familia'),
+    ];
+}
+if ($role === 'student') {
+    $roleShortcuts[] = [
+        'tone' => 'purple',
+        'icon' => '<i class="bi bi-controller"></i>',
+        'title' => 'Mis retos',
+        'text' => 'Revisa tus retos y envia avances para validacion.',
+        'href' => url('sinapsis-estudiante'),
+    ];
+}
+if ($role === 'superadmin') {
+    $roleShortcuts[] = [
+        'tone' => 'green',
+        'icon' => '<i class="bi bi-shield-lock-fill"></i>',
+        'title' => 'Admin Sinapsis',
+        'text' => 'Gestiona estudiantes, acudientes, retos y recibos.',
+        'href' => url('admin-sinapsis'),
+    ];
+}
+?>
+<section class="container section-pad home-hub-page">
+  <div class="home-hero-shell reveal-up">
+    <div class="home-hero-copy">
+      <p class="home-kicker">PLATAFORMA EDUCATIVA PARA DOCENTES</p>
+      <h1>¿Qué quieres hacer hoy?</h1>
+      <p class="home-hero-lead">Crea recursos, aprende con IA, organiza clases y acompaña procesos de pensamiento computacional desde una plataforma práctica para docentes.</p>
+      <div class="home-hero-meta">
+        <span><i class="bi bi-lightning-charge-fill"></i> Rutas claras</span>
+        <span><i class="bi bi-wifi-off"></i> Recursos útiles</span>
+        <span><i class="bi bi-calendar-week"></i> Horarios escolares</span>
+      </div>
+    </div>
+    <div class="home-hero-panel">
+      <div class="home-hero-brand">
+        <img src="/assets/img/icons/ep.ico" alt="" aria-hidden="true">
+        <div>
+          <strong><?= e($user ? $firstName : 'EPQA') ?></strong>
+          <span><?= $user ? 'Tu acceso rapido a herramientas, cursos y soporte.' : 'Explora la plataforma sin perder tiempo.' ?></span>
+        </div>
+      </div>
+      <div class="home-hero-stats">
+        <div><strong>6</strong><span>rutas principales</span></div>
+        <div><strong>1</strong><span>pregunta central</span></div>
+        <div><strong>100%</strong><span>enfoque docente</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="action-hub reveal-up">
+    <div class="action-hub-header">
+      <div>
+        <p class="home-kicker">Selector rapido</p>
+        <h2>Elige una opcion para entrar directo</h2>
+      </div>
+      <div class="action-hub-tag">Tecnologia educativa · STEM · IA · Acompanamiento</div>
+    </div>
+    <div class="action-grid">
+      <?php foreach ($launcherCards as $card): ?>
+        <a class="action-card action-card-<?= e($card['tone']) ?>" href="<?= e($card['href']) ?>">
+          <div class="action-card-icon">
+            <?= $card['icon'] ?>
+          </div>
+          <div class="action-card-body">
+            <span class="action-card-badge"><?= e($card['badge']) ?></span>
+            <h3 class="action-card-title"><?= e($card['title']) ?></h3>
+            <p class="action-card-text"><?= e($card['text']) ?></p>
+          </div>
+          <span class="action-card-link"><?= e($card['action']) ?> <i class="bi bi-arrow-right"></i></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+    <?php if ($roleShortcuts): ?>
+      <div class="role-shortcuts">
+        <?php foreach ($roleShortcuts as $card): ?>
+          <a class="role-shortcut role-shortcut-<?= e($card['tone']) ?>" href="<?= e($card['href']) ?>">
+            <span class="role-shortcut-icon"><?= $card['icon'] ?></span>
+            <span>
+              <strong><?= e($card['title']) ?></strong>
+              <small><?= e($card['text']) ?></small>
+            </span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </section>
+
+  <section class="home-summary-grid">
+    <article class="home-summary-card reveal-up">
+      <p class="home-kicker">Producto destacado</p>
       <h2>Guias Interactivas con IA para Docentes</h2>
-    </div>
-    <div class="platform-split">
-      <article class="stem-feature-card reveal-up">
-        <div class="feature-icon"><i class="bi bi-robot"></i></div>
-        <h3>Capacitacion bandera</h3>
-        <p>Convierte tus clases en guias digitales interactivas usando IA, con salida HTML y posibilidad de uso offline en el aula.</p>
-        <a href="<?= e(url('capacitaciones')) ?>">Ver capacitacion <i class="bi bi-arrow-right"></i></a>
-      </article>
-      <article class="stem-feature-card reveal-up">
-        <div class="feature-icon green"><i class="bi bi-calendar-week"></i></div>
-        <h3>Generador de Horarios Online</h3>
-        <p>Base visual para crear, organizar, guardar y exportar horarios escolares. La version Pro quedara lista para usuarios y sedes.</p>
-        <a href="<?= e(url('herramientas')) ?>">Ver herramienta <i class="bi bi-arrow-right"></i></a>
-      </article>
-      <article class="stem-feature-card reveal-up">
-        <div class="feature-icon red"><i class="bi bi-building"></i></div>
-        <h3>Kit institucional offline</h3>
-        <p>Biblioteca de recursos, simuladores, capacitacion docente y personalizacion para instituciones educativas.</p>
-        <a href="<?= e(url('instituciones')) ?>">Solicitar propuesta <i class="bi bi-arrow-right"></i></a>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="container section-pad">
-  <div class="stem-class-plan reveal-up">
-    <div>
-      <p class="stem-label"><i class="bi bi-cash-coin"></i> Planes y crecimiento</p>
+      <p>Convierte tus clases en guias digitales interactivas con salida HTML y posibilidad de uso offline en el aula.</p>
+      <a href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-arrow-right-circle"></i> Ver capacitacion</a>
+    </article>
+    <article class="home-summary-card reveal-up">
+      <p class="home-kicker">Planes y crecimiento</p>
       <h2>Contenido gratuito, recursos premium y licencias institucionales</h2>
-      <p>La plataforma queda preparada para crecer con recursos gratuitos, herramientas Pro, cursos, paquetes descargables y servicios para colegios.</p>
-    </div>
-    <ol class="stem-steps">
-      <li><strong>1</strong><span>Explora recursos gratuitos y tips para resolver necesidades inmediatas.</span></li>
-      <li><strong>2</strong><span>Usa capacitaciones y herramientas para crear materiales propios.</span></li>
-      <li><strong>3</strong><span>Activa planes Pro o institucionales cuando necesites guardar, personalizar y escalar.</span></li>
-    </ol>
-  </div>
+      <ol class="home-summary-steps">
+        <li><strong>1</strong><span>Explora recursos gratuitos y soluciones rapidas.</span></li>
+        <li><strong>2</strong><span>Usa herramientas y capacitaciones para crear materiales propios.</span></li>
+        <li><strong>3</strong><span>Activa planes Pro o institucionales cuando necesites escalar.</span></li>
+      </ol>
+    </article>
+  </section>
 </section>

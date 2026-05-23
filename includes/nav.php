@@ -14,18 +14,21 @@ if ($authUser && $role === 'superadmin') {
     $navItems = [
         'dashboard' => 'Dashboard',
         'admin-sinapsis' => 'Admin Sinapsis',
+        'horarios' => 'Horarios',
         'sinapsis' => 'TecnoClan Sinapsis',
         'mi-cuenta' => 'Mi cuenta',
     ];
 } elseif ($authUser && $role === 'guardian') {
     $navItems = [
         'dashboard' => 'Dashboard',
+        'horarios' => 'Horarios',
         'sinapsis-familia' => 'Sinapsis Familia',
         'mi-cuenta' => 'Mi cuenta',
     ];
 } elseif ($authUser && $role === 'student') {
     $navItems = [
         'dashboard' => 'Dashboard',
+        'horarios' => 'Horarios',
         'sinapsis-estudiante' => 'Mis retos',
         'mi-cuenta' => 'Mi cuenta',
     ];
@@ -34,6 +37,7 @@ if ($authUser && $role === 'superadmin') {
         'dashboard' => 'Dashboard',
         'recursos' => 'Recursos',
         'herramientas' => 'Herramientas',
+        'horarios' => 'Horarios',
         'sinapsis' => 'TecnoClan Sinapsis',
         'mi-cuenta' => 'Mi cuenta',
     ];
@@ -43,11 +47,11 @@ if ($authUser && $role === 'superadmin') {
         'recursos' => 'Recursos',
         'capacitaciones' => 'Capacitaciones',
         'herramientas' => 'Herramientas',
-        'tips' => 'Tips',
+        'horarios' => 'Horarios',
         'sinapsis' => 'TecnoClan Sinapsis',
-        'quien-soy' => 'Quien soy',
         'planes' => 'Planes',
-        'contacto' => 'Contacto',
+        'login' => 'Ingresar',
+        'registro' => 'Crear cuenta',
     ];
 }
 ?>
@@ -71,10 +75,6 @@ if ($authUser && $role === 'superadmin') {
           <?php if ($authUser): ?>
             <li class="nav-item">
               <a class="nav-link" href="/auth/logout.php">Salir</a>
-            </li>
-          <?php else: ?>
-            <li class="nav-item">
-              <a class="nav-link<?= e(is_active('login', $currentPage)) ?>" data-nav="login" href="<?= e(url('login')) ?>">Ingresar</a>
             </li>
           <?php endif; ?>
         </ul>

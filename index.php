@@ -32,6 +32,11 @@ $allowedPages = [
         'title' => 'Herramientas online para docentes | El Profe Que Aprende',
         'description' => 'Utilidades docentes, generador de horarios, ruletas, grupos aleatorios y herramientas Pro para organizar clases.',
     ],
+    'horarios' => [
+        'file' => __DIR__ . '/pages/horarios.php',
+        'title' => 'Generador de horarios | El Profe Que Aprende',
+        'description' => 'Crea y organiza horarios escolares desde una interfaz sencilla con acceso al módulo de horarios.',
+    ],
     'tips' => [
         'file' => __DIR__ . '/pages/tips.php',
         'title' => 'Tips y contenido gratuito | El Profe Que Aprende',
