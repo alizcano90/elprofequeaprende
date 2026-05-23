@@ -5,6 +5,12 @@ require_once __DIR__ . '/bootstrap.php';
 
 epqa_require_method('POST');
 $input = epqa_input();
+$userId = epqa_current_user_id();
+$scheduleId = (int)($input['schedule_id'] ?? 0);
+$pdo = epqa_db();
+if ($scheduleId > 0 && $pdo instanceof PDO && epqa_table_exists($pdo, 'horario_schedules')) {
+    epqa_assert_schedule_belongs($pdo, $scheduleId, $userId);
+}
 $slots = is_array($input['slots'] ?? null) ? $input['slots'] : [];
 $loads = is_array($input['loads'] ?? null) ? $input['loads'] : [];
 $rules = is_array($input['rules'] ?? null) ? $input['rules'] : [];
@@ -19,6 +25,24 @@ function epqa_day_name(string $day): string
         'JUEVES' => 'Jueves',
         'VIERNES' => 'Viernes',
     ][$key] ?? $day;
+}
+
+function epqa_teacher_match(string $a, string $b): bool
+{
+    $left = epqa_key($a);
+    $right = epqa_key($b);
+    return $left === $right || ($left !== '' && $right !== '' && (str_starts_with($left, $right) || str_starts_with($right, $left)));
+}
+
+function epqa_slot_duration(array $slot): int
+{
+    return max(1, (int)($slot['duration'] ?? 1));
+}
+
+function epqa_rule_day_matches(array $rule, string $day): bool
+{
+    $ruleDay = (string)($rule['day'] ?? '');
+    return $ruleDay === '__ALL_DAYS__' || epqa_day_name($ruleDay) === $day;
 }
 
 $weekDays = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
@@ -65,11 +89,26 @@ foreach ($slots as $slot) {
 
     $load = $loadById[(string)($slot['loadId'] ?? '')] ?? null;
     if (!$load) {
+        foreach ($loads as $candidate) {
+            if (
+                epqa_teacher_match((string)($slot['teacher'] ?? ''), (string)($candidate['teacher'] ?? '')) &&
+                epqa_key((string)($slot['subject'] ?? '')) === epqa_key((string)($candidate['subject'] ?? '')) &&
+                (string)($slot['group'] ?? '') === (string)($candidate['group'] ?? '')
+            ) {
+                $load = $candidate;
+                break;
+            }
+        }
+    }
+    if (!$load) {
         $add('P0', 'keep-original-load', 'NO CUMPLE', 'Hay una celda sin carga docente original asociada.', 'Use una carga registrada antes de ubicarla.');
         continue;
     }
     foreach (['teacher', 'subject', 'group'] as $field) {
-        if (($slot[$field] ?? null) !== ($load[$field] ?? null)) {
+        $matches = $field === 'teacher'
+            ? epqa_teacher_match((string)($slot[$field] ?? ''), (string)($load[$field] ?? ''))
+            : (($slot[$field] ?? null) === ($load[$field] ?? null));
+        if (!$matches) {
             $add('P0', 'keep-original-load', 'NO CUMPLE', 'Intento de reasignar ' . $field . ' en ' . ($slot['loadId'] ?? 'sin id') . '.', 'Solicite confirmacion explicita y cree una version auditada.');
         }
     }
@@ -110,9 +149,55 @@ foreach ($roomTime as $items) {
     }
 }
 
+$maxTeacherHoursPerDay = max(1, (int)($rules['general']['maxTeacherHoursPerDay'] ?? $rules['maxTeacherHoursPerDay'] ?? 6));
+$dailyExceptions = is_array($rules['general']['dailyExceptions'] ?? null) ? $rules['general']['dailyExceptions'] : [];
+$teacherDayHours = [];
+foreach ($slots as $slot) {
+    $key = (string)($slot['teacher'] ?? '') . '|' . epqa_day_name((string)($slot['day'] ?? ''));
+    $teacherDayHours[$key] = ($teacherDayHours[$key] ?? 0) + epqa_slot_duration($slot);
+}
+foreach ($teacherDayHours as $key => $hours) {
+    [$teacher, $day] = explode('|', $key, 2);
+    $allowed = $maxTeacherHoursPerDay;
+    foreach ($dailyExceptions as $rule) {
+        if (($rule['type'] ?? '') === 'allow' && epqa_teacher_match($teacher, (string)($rule['teacher'] ?? '')) && epqa_rule_day_matches($rule, $day)) {
+            $allowed = max($allowed, (int)($rule['hours'] ?? $allowed));
+        }
+    }
+    if ($hours > $allowed) {
+        $add('P0', 'max-teacher-hours-day', 'NO CUMPLE', $teacher . ' tiene ' . $hours . 'h el dia ' . $day . '; el maximo permitido es ' . $allowed . 'h.', 'Distribuya la carga del docente en otro dia o cree una excepcion.');
+    }
+}
+foreach ($dailyExceptions as $rule) {
+    if (($rule['type'] ?? '') !== 'require') {
+        continue;
+    }
+    $teacher = (string)($rule['teacher'] ?? '');
+    $day = epqa_day_name((string)($rule['day'] ?? ''));
+    if ((string)($rule['day'] ?? '') === '__ALL_DAYS__') {
+        continue;
+    }
+    $required = (int)($rule['hours'] ?? 0);
+    $current = 0;
+    foreach ($teacherDayHours as $key => $hours) {
+        [$currentTeacher, $currentDay] = explode('|', $key, 2);
+        if (epqa_teacher_match($currentTeacher, $teacher) && $currentDay === $day) {
+            $current = $hours;
+            break;
+        }
+    }
+    if ($required > 0 && $current !== $required) {
+        $priority = in_array(($rule['priority'] ?? 'P0'), ['P0', 'P1', 'P2'], true) ? (string)$rule['priority'] : 'P0';
+        $add($priority, 'required-teacher-hours-day', 'NO CUMPLE', $teacher . ' debe tener exactamente ' . $required . 'h el dia ' . $day . '; actualmente tiene ' . $current . 'h.', 'Ajuste la jornada del docente para cumplir la excepcion.');
+    }
+}
+
 $byLoadDay = [];
 foreach ($slots as $slot) {
-    $byLoadDay[($slot['loadId'] ?? '') . '-' . epqa_day_name((string)($slot['day'] ?? ''))][] = (int)($slot['period'] ?? 0);
+    $period = (int)($slot['period'] ?? 0);
+    for ($offset = 0; $offset < epqa_slot_duration($slot); $offset++) {
+        $byLoadDay[($slot['loadId'] ?? '') . '-' . epqa_day_name((string)($slot['day'] ?? ''))][] = $period + $offset;
+    }
 }
 foreach ($loads as $load) {
     $subject = (string)($load['subject'] ?? '');
@@ -141,8 +226,8 @@ foreach ($loads as $load) {
 
 $andresHours = 0;
 foreach ($slots as $slot) {
-    if (epqa_key((string)($slot['teacher'] ?? '')) === 'ANDRES') {
-        $andresHours++;
+    if (epqa_teacher_match((string)($slot['teacher'] ?? ''), 'ANDRES')) {
+        $andresHours += epqa_slot_duration($slot);
     }
 }
 if ($andresHours !== 27) {
@@ -186,17 +271,58 @@ foreach ($rules['block'] ?? [] as $blockRule) {
 $secondaryHoursByTeacher = [];
 $teacherExceptions = [];
 foreach (epqa_seed()['teachers'] ?? [] as $teacher) {
-    $teacherExceptions[$teacher['name']] = (bool)($teacher['exceptionMin22'] ?? false);
+    $teacherExceptions[epqa_key((string)($teacher['name'] ?? ''))] = (bool)($teacher['exceptionMin22'] ?? false);
+}
+foreach ($loads as $load) {
+    if (($load['level'] ?? '') === 'secondary') {
+        $teacher = (string)($load['teacher'] ?? '');
+        $secondaryHoursByTeacher[$teacher] = ($secondaryHoursByTeacher[$teacher] ?? 0) + max(0, (int)($load['hours'] ?? 0));
+    }
 }
 foreach ($slots as $slot) {
     if (($slot['level'] ?? '') === 'secondary') {
-        $secondaryHoursByTeacher[$slot['teacher']] = ($secondaryHoursByTeacher[$slot['teacher']] ?? 0) + 1;
+        $teacher = (string)($slot['teacher'] ?? '');
+        $slotHours = $secondaryHoursByTeacher[$teacher . '|slots'] ?? 0;
+        $secondaryHoursByTeacher[$teacher . '|slots'] = $slotHours + epqa_slot_duration($slot);
     }
 }
 foreach ($secondaryHoursByTeacher as $teacher => $hours) {
-    if ($teacher !== '' && !$teacherExceptions[$teacher] && $hours < 22) {
-        $add('P0', 'secondary-min-load', 'NO CUMPLE', $teacher . ' tiene ' . $hours . 'h en secundaria; minimo 22h salvo excepcion.', 'Registre excepcion o complete carga sin reasignaciones indebidas.');
+    if (str_ends_with((string)$teacher, '|slots')) {
+        continue;
     }
+    $placedHours = $secondaryHoursByTeacher[$teacher . '|slots'] ?? 0;
+    $countedHours = max($hours, $placedHours);
+    if ($teacher !== '' && !($teacherExceptions[epqa_key((string)$teacher)] ?? false) && $countedHours < 22) {
+        $add('P0', 'secondary-min-load', 'NO CUMPLE', $teacher . ' tiene ' . $countedHours . 'h en secundaria; minimo 22h salvo excepcion.', 'Registre excepcion o complete carga sin reasignaciones indebidas.');
+    }
+}
+
+$subjectDayHours = [];
+foreach ($slots as $slot) {
+    $key = implode('|', [
+        epqa_day_name((string)($slot['day'] ?? '')),
+        (string)($slot['group'] ?? ''),
+        epqa_key((string)($slot['subject'] ?? '')),
+    ]);
+    $subjectDayHours[$key] = ($subjectDayHours[$key] ?? 0) + epqa_slot_duration($slot);
+}
+foreach ($subjectDayHours as $key => $hours) {
+    if ($hours <= 2) {
+        continue;
+    }
+    [$day, $group, $subjectKey] = explode('|', $key, 3);
+    $subjectName = '';
+    foreach ($slots as $slot) {
+        if (
+            epqa_day_name((string)($slot['day'] ?? '')) === $day &&
+            (string)($slot['group'] ?? '') === $group &&
+            epqa_key((string)($slot['subject'] ?? '')) === $subjectKey
+        ) {
+            $subjectName = (string)($slot['subject'] ?? $subjectKey);
+            break;
+        }
+    }
+    $add('P1', 'same-subject-day-hours', 'NO CUMPLE', $group . ' tiene ' . $hours . 'h de ' . $subjectName . ' el dia ' . $day . '.', 'Revise si esa intensidad diaria es pedagogicamente conveniente o registre excepcion.');
 }
 
 foreach ($loads as $load) {
@@ -221,6 +347,31 @@ foreach ($loads as $load) {
 
 if (!$results) {
     $add('P0', 'base', 'CUMPLE', 'Sin conflictos P0 detectados.', '');
+}
+
+if ($scheduleId > 0 && $pdo instanceof PDO && epqa_table_exists($pdo, 'horario_audit_pendings')) {
+    $delete = $pdo->prepare('DELETE FROM horario_audit_pendings WHERE schedule_id = :schedule_id AND user_id = :user_id');
+    $delete->execute(['schedule_id' => $scheduleId, 'user_id' => $userId]);
+    $insert = $pdo->prepare(
+        'INSERT INTO horario_audit_pendings (schedule_id, user_id, priority, type, status, title, description, cause, metadata)
+         VALUES (:schedule_id, :user_id, :priority, :type, :status, :title, :description, :cause, :metadata)'
+    );
+    foreach ($results as $row) {
+        if (($row['status'] ?? '') !== 'NO CUMPLE') {
+            continue;
+        }
+        $insert->execute([
+            'schedule_id' => $scheduleId,
+            'user_id' => $userId,
+            'priority' => $row['priority'],
+            'type' => $row['code'],
+            'status' => 'pending',
+            'title' => $row['code'],
+            'description' => $row['explanation'],
+            'cause' => $row['suggestion'] ?? null,
+            'metadata' => epqa_json_value($row),
+        ]);
+    }
 }
 
 $score = max(0, 100 - ($counts['P0'] * 20) - ($counts['P1'] * 8) - ($counts['P2'] * 3));

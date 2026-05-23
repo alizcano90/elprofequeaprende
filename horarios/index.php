@@ -1,30 +1,20 @@
 <?php
 declare(strict_types=1);
 
-session_name('EPQA_HORARIOS');
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/flash.php';
+require_once __DIR__ . '/../includes/auth.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_email'])) {
-    $role = in_array($_POST['role'] ?? 'visor', ['admin', 'editor', 'visor'], true) ? $_POST['role'] : 'visor';
-    $_SESSION['epqa_user'] = [
-        'id' => 1,
-        'name' => trim((string)($_POST['login_name'] ?? 'Usuario EPQA')) ?: 'Usuario EPQA',
-        'email' => trim((string)($_POST['login_email'] ?? '')),
-        'role' => $role,
-    ];
-    header('Location: /horarios/');
-    exit;
-}
+start_secure_session();
+require_login();
 
-if (isset($_GET['logout'])) {
-    unset($_SESSION['epqa_user']);
-    header('Location: /horarios/');
-    exit;
-}
-
-$user = $_SESSION['epqa_user'] ?? null;
+$authUser = current_user();
+$user = [
+    'id' => (int)($authUser['id'] ?? user_id() ?? 0),
+    'name' => (string)($authUser['full_name'] ?? 'Usuario EPQA'),
+    'email' => (string)($authUser['email'] ?? ''),
+    'role' => (string)($authUser['role'] ?? 'user'),
+];
 $assetVersion = static function (string $path): string {
     $fullPath = __DIR__ . '/' . ltrim($path, '/');
     return is_file($fullPath) ? (string)filemtime($fullPath) : (string)time();
@@ -36,6 +26,7 @@ $assetVersion = static function (string $path): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>EPQA Horarios Inteligentes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="/horarios/assets/styles.css?v=<?= htmlspecialchars($assetVersion('assets/styles.css'), ENT_QUOTES, 'UTF-8') ?>">
     <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy-bundle.umd.min.js"></script>
@@ -46,54 +37,27 @@ $assetVersion = static function (string $path): string {
     <script defer src="/horarios/assets/app.js?v=<?= htmlspecialchars($assetVersion('assets/app.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body>
-<?php if (!$user): ?>
-    <main class="login-shell">
-        <section class="login-panel">
-            <p class="eyebrow">El Profe Que Aprende</p>
-            <h1>EPQA Horarios Inteligentes</h1>
-            <p class="login-copy">Motor escolar para generar, auditar y publicar horarios sin romper cargas docentes originales.</p>
-            <form method="post" class="login-form">
-                <label>
-                    Nombre
-                    <input name="login_name" type="text" value="Administrador EPQA" required>
-                </label>
-                <label>
-                    Correo
-                    <input name="login_email" type="email" value="admin@epqa.local" required>
-                </label>
-                <label>
-                    Rol
-                    <select name="role">
-                        <option value="admin">admin</option>
-                        <option value="editor">editor</option>
-                        <option value="visor">visor</option>
-                    </select>
-                </label>
-                <button type="submit">Entrar al modulo</button>
-            </form>
-        </section>
-    </main>
-<?php else: ?>
     <div class="app-shell" data-role="<?= htmlspecialchars((string)$user['role'], ENT_QUOTES, 'UTF-8') ?>">
         <aside class="sidebar">
             <div class="brand">
-                <span class="brand-mark">E</span>
+                <span class="brand-mark"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span>
                 <div>
                     <strong>EPQA</strong>
                     <small>Horarios Inteligentes</small>
                 </div>
+                <button id="btnCollapseSidebar" class="sidebar-toggle" type="button" aria-label="Colapsar menu"><i class="fa-solid fa-angles-left" aria-hidden="true"></i></button>
             </div>
             <nav class="nav">
-                <button class="nav-item active" data-panel="dashboard">Resumen</button>
-                <button class="nav-item" data-panel="data">Edición</button>
-                <button class="nav-item" data-panel="editor">Propuesta</button>
-                <button class="nav-item" data-panel="audit">Auditoría</button>
-                <button class="nav-item" data-panel="exports">Consolidado</button>
+                <button class="nav-item active" data-panel="dashboard" title="Resumen"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span>Resumen</span></button>
+                <button class="nav-item" data-panel="data" title="Edición"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Edición</span></button>
+                <button class="nav-item" data-panel="editor" title="Propuesta"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i><span>Propuesta</span></button>
+                <button class="nav-item" data-panel="audit" title="Auditoría"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Auditoría</span></button>
+                <button class="nav-item" data-panel="exports" title="Consolidado"><i class="fa-solid fa-file-export" aria-hidden="true"></i><span>Consolidado</span></button>
             </nav>
             <div class="user-box">
                 <span><?= htmlspecialchars((string)$user['name'], ENT_QUOTES, 'UTF-8') ?></span>
                 <small><?= htmlspecialchars((string)$user['role'], ENT_QUOTES, 'UTF-8') ?></small>
-                <a href="/horarios/?logout=1">Cerrar sesion</a>
+                <a href="/auth/logout.php">Cerrar sesion</a>
             </div>
         </aside>
 
@@ -104,7 +68,8 @@ $assetVersion = static function (string $path): string {
                     <h1>EPQA Horarios Inteligentes</h1>
                 </div>
                 <div class="top-actions">
-                    <button id="btnGenerate" class="ghost">Generar propuesta</button>
+                    <button id="btnGenerate" class="ghost">Generar propuesta de cero</button>
+                    <button id="btnGenerateMissing" class="ghost">Generar desde lo actual</button>
                     <button id="btnRepair" class="ghost">Reparar conflictos</button>
                     <button id="btnSaveProgress" class="ghost">Guardar avance</button>
                     <button id="btnLoadProgress" class="ghost">Cargar avance</button>
@@ -116,6 +81,23 @@ $assetVersion = static function (string $path): string {
                     <button id="btnSave" class="primary">Guardar version</button>
                 </div>
             </header>
+
+            <section class="schedule-switcher" aria-label="Horarios del usuario">
+                <div>
+                    <span id="planBadge" class="plan-badge">Plan gratuito</span>
+                    <strong id="activeScheduleName">Horario activo</strong>
+                    <small id="activeScheduleStatus">Borrador</small>
+                </div>
+                <label>Cambiar horario
+                    <select id="scheduleSelect"></select>
+                </label>
+                <div class="schedule-actions">
+                    <button id="btnNewSchedule" class="primary" type="button">Crear nuevo</button>
+                    <button id="btnDuplicateSchedule" class="ghost" type="button">Duplicar</button>
+                    <button id="btnExportJson" class="ghost" type="button">Exportar JSON</button>
+                    <button id="btnDeleteSchedule" class="ghost danger" type="button">Eliminar</button>
+                </div>
+            </section>
 
             <section class="status-grid" aria-label="Estado de auditoria">
                 <article class="status-card p0">
@@ -190,6 +172,7 @@ $assetVersion = static function (string $path): string {
                             </label>
                             <button id="btnAddRoom" class="primary" type="button">Agregar espacio</button>
                         </div>
+                        <div id="siteRoomManager" class="catalog-manager"></div>
                     </article>
                     <article class="catalog-card">
                         <h2>Edición de docentes</h2>
@@ -205,6 +188,7 @@ $assetVersion = static function (string $path): string {
                             <label>Min horas <input id="teacherMinHours" type="number" min="0" value="22"></label>
                             <button id="btnAddTeacher" class="primary" type="button">Agregar docente</button>
                         </div>
+                        <div id="teacherManager" class="catalog-manager"></div>
                     </article>
                     <article class="catalog-card wide teacher-summary-card">
                         <h2>Resumen dinámico por docente</h2>
@@ -216,7 +200,7 @@ $assetVersion = static function (string $path): string {
                         <div id="teacherDetailPanel" class="teacher-detail-panel"></div>
                     </article>
                     <article class="catalog-card">
-                        <h2>Edición de grados y materias</h2>
+                        <h2>Edición de grados</h2>
                         <div class="compact-form">
                             <label>Grado <input id="groupName" type="text" placeholder="10F"></label>
                             <label>Sede <select id="groupSite"></select></label>
@@ -226,33 +210,86 @@ $assetVersion = static function (string $path): string {
                                     <option value="secondary">Secundaria</option>
                                 </select>
                             </label>
-                            <label>Materia <input id="subjectName" type="text" placeholder="TECNOLOGIA E INFORMATICA"></label>
-                            <button id="btnAddGroupSubject" class="primary" type="button">Agregar grado/materia</button>
+                            <button id="btnAddGroup" class="primary" type="button">Agregar grado</button>
                         </div>
+                        <div id="groupManager" class="catalog-manager"></div>
+                    </article>
+                    <article class="catalog-card">
+                        <h2>Edición de materias</h2>
+                        <div class="compact-form">
+                            <label>Materia <input id="subjectName" type="text" placeholder="TECNOLOGIA E INFORMATICA"></label>
+                            <button id="btnAddSubject" class="primary" type="button">Agregar materia</button>
+                        </div>
+                        <div id="subjectManager" class="catalog-manager"></div>
+                    </article>
+                    <article class="catalog-card">
+                        <h2>Reglas generales</h2>
+                        <div class="compact-form">
+                            <label>Máximo de horas por docente al día
+                                <input id="maxTeacherHoursPerDay" name="maxTeacherHoursPerDay" type="number" min="1" max="12" value="6">
+                            </label>
+                            <button id="btnSaveGeneralRules" class="primary" type="button">Guardar reglas</button>
+                        </div>
+                        <div class="compact-form rule-exception-form">
+                            <h3>Excepciones por docente/sede/día</h3>
+                            <label>Docente <select id="dailyRuleTeacher" name="dailyRuleTeacher"></select></label>
+                            <label>Sede <select id="dailyRuleSite" name="dailyRuleSite"></select></label>
+                            <label>Día <select id="dailyRuleDay" name="dailyRuleDay"></select></label>
+                            <label>Tipo de regla
+                                <select id="dailyRuleType" name="dailyRuleType">
+                                    <option value="allow">Permitir hasta</option>
+                                    <option value="require">Exigir exactamente</option>
+                                </select>
+                            </label>
+                            <label>Horas <input id="dailyRuleHours" name="dailyRuleHours" type="number" min="1" max="99" value="6" inputmode="numeric"></label>
+                            <label>Importancia
+                                <select id="dailyRulePriority" name="dailyRulePriority">
+                                    <option value="P0">P0 obligatoria</option>
+                                    <option value="P1">P1 fuerte</option>
+                                    <option value="P2">P2 deseable</option>
+                                </select>
+                            </label>
+                            <button id="btnAddDailyRule" class="primary" type="button">Agregar excepción</button>
+                        </div>
+                        <div id="dailyRulesManager" class="catalog-manager"></div>
+                        <p class="plain block-help">Esta regla limita cuántas horas puede dictar un docente en un mismo día. Los bloques por materia se controlan en cada asignación.</p>
                     </article>
                     <article class="catalog-card wide">
                         <h2>Materias asignadas</h2>
                         <div class="load-builder">
-                            <label>Docente <select id="loadTeacher"></select></label>
-                            <label>Grado <select id="loadGroup"></select></label>
-                            <label>Materia <select id="loadSubject"></select></label>
-                            <label>Espacio <select id="loadRoom"></select></label>
-                            <label>Horas <input id="loadHours" type="number" min="1" value="1"></label>
+                            <label>Docente <select id="loadTeacher" name="loadTeacher"></select></label>
+                            <label>Grado <select id="loadGroup" name="loadGroup"></select></label>
+                            <label>Materia <select id="loadSubject" name="loadSubject"></select></label>
+                            <label>Espacio <select id="loadRoom" name="loadRoom"></select></label>
+                            <label>Horas <input id="loadHours" name="loadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></label>
                             <label>Bloque
-                                <select id="loadBlockHours">
+                                <select id="loadBlockHours" name="loadBlockHours">
                                     <option value="1">No, horas sueltas</option>
                                     <option value="2">Bloque indivisible 2h</option>
                                     <option value="3">Bloque indivisible 3h</option>
                                 </select>
                             </label>
                             <label>Importancia
-                                <select id="loadRulePriority">
+                                <select id="loadRulePriority" name="loadRulePriority">
                                     <option value="P0">P0 obligatoria</option>
                                     <option value="P1">P1 fuerte</option>
                                     <option value="P2">P2 deseable</option>
                                 </select>
                             </label>
-                            <button id="btnAddLoad" class="primary" type="button">Agregar asignacion</button>
+                            <div class="preferred-days-field">
+                                <label>Preferencia dias
+                                    <select id="loadPreferredDaysPriority" name="loadPreferredDaysPriority">
+                                        <option value="P2">P2 deseable</option>
+                                        <option value="P1">P1 fuerte</option>
+                                        <option value="P0">P0 obligatoria</option>
+                                    </select>
+                                </label>
+                                <div class="day-checks" id="loadPreferredDays"></div>
+                            </div>
+                            <div class="load-builder-actions">
+                                <button id="btnAddLoad" class="primary" type="button">Agregar asignacion</button>
+                                <button id="btnOpenBulkLoad" class="primary" type="button">Asignar varias asignaturas</button>
+                            </div>
                         </div>
                         <p class="plain block-help">Ejemplo: 3h con bloque 2h crea un bloque de 2h consecutivas y 1h suelta; 4h con bloque 2h crea dos bloques de 2h.</p>
                         <div class="loads-filter-bar">
@@ -265,9 +302,9 @@ $assetVersion = static function (string $path): string {
                         </div>
                         <div class="table-scroll">
                             <table>
-                                <thead><tr><th>Docente</th><th>Grupo</th><th>Materia</th><th>Horas</th><th>Bloque</th><th>Importancia</th><th>Espacio</th><th></th></tr></thead>
+                                <thead><tr><th>Docente</th><th>Grupo</th><th>Materia</th><th>Horas</th><th>Bloque</th><th>Importancia</th><th>Dias pref.</th><th>Espacio</th><th></th></tr></thead>
                                 <tbody id="loadsTable"></tbody>
-                                <tfoot><tr><td colspan="8" id="loadsTableSummary">0 cargas | 0 horas</td></tr></tfoot>
+                                <tfoot><tr><td colspan="9" id="loadsTableSummary">0 cargas | 0 horas</td></tr></tfoot>
                             </table>
                         </div>
                     </article>
@@ -394,6 +431,113 @@ $assetVersion = static function (string $path): string {
             </div>
         </div>
     </div>
+    <div id="bulkLoadModal" class="modal-backdrop" hidden>
+        <div class="modal-card bulk-load-modal" role="dialog" aria-modal="true" aria-labelledby="bulkLoadModalTitle">
+            <div class="modal-head">
+                <div>
+                    <p class="eyebrow">Asignación masiva</p>
+                    <h2 id="bulkLoadModalTitle">Materias por docente</h2>
+                </div>
+                <button type="button" class="modal-close" id="bulkLoadModalClose" aria-label="Cerrar">x</button>
+            </div>
+            <div class="bulk-load-layout">
+                <section class="bulk-load-form">
+                    <label>Docente <select id="bulkLoadTeacher" name="bulkLoadTeacher"></select></label>
+                    <label>Materia <select id="bulkLoadSubject" name="bulkLoadSubject"></select></label>
+                    <label>Espacio <select id="bulkLoadRoom" name="bulkLoadRoom"></select></label>
+                    <label>Horas por grado <input id="bulkLoadHours" name="bulkLoadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></label>
+                    <label>Bloque
+                        <select id="bulkLoadBlockHours" name="bulkLoadBlockHours">
+                            <option value="1">No, horas sueltas</option>
+                            <option value="2">Bloque indivisible 2h</option>
+                            <option value="3">Bloque indivisible 3h</option>
+                        </select>
+                    </label>
+                    <label>Importancia
+                        <select id="bulkLoadRulePriority" name="bulkLoadRulePriority">
+                            <option value="P0">P0 obligatoria</option>
+                            <option value="P1">P1 fuerte</option>
+                            <option value="P2">P2 deseable</option>
+                        </select>
+                    </label>
+                    <div class="preferred-days-field">
+                        <label>Preferencia dias
+                            <select id="bulkLoadPreferredDaysPriority" name="bulkLoadPreferredDaysPriority">
+                                <option value="P2">P2 deseable</option>
+                                <option value="P1">P1 fuerte</option>
+                                <option value="P0">P0 obligatoria</option>
+                            </select>
+                        </label>
+                        <div class="day-checks" id="bulkLoadPreferredDays"></div>
+                    </div>
+                    <div>
+                        <div class="bulk-load-toolbar">
+                            <strong>Grados compatibles</strong>
+                            <button type="button" class="ghost" id="bulkLoadToggleGroups">Marcar todos</button>
+                        </div>
+                        <div id="bulkLoadGroups" class="bulk-load-groups"></div>
+                    </div>
+                    <button type="button" class="primary" id="bulkLoadAddDraft">Agregar a la lista</button>
+                </section>
+                <section class="bulk-load-summary">
+                    <div class="bulk-load-total">
+                        <span>Total preparado</span>
+                        <strong id="bulkLoadTotalHours">0h</strong>
+                    </div>
+                    <div id="bulkLoadTeacherHours" class="bulk-load-teacher-hours"></div>
+                    <div id="bulkLoadDraftList" class="bulk-load-draft-list"></div>
+                </section>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="ghost" id="bulkLoadModalCancel">Cancelar</button>
+                <button type="button" class="primary" id="bulkLoadAssign">Asignar todas</button>
+            </div>
+        </div>
+    </div>
+    <div id="editLoadModal" class="modal-backdrop" hidden>
+        <div class="modal-card edit-load-modal" role="dialog" aria-modal="true" aria-labelledby="editLoadModalTitle">
+            <div class="modal-head">
+                <div>
+                    <p class="eyebrow">Editar asignación</p>
+                    <h2 id="editLoadModalTitle">Carga académica</h2>
+                </div>
+                <button type="button" class="modal-close" id="editLoadModalClose" aria-label="Cerrar">x</button>
+            </div>
+            <div class="edit-load-summary" id="editLoadSummary"></div>
+            <div class="edit-load-form">
+                <label>Horas <input id="editLoadHours" name="editLoadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></label>
+                <label>Bloque
+                    <select id="editLoadBlockHours" name="editLoadBlockHours">
+                        <option value="1">No, horas sueltas</option>
+                        <option value="2">Bloque indivisible 2h</option>
+                        <option value="3">Bloque indivisible 3h</option>
+                    </select>
+                </label>
+                <label>Importancia
+                    <select id="editLoadRulePriority" name="editLoadRulePriority">
+                        <option value="P0">P0 obligatoria</option>
+                        <option value="P1">P1 fuerte</option>
+                        <option value="P2">P2 deseable</option>
+                    </select>
+                </label>
+                <label>Espacio <select id="editLoadRoom" name="editLoadRoom"></select></label>
+                <div class="preferred-days-field">
+                    <label>Preferencia días
+                        <select id="editLoadPreferredDaysPriority" name="editLoadPreferredDaysPriority">
+                            <option value="P2">P2 deseable</option>
+                            <option value="P1">P1 fuerte</option>
+                            <option value="P0">P0 obligatoria</option>
+                        </select>
+                    </label>
+                    <div class="day-checks" id="editLoadPreferredDays"></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="ghost" id="editLoadModalCancel">Cancelar</button>
+                <button type="button" class="primary" id="editLoadSave">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
     <div id="uxModal" class="modal-backdrop ux-modal-backdrop" hidden>
         <div class="modal-card ux-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="uxModalTitle" aria-describedby="uxModalMessage">
             <button type="button" class="modal-close" id="uxModalClose" aria-label="Cerrar">x</button>
@@ -402,6 +546,7 @@ $assetVersion = static function (string $path): string {
             <p id="uxModalMessage"></p>
             <div class="modal-actions">
                 <button type="button" class="ghost" id="uxModalCancel" hidden>Cancelar</button>
+                <button type="button" class="ghost" id="uxModalUpgrade" hidden>Actualizar plan</button>
                 <button type="button" class="primary" id="uxModalOk">Entendido</button>
             </div>
         </div>
@@ -415,6 +560,5 @@ $assetVersion = static function (string $path): string {
         </div>
     </div>
     <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
-<?php endif; ?>
 </body>
 </html>
