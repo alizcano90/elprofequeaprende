@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-session_name('EPQA_HORARIOS');
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
+require_once dirname(__DIR__, 2) . '/includes/session.php';
+require_once dirname(__DIR__, 2) . '/includes/auth.php';
+
+start_secure_session();
 
 const EPQA_INSTITUTION_ID = 1;
 
@@ -48,6 +48,45 @@ function epqa_db(): ?PDO
     }
 }
 
+function epqa_table_exists(PDO $pdo, string $table): bool
+{
+    try {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table');
+        $stmt->execute(['table' => $table]);
+        return (int)$stmt->fetchColumn() > 0;
+    } catch (Throwable $exception) {
+        return false;
+    }
+}
+
+function epqa_json_value(array $value): string
+{
+    return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+}
+
+function getCurrentUserId(): int
+{
+    $id = user_id();
+    if ($id === null || $id <= 0) {
+        epqa_json(['ok' => false, 'error' => 'Debes iniciar sesion para usar horarios.'], 401);
+    }
+    return $id;
+}
+
+function epqa_current_user_id(): int
+{
+    return getCurrentUserId();
+}
+
+function epqa_current_user(): array
+{
+    $user = current_user();
+    if (!$user) {
+        getCurrentUserId();
+    }
+    return $user ?: ['id' => getCurrentUserId(), 'full_name' => 'Usuario EPQA', 'role' => 'user'];
+}
+
 function epqa_require_method(string $method): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== $method) {
@@ -64,20 +103,180 @@ function epqa_input(): array
 
 function epqa_user(): array
 {
-    if (empty($_SESSION['epqa_user'])) {
-        $_SESSION['epqa_user'] = [
-            'id' => 1,
-            'name' => 'Administrador EPQA',
-            'role' => 'admin',
-        ];
-    }
-    return $_SESSION['epqa_user'];
+    $user = epqa_current_user();
+    return [
+        'id' => (int)$user['id'],
+        'name' => (string)($user['full_name'] ?? $user['email'] ?? 'Usuario EPQA'),
+        'email' => (string)($user['email'] ?? ''),
+        'role' => (string)($user['role'] ?? 'user'),
+    ];
 }
 
 function epqa_can_edit(): bool
 {
-    $role = epqa_user()['role'] ?? 'visor';
-    return in_array($role, ['admin', 'editor'], true);
+    return getCurrentUserId() > 0;
+}
+
+function epqa_plan_for_user(PDO $pdo, int $userId): array
+{
+    if (!epqa_table_exists($pdo, 'horario_user_limits')) {
+        return [
+            'plan_code' => 'free',
+            'max_schedules' => 1,
+            'can_create_multiple' => false,
+            'can_export' => true,
+        ];
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM horario_user_limits WHERE user_id = :user_id LIMIT 1');
+    $stmt->execute(['user_id' => $userId]);
+    $row = $stmt->fetch();
+    if ($row) {
+        return $row;
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO horario_user_limits (user_id, plan_code, max_schedules, can_create_multiple, can_export, can_use_advanced_audit)
+         VALUES (:user_id, "free", 1, 0, 1, 1)'
+    );
+    $stmt->execute(['user_id' => $userId]);
+    return [
+        'user_id' => $userId,
+        'plan_code' => 'free',
+        'max_schedules' => 1,
+        'can_create_multiple' => false,
+        'can_export' => true,
+    ];
+}
+
+function epqa_count_user_schedules(PDO $pdo, int $userId): int
+{
+    if (!epqa_table_exists($pdo, 'horario_schedules')) {
+        return 0;
+    }
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM horario_schedules WHERE user_id = :user_id AND deleted_at IS NULL');
+    $stmt->execute(['user_id' => $userId]);
+    return (int)$stmt->fetchColumn();
+}
+
+function epqa_can_create_schedule(PDO $pdo, int $userId): array
+{
+    $plan = epqa_plan_for_user($pdo, $userId);
+    $count = epqa_count_user_schedules($pdo, $userId);
+    $max = (int)($plan['max_schedules'] ?? 1);
+    $multiple = (bool)($plan['can_create_multiple'] ?? false);
+    $allowed = $multiple || $max <= 0 || $count < $max;
+    return ['allowed' => $allowed, 'plan' => $plan, 'count' => $count, 'max' => $max];
+}
+
+function epqa_limit_response(array $limit): void
+{
+    epqa_json([
+        'ok' => false,
+        'code' => 'FREE_LIMIT_REACHED',
+        'message' => 'Tu plan gratuito permite crear un horario. Para crear más horarios, actualiza tu plan.',
+        'limit' => $limit,
+    ], 403);
+}
+
+function epqa_assert_schedule_belongs(PDO $pdo, int $scheduleId, int $userId): array
+{
+    $stmt = $pdo->prepare('SELECT * FROM horario_schedules WHERE id = :id AND user_id = :user_id AND deleted_at IS NULL LIMIT 1');
+    $stmt->execute(['id' => $scheduleId, 'user_id' => $userId]);
+    $schedule = $stmt->fetch();
+    if (!$schedule) {
+        epqa_json(['ok' => false, 'error' => 'No tienes permiso para acceder a este horario.'], 403);
+    }
+    return $schedule;
+}
+
+function epqa_latest_snapshot(PDO $pdo, int $scheduleId, int $userId): ?array
+{
+    if (!epqa_table_exists($pdo, 'horario_schedule_versions')) {
+        return null;
+    }
+    $stmt = $pdo->prepare(
+        'SELECT snapshot FROM horario_schedule_versions
+         WHERE schedule_id = :schedule_id AND user_id = :user_id
+         ORDER BY version_number DESC, id DESC LIMIT 1'
+    );
+    $stmt->execute(['schedule_id' => $scheduleId, 'user_id' => $userId]);
+    $raw = $stmt->fetchColumn();
+    if (!$raw) {
+        return null;
+    }
+    $decoded = json_decode((string)$raw, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+function epqa_next_version_number(PDO $pdo, int $scheduleId, int $userId): int
+{
+    $stmt = $pdo->prepare('SELECT COALESCE(MAX(version_number), 0) + 1 FROM horario_schedule_versions WHERE schedule_id = :schedule_id AND user_id = :user_id');
+    $stmt->execute(['schedule_id' => $scheduleId, 'user_id' => $userId]);
+    return (int)$stmt->fetchColumn();
+}
+
+function epqa_insert_version(PDO $pdo, int $scheduleId, int $userId, array $snapshot, ?array $audit, string $action, ?string $name = null): int
+{
+    $version = epqa_next_version_number($pdo, $scheduleId, $userId);
+    $stmt = $pdo->prepare(
+        'INSERT INTO horario_schedule_versions (schedule_id, user_id, version_number, name, snapshot, audit_summary, created_by_action)
+         VALUES (:schedule_id, :user_id, :version_number, :name, :snapshot, :audit_summary, :action)'
+    );
+    $stmt->execute([
+        'schedule_id' => $scheduleId,
+        'user_id' => $userId,
+        'version_number' => $version,
+        'name' => $name,
+        'snapshot' => epqa_json_value($snapshot),
+        'audit_summary' => $audit ? epqa_json_value($audit) : null,
+        'action' => $action,
+    ]);
+    $versionId = (int)$pdo->lastInsertId();
+    $stmt = $pdo->prepare('UPDATE horario_schedules SET active_version_id = :version_id, updated_at = NOW() WHERE id = :schedule_id AND user_id = :user_id');
+    $stmt->execute(['version_id' => $versionId, 'schedule_id' => $scheduleId, 'user_id' => $userId]);
+    return $versionId;
+}
+
+function epqa_log_decision(PDO $pdo, int $scheduleId, int $userId, string $action, array $after = [], array $before = [], ?string $justification = null): void
+{
+    if (!epqa_table_exists($pdo, 'horario_decision_log')) {
+        return;
+    }
+    $stmt = $pdo->prepare(
+        'INSERT INTO horario_decision_log (schedule_id, user_id, action_type, before_state, after_state, justification)
+         VALUES (:schedule_id, :user_id, :action_type, :before_state, :after_state, :justification)'
+    );
+    $stmt->execute([
+        'schedule_id' => $scheduleId,
+        'user_id' => $userId,
+        'action_type' => $action,
+        'before_state' => $before ? epqa_json_value($before) : null,
+        'after_state' => $after ? epqa_json_value($after) : null,
+        'justification' => $justification,
+    ]);
+}
+
+function epqa_log_import_export(PDO $pdo, ?int $scheduleId, int $userId, string $type, string $format, ?string $fileName, array $payload, array $summary, string $status = 'success', ?string $message = null): void
+{
+    if (!epqa_table_exists($pdo, 'horario_import_exports')) {
+        return;
+    }
+    $stmt = $pdo->prepare(
+        'INSERT INTO horario_import_exports (schedule_id, user_id, type, format, file_name, payload, summary, status, message)
+         VALUES (:schedule_id, :user_id, :type, :format, :file_name, :payload, :summary, :status, :message)'
+    );
+    $stmt->execute([
+        'schedule_id' => $scheduleId,
+        'user_id' => $userId,
+        'type' => $type,
+        'format' => $format,
+        'file_name' => $fileName,
+        'payload' => $payload ? epqa_json_value($payload) : null,
+        'summary' => $summary ? epqa_json_value($summary) : null,
+        'status' => $status,
+        'message' => $message,
+    ]);
 }
 
 function epqa_slug(string $text): string

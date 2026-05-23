@@ -14,6 +14,7 @@ Modulo creado en `/horarios` para generar, auditar, editar y exportar horarios e
 - `/horarios/assets/styles.css`: diseno visual del modulo.
 - `/horarios/sql/001_create_tables.sql`: creacion de tablas MySQL/MariaDB.
 - `/horarios/sql/002_seed_catalogs.sql`: catalogos iniciales y usuario admin local.
+- `/horarios/sql/003_multiusuario_freemium.sql`: propiedad por usuario, planes, versiones, auditoria y bitacora.
 - `/horarios/data/horario_seed_epqa.json`: JSON semilla.
 
 ### Instalacion en hosting PHP
@@ -24,6 +25,7 @@ Modulo creado en `/horarios` para generar, auditar, editar y exportar horarios e
 2. En phpMyAdmin, seleccione la base de datos del sitio y ejecute en este orden:
    - `horarios/sql/001_create_tables.sql`
    - `horarios/sql/002_seed_catalogs.sql`
+   - `horarios/sql/003_multiusuario_freemium.sql`
 
 3. Configure la conexion MySQL igual que el resto del sitio:
    - Variables de entorno `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET`; o
@@ -41,6 +43,9 @@ SOURCE horarios/sql/001_create_tables.sql;
 
 -- Ejecutar despues:
 SOURCE horarios/sql/002_seed_catalogs.sql;
+
+-- Activar propiedad por usuario, planes y bitacora:
+SOURCE horarios/sql/003_multiusuario_freemium.sql;
 ```
 
 Si phpMyAdmin no acepta `SOURCE`, abra cada archivo `.sql`, copie su contenido completo y ejecutelo en la pestana SQL.

@@ -37,3 +37,12 @@
 - Se elimino la alerta `weekday-only`, porque el sistema solo trabaja de lunes a viernes.
 - Se normalizan internamente variantes de Miercoles/Miércoles.
 - Se mejoraron mensajes de choques para explicar el motivo concreto.
+
+### Multiusuario y freemium
+
+- Se conecto el modulo con la sesion real del proyecto (`EPQA_SESSION`) y el usuario autenticado.
+- Se agrego propiedad por usuario para horarios, versiones, importaciones/exportaciones, auditoria y bitacora.
+- Se agrego migracion `003_multiusuario_freemium.sql` con tablas de horarios multiusuario, limites de plan, bitacora, simulaciones y auditoria.
+- Se agrego selector de horario activo, plan visible, crear, duplicar, exportar JSON y eliminar.
+- Se implemento limite freemium: plan gratuito con un horario; planes pro/institucional con multiples horarios segun configuracion.
+- Se valida propiedad del horario en backend antes de cargar, guardar, importar, exportar, duplicar, eliminar o auditar.

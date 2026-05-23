@@ -199,6 +199,15 @@ $assetVersion = static function (string $path): string {
                         </div>
                         <div id="teacherDetailPanel" class="teacher-detail-panel"></div>
                     </article>
+                    <article class="catalog-card wide group-summary-card">
+                        <h2>Resumen grados</h2>
+                        <div class="teacher-summary-toolbar">
+                            <label>Elegir grado
+                                <select id="groupDetailSelect"></select>
+                            </label>
+                        </div>
+                        <div id="groupDetailPanel" class="teacher-detail-panel"></div>
+                    </article>
                     <article class="catalog-card">
                         <h2>Edición de grados</h2>
                         <div class="compact-form">

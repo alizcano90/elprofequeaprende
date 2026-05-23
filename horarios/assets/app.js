@@ -12,7 +12,10 @@ const EPQA = {
     audio: null,
     soundEnabled: true,
     lastDropTarget: null,
+    dragMoveKey: "",
+    dragMoveResult: null,
     relaxedProposal: null,
+    splitPendingLoads: {},
     bulkLoadDraft: []
   },
   palette: {
@@ -75,7 +78,7 @@ function setupDataSectionTabs() {
   const cards = [...grid.querySelectorAll(".catalog-card")];
   const tabs = document.createElement("div");
   tabs.className = "config-tabs";
-  const labels = ["Institucion", "Sedes", "Docentes", "Resumen docente", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
+  const labels = ["Institucion", "Sedes", "Docentes", "Resumen docente", "Resumen grados", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
   cards.forEach((card, index) => {
     card.dataset.configTab = String(index);
     if (index !== 0) card.hidden = true;
@@ -104,9 +107,13 @@ function bindActions() {
   });
   byId("viewMode").addEventListener("change", () => {
     fillFilters();
+    renderAvailableTray();
     renderBoard();
   });
-  byId("viewFilter").addEventListener("change", renderBoard);
+  byId("viewFilter").addEventListener("change", () => {
+    renderAvailableTray();
+    renderBoard();
+  });
   byId("auditMode").addEventListener("change", renderBoard);
   byId("breakMode").addEventListener("change", renderBoard);
   byId("btnGenerate").addEventListener("click", () => generateOptimizedSchedule(false));
@@ -136,6 +143,7 @@ function bindActions() {
   byId("btnAddRoom")?.addEventListener("click", addRoom);
   byId("btnAddTeacher")?.addEventListener("click", addTeacher);
   byId("teacherDetailSelect")?.addEventListener("change", renderTeacherDetailPanel);
+  byId("groupDetailSelect")?.addEventListener("change", renderGroupDetailPanel);
   byId("loadTeacher")?.addEventListener("change", () => refreshLoadGroupOptions());
   byId("loadRoom")?.addEventListener("change", () => refreshLoadGroupOptions());
   byId("btnAddGroup")?.addEventListener("click", addGroup);
@@ -420,9 +428,11 @@ function buildEmptyProposal(data) {
 }
 
 function slotFromLoad(load, day, period, duration = null) {
+  const loadKey = load.loadKey || loadSignature(load);
   return {
     id: crypto.randomUUID ? crypto.randomUUID() : `slot-${Date.now()}-${Math.random()}`,
     loadId: load.id,
+    loadKey,
     day,
     period: Number(period),
     group: load.group,
@@ -503,6 +513,8 @@ function renderLoads() {
     button.addEventListener("click", () => {
       EPQA.data.loads = EPQA.data.loads.filter((load) => load.id !== button.dataset.loadId);
       EPQA.slots = EPQA.slots.filter((slot) => slot.loadId !== button.dataset.loadId);
+      syncWorkspaceSnapshot();
+      void persistWorkspaceDraft("Carga eliminada");
       renderDataViews();
     });
   });
@@ -620,8 +632,11 @@ function saveEditLoadModal() {
   load.roomId = room.id || "";
   load.preferredDays = selectedDaysFrom("editLoadPreferredDays");
   load.preferredDaysPriority = normalizeRulePriority(byId("editLoadPreferredDaysPriority").value || "P2");
+  load.loadKey = loadSignature(load);
   reconcileSlotsForLoad(load);
   closeEditLoadModal();
+  syncWorkspaceSnapshot();
+  void persistWorkspaceDraft("Carga editada");
   renderDataViews();
 }
 
@@ -649,6 +664,7 @@ function renderCatalogEditor() {
   fillSelect("teacherDefaultSite", siteOptionsWithEmpty(), "id", "name");
   fillSelect("loadTeacher", teacherOptions(), "id", "name");
   fillSelect("teacherDetailSelect", teacherOptions(), "id", "name");
+  fillSelect("groupDetailSelect", groupOptions(), "id", "name");
   fillSelect("loadSubject", subjectOptions(), "id", "name");
   fillSelect("loadRoom", roomOptionsWithFlexible(), "id", "name");
   refreshLoadGroupOptions();
@@ -657,6 +673,7 @@ function renderCatalogEditor() {
   enhanceSelectsInDataPanel();
   renderAvailabilityGrid();
   renderTeacherDetailPanel();
+  renderGroupDetailPanel();
 }
 
 function fillSelect(id, rows, valueKey, labelKey) {
@@ -1126,6 +1143,66 @@ function applyProgress(progress) {
   renderDataViews();
 }
 
+function syncWorkspaceSnapshot() {
+  if (!EPQA.data) return;
+  EPQA.data.slots = EPQA.slots || [];
+  const json = JSON.stringify(EPQA.data, null, 2);
+  if (byId("jsonInput")) byId("jsonInput").value = json;
+  try {
+    localStorage.setItem(EPQA.storageKey, JSON.stringify(snapshotProgress()));
+  } catch (error) {
+    // El guardado remoto sigue siendo la fuente principal cuando existe horario activo.
+  }
+}
+
+async function persistWorkspaceDraft(actionName = "Guardado automatico", requireDatabase = false) {
+  if (!EPQA.activeScheduleId) {
+    const created = await ensureActiveScheduleForPersistence(actionName);
+    if (!created && requireDatabase) return false;
+  }
+  if (!EPQA.activeScheduleId) return false;
+  try {
+    const response = await fetch("/horarios/api/versions.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schedule_id: EPQA.activeScheduleId,
+        final: false,
+        counts: EPQA.audit?.counts || { P0: 0, P1: 0, P2: 0 },
+        snapshot: { data: EPQA.data, slots: EPQA.slots, audit: EPQA.audit, actionName }
+      })
+    });
+    const payload = await response.json();
+    return Boolean(payload.ok);
+  } catch (error) {
+    return false;
+  }
+}
+
+async function ensureActiveScheduleForPersistence(actionName = "Guardado automatico") {
+  try {
+    const response = await fetch("/horarios/api/schedules.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create",
+        name: EPQA.data?.project?.name || EPQA.data?.project?.institution || "Horario EPQA",
+        data: EPQA.data || {},
+        slots: EPQA.slots || [],
+        audit: EPQA.audit || null,
+        createdFrom: actionName
+      })
+    });
+    const payload = await response.json();
+    if (!payload.ok || !payload.id) return false;
+    EPQA.activeScheduleId = payload.id;
+    await loadScheduleWorkspace(payload.id);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 function downloadProgressBackup() {
   const blob = new Blob([JSON.stringify(snapshotProgress(), null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1320,6 +1397,10 @@ function ensureTeacherDefaultAvailabilitySite(teacher, siteId = "") {
   if (!teacher || !siteId) return;
   teacher.availability = teacher.availability || {};
   const days = EPQA.data?.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
+  const hasSavedAvailability = Object.values(teacher.availability).some((record) =>
+    record && typeof record === "object" && ("site" in record || "slots" in record || "hours" in record)
+  );
+  if (hasSavedAvailability) return;
   days.forEach((day) => {
     const current = normalizeAvailabilityRecord(teacher.availability[day]);
     teacher.availability[day] = {
@@ -1403,13 +1484,15 @@ function addLoad() {
   });
   EPQA.data.loads = EPQA.data.loads || [];
   EPQA.data.loads.push(load);
+  syncWorkspaceSnapshot();
+  void persistWorkspaceDraft("Carga creada");
   renderDataViews();
 }
 
 function buildLoad({ teacher, group, subject, roomId, hours, blockHours, rulePriority, preferredDays = [], preferredDaysPriority = "P2" }) {
   const groupMeta = groupOptions().find((item) => item.id === group) || {};
   const room = roomOptions().find((item) => item.id === roomId) || {};
-  return {
+  const load = {
     id: `load-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     teacher,
     group,
@@ -1426,6 +1509,8 @@ function buildLoad({ teacher, group, subject, roomId, hours, blockHours, rulePri
     preferredDaysPriority: normalizeRulePriority(preferredDaysPriority || "P2"),
     lockedTeacher: true
   };
+  load.loadKey = loadSignature(load);
+  return load;
 }
 
 function openBulkLoadModal() {
@@ -1561,6 +1646,8 @@ function assignBulkLoadDrafts() {
   const count = drafts.length;
   const hours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
   closeBulkLoadModal();
+  syncWorkspaceSnapshot();
+  void persistWorkspaceDraft("Asignaciones masivas");
   renderDataViews();
   notify("Asignaciones creadas", `${count} carga(s), ${hours} hora(s) en total.`, "success");
 }
@@ -1807,7 +1894,7 @@ function renderAvailabilityModal(teacherId = null) {
   baseSite.value = days.map((day) => teacherAvailability[day]?.site).find(Boolean) || defaultSite || "";
 }
 
-function saveAvailabilityModal() {
+async function saveAvailabilityModal() {
   const modal = byId("availabilityModal");
   if (!modal?.dataset.teacher) return;
   const teacher = findTeacher(modal.dataset.teacher);
@@ -1825,12 +1912,18 @@ function saveAvailabilityModal() {
     const available = Object.values(slots).filter((state) => state !== "unavailable").length;
     teacher.availability[day] = { site, hours: available, slots };
   });
+  syncWorkspaceSnapshot();
+  const persisted = await persistWorkspaceDraft("Disponibilidad guardada", true);
   renderDataViews();
   closeAvailabilityModal();
-  notify("Disponibilidad guardada", "Las horas disponibles del docente quedaron actualizadas.", "success");
+  if (persisted) {
+    notify("Disponibilidad guardada", "Las horas y sedes quedaron guardadas en la base de datos.", "success");
+  } else {
+    notify("Disponibilidad local", "Se actualizo en pantalla, pero no fue posible guardarla en la base de datos. Revisa sesion/conexion y vuelve a guardar.", "warning", true);
+  }
 }
 
-function resetAvailabilityModal() {
+async function resetAvailabilityModal() {
   const modal = byId("availabilityModal");
   if (!modal?.dataset.teacher) return;
   const teacher = findTeacher(modal.dataset.teacher);
@@ -1847,7 +1940,16 @@ function resetAvailabilityModal() {
   renderAvailabilityModal(modal.dataset.teacher);
   renderAvailabilityGrid();
   renderTeacherDetailPanel();
-  notify("Disponibilidad restablecida", "Todas las horas quedaron como disponibles para este docente.", "info");
+  syncWorkspaceSnapshot();
+  const persisted = await persistWorkspaceDraft("Disponibilidad restablecida", true);
+  notify(
+    persisted ? "Disponibilidad restablecida" : "Disponibilidad local",
+    persisted
+      ? "Todas las horas quedaron como disponibles y guardadas en la base de datos."
+      : "Se restablecio en pantalla, pero no fue posible guardar en la base de datos.",
+    persisted ? "info" : "warning",
+    !persisted
+  );
 }
 
 function syncAvailabilityModalBaseSite() {
@@ -1975,6 +2077,68 @@ function renderTeacherDetailPanel() {
   });
 }
 
+function renderGroupDetailPanel() {
+  const panel = byId("groupDetailPanel");
+  const select = byId("groupDetailSelect");
+  if (!panel || !select) return;
+  const groupId = select.value || groupOptions()[0]?.id || "";
+  const group = groupOptions().find((item) => String(item.id) === String(groupId)) || null;
+  if (!group) {
+    panel.innerHTML = `<div class="teacher-empty">No hay grado disponible para mostrar.</div>`;
+    return;
+  }
+  const level = normalizeLevel(group.level || inferGroupLevel(group.id));
+  const requiredHours = level === "primary" ? 25 : 30;
+  const loads = (EPQA.data.loads || []).filter((load) => String(load.group) === String(group.id));
+  const slots = (EPQA.slots || []).filter((slot) => String(slot.group) === String(group.id));
+  const loadHours = loads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+  const assignedHours = slots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const weeklyStatus = assignedHours === requiredHours ? "Cumple" : assignedHours < requiredHours ? "Faltan" : "Excede";
+  const statusClass = assignedHours === requiredHours ? "ok" : "warn";
+  const rows = unique(loads.map((load) => `${load.subject}|${load.teacher}`)).map((key) => {
+    const [subject, teacher] = key.split("|");
+    const itemLoads = loads.filter((load) => load.subject === subject && sameTeacherLoose(load.teacher, teacher));
+    const itemSlots = slots.filter((slot) => slot.subject === subject && sameTeacherLoose(slot.teacher, teacher));
+    const total = itemLoads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+    const assigned = itemSlots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+    return { subject, teacher, total, assigned, pending: Math.max(0, total - assigned), color: generatedPastel(`${group.id}|${subject}|${teacher}`) };
+  }).sort((a, b) => normalizeKey(a.subject).localeCompare(normalizeKey(b.subject)));
+  const pct = Math.min(100, requiredHours ? Math.round((assignedHours / requiredHours) * 100) : 0);
+  panel.innerHTML = `
+    <section class="teacher-summary-hero group-summary-hero">
+      <div>
+        <p class="eyebrow">Grado seleccionado</p>
+        <h3>${escapeHtml(group.name || group.id)}</h3>
+        <p>${level === "primary" ? "Primaria" : "Secundaria"} · meta ${requiredHours}h semanales</p>
+      </div>
+      <div class="teacher-score ${statusClass}">
+        <strong>${assignedHours}/${requiredHours}h</strong>
+        <span>${weeklyStatus}</span>
+      </div>
+    </section>
+    <div class="teacher-stats">
+      <article><strong>${loadHours}h</strong><span>cargas definidas</span></article>
+      <article><strong>${assignedHours}h</strong><span>en propuesta</span></article>
+      <article><strong>${pendingHours}h</strong><span>pendientes</span></article>
+      <article><strong>${Math.abs(requiredHours - assignedHours)}h</strong><span>${assignedHours >= requiredHours ? "sobre/meta" : "para cumplir"}</span></article>
+    </div>
+    <div class="teacher-progress" aria-label="Cumplimiento semanal del grado">
+      <div class="teacher-progress-bar"><span class="teacher-bar-segment ${statusClass}" style="width:${pct}%"></span></div>
+      <small>${pct}% de la meta semanal · ${weeklyStatus}</small>
+    </div>
+    <div class="teacher-load-list">
+      ${rows.length ? rows.map((item) => `
+        <div class="teacher-load-chip" style="--chip:${item.color}">
+          <strong>${escapeHtml(item.subject)}</strong>
+          <span>${escapeHtml(item.teacher)}</span>
+          <em>${item.assigned}/${item.total}h</em>
+        </div>
+      `).join("") : `<div class="teacher-empty">Este grado todavia no tiene cargas asignadas.</div>`}
+    </div>
+  `;
+}
+
 function teacherAvailabilityTotals(teacher) {
   const availability = teacher?.availability || {};
   const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
@@ -2008,8 +2172,7 @@ function renderBoard() {
     return;
   }
   const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-  const sample = EPQA.slots.find((slot) => slot[mode] === filter) || EPQA.slots[0];
-  const periods = Array.from({ length: maxPeriod(sample?.level || "secondary") }, (_, index) => index + 1);
+  const periods = Array.from({ length: boardPeriodCount(mode, filter) }, (_, index) => index + 1);
 
   const rows = [`<div class="board-head board-corner">${labelForMode(mode)}: ${escapeHtml(filter || "Todos")}</div>`];
 
@@ -2035,30 +2198,22 @@ function renderBoard() {
 
 function renderTeacherPanoramaBoard(board) {
   const days = EPQA.data.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
-  const periods = Array.from({ length: Math.min(6, maxPeriod("secondary")) }, (_, index) => index + 1);
-  const teachers = teacherOptions();
+  const periods = Array.from({ length: boardPeriodCount("teacher", "__ALL_TEACHERS__") }, (_, index) => index + 1);
   const rows = [`<div class="board-head board-corner">Profesores general</div>`];
-  let column = 2;
-  days.forEach((day) => {
-    rows.push(`<div class="board-head panorama-day-head" style="grid-column:${column} / span ${periods.length};grid-row:1">${escapeHtml(day)}</div>`);
-    periods.forEach((period, periodIndex) => {
-      rows.push(`<div class="board-head panorama-hour-head" style="grid-column:${column + periodIndex};grid-row:2">H${period}</div>`);
-    });
-    column += periods.length;
+  periods.forEach((period, index) => {
+    rows.push(`<div class="board-head" style="grid-column:${index + 2};grid-row:1">H${period}</div>`);
   });
-  teachers.forEach((teacher, teacherIndex) => {
-    rows.push(`<div class="period-head panorama-row-head" style="grid-column:1;grid-row:${teacherIndex + 3}">${escapeHtml(teacher.name || teacher.id)}</div>`);
-    days.forEach((day, dayIndex) => {
-      periods.forEach((period, periodIndex) => {
-        const slots = EPQA.slots.filter((slot) => sameTeacher(slot.teacher, teacher.id) && slot.day === day && occupiedPeriods(slot).includes(`${day}-${period}`));
-        rows.push(`<div class="slot-cell panorama-cell" data-day="${escapeHtml(day)}" data-period="${period}" style="grid-column:${2 + dayIndex * periods.length + periodIndex};grid-row:${teacherIndex + 3}">
+  days.forEach((day, dayIndex) => {
+    rows.push(`<div class="period-head" style="grid-column:1;grid-row:${dayIndex + 2}">${escapeHtml(day)}</div>`);
+    periods.forEach((period, periodIndex) => {
+      const slots = EPQA.slots.filter((slot) => slot.day === day && occupiedPeriods(slot).includes(`${day}-${period}`));
+      rows.push(`<div class="slot-cell panorama-cell" data-mode="teacher" data-filter="__ALL_TEACHERS__" data-day="${escapeHtml(day)}" data-period="${period}" style="grid-column:${periodIndex + 2};grid-row:${dayIndex + 2}">
         ${slots.map((slot) => renderPanoramaSlot(slot, "teacher")).join("")}
       </div>`);
-      });
     });
   });
   board.classList.add("panorama-board");
-  board.style.gridTemplateColumns = `118px repeat(${days.length * periods.length}, minmax(28px, 1fr))`;
+  board.style.gridTemplateColumns = `66px repeat(${periods.length}, minmax(24px, 1fr))`;
   board.innerHTML = rows.join("");
   wireDragAndDrop();
   wireRemoveButtons();
@@ -2070,31 +2225,28 @@ function renderTeacherPanoramaBoard(board) {
 function renderGroupPanoramaBoard(board) {
   const days = EPQA.data.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
   const groups = groupOptions();
-  const periods = Array.from({ length: Math.min(6, maxPeriod("secondary")) }, (_, index) => index + 1);
   const rows = [`<div class="board-head board-corner">Grados general</div>`];
-  let column = 2;
-  days.forEach((day) => {
-    rows.push(`<div class="board-head panorama-day-head" style="grid-column:${column} / span ${periods.length};grid-row:1">${escapeHtml(day)}</div>`);
-    periods.forEach((period, periodIndex) => {
-      rows.push(`<div class="board-head panorama-hour-head" style="grid-column:${column + periodIndex};grid-row:2">H${period}</div>`);
-    });
-    column += periods.length;
+  days.forEach((day, index) => {
+    rows.push(`<div class="board-head" style="grid-column:${index + 2};grid-row:1">${escapeHtml(day)}</div>`);
   });
   groups.forEach((group, groupIndex) => {
-    rows.push(`<div class="period-head panorama-row-head" style="grid-column:1;grid-row:${groupIndex + 3}">${escapeHtml(group.name || group.id)}</div>`);
+    rows.push(`<div class="period-head" style="grid-column:1;grid-row:${groupIndex + 2}">${escapeHtml(group.name || group.id)}</div>`);
     days.forEach((day, dayIndex) => {
-      periods.forEach((period, periodIndex) => {
+      const periods = Array.from({ length: boardPeriodCount("group", group.id, group) }, (_, index) => index + 1);
+      const cells = periods.map((period) => {
         const slots = EPQA.slots
           .filter((slot) => slot.day === day && slot.group === group.id && Number(slot.period) === period)
           .sort((a, b) => String(a.teacher).localeCompare(String(b.teacher)));
-        rows.push(`<div class="slot-cell panorama-cell" data-day="${escapeHtml(day)}" data-period="${period}" data-group="${escapeHtml(group.id)}" style="grid-column:${2 + dayIndex * periods.length + periodIndex};grid-row:${groupIndex + 3}">
+        return `<div class="slot-cell panorama-mini-slot" data-mode="group" data-filter="${escapeHtml(group.id)}" data-day="${escapeHtml(day)}" data-period="${period}" data-group="${escapeHtml(group.id)}">
+          <span class="mini-period">H${period}</span>
           ${slots.map((slot) => renderPanoramaSlot(slot, "group")).join("")}
-        </div>`);
-      });
+        </div>`;
+      }).join("");
+      rows.push(`<div class="panorama-cell group-day-cell" data-day="${escapeHtml(day)}" data-group="${escapeHtml(group.id)}" style="--panorama-periods:${periods.length};grid-column:${dayIndex + 2};grid-row:${groupIndex + 2}">${cells}</div>`);
     });
   });
   board.classList.add("panorama-board", "group-panorama-board");
-  board.style.gridTemplateColumns = `76px repeat(${days.length * periods.length}, minmax(28px, 1fr))`;
+  board.style.gridTemplateColumns = `66px repeat(${Math.max(1, days.length)}, minmax(68px, 1fr))`;
   board.innerHTML = rows.join("");
   wireDragAndDrop();
   wireRemoveButtons();
@@ -2103,16 +2255,14 @@ function renderGroupPanoramaBoard(board) {
   renderTeacherDetailPanel();
 }
 
-function renderPanoramaSlot(slot, mode = "group") {
+function renderPanoramaSlot(slot, mode = "teacher") {
   const color = colorForItem(slot, "teacher");
-  const label = mode === "group"
-    ? String(slot.subject || "").slice(0, 3).toUpperCase()
-    : String(slot.subject || "").slice(0, 4).toUpperCase();
-  const detail = `${slot.teacher} | ${slot.group} | ${slot.subject} | ${slot.day} H${slot.period} | ${slot.room || ""}`;
+  const symbol = mode === "group" ? subjectAbbrev(slot.subject) : teacherAbbrev(slot.teacher);
+  const tooltip = `${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room || "Aula"} · ${slot.day} H${slot.period}`;
   return `
-    <div class="class-card panorama-card ${slot.locked ? "locked" : ""}" data-slot-id="${slot.id}" data-duration="${slotDuration(slot)}" title="${escapeHtml(detail)}" style="background:${color};border-left-color:${borderColor(color)}">
+    <div class="class-card panorama-card ${slot.locked ? "locked" : ""}" data-slot-id="${slot.id}" data-duration="${slotDuration(slot)}" data-short-label="${escapeHtml(symbol)}" title="${escapeHtml(tooltip)}" style="background:${color};border-left-color:${borderColor(color)}">
       <button class="remove-slot" type="button" data-slot-id="${slot.id}" aria-label="Quitar hora">x</button>
-      <strong>${escapeHtml(label || "...")}</strong>
+      <strong>${escapeHtml(symbol)}</strong>
     </div>
   `;
 }
@@ -2130,6 +2280,7 @@ function renderBoardCell(mode, filter, day, period, column, row) {
   const rowSpan = starts.length === 1 ? slotDuration(starts[0]) : 1;
   const conflictText = visibleSlots.flatMap(conflictDetailsForSlot).join(" | ");
   const conflict = visibleSlots.some(slotHasConflict) && byId("auditMode").checked;
+  const cycleLevel = cellCycleLevel(mode, filter, visibleSlots[0] || null, day, period);
   const classes = [
     "slot-cell",
     starts.length ? "block-start" : "",
@@ -2144,7 +2295,7 @@ function renderBoardCell(mode, filter, day, period, column, row) {
       : "";
   const title = conflictText || (primary ? `${primary.subject} · ${primary.teacher} · ${primary.group}` : "");
   const style = `grid-column:${column};grid-row:${row}${rowSpan > 1 ? ` / span ${rowSpan}` : ""}`;
-  return `<div class="${classes}" data-day="${escapeHtml(day)}" data-period="${period}" data-conflicts="${escapeHtml(conflictText)}" title="${escapeHtml(title)}" style="${style}">${content}</div>`;
+  return `<div class="${classes}" data-day="${escapeHtml(day)}" data-period="${period}" data-level="${escapeHtml(cycleLevel)}" data-mode="${escapeHtml(mode)}" data-filter="${escapeHtml(filter || "")}" data-conflicts="${escapeHtml(conflictText)}" title="${escapeHtml(title)}" style="${style}">${content}</div>`;
 }
 
 function renderAvailableTray() {
@@ -2161,19 +2312,27 @@ function renderAvailableTray() {
 function pendingLoadUnits() {
   normalizeSlotLoadLinks();
   const used = usedHoursByLoad();
-  return (EPQA.data.loads || []).flatMap((load) => {
-    const missing = Math.max(0, Number(load.hours || 0) - (used.get(load.id) || 0));
-    const units = [];
-    let remaining = missing;
-    let index = 1;
-    while (remaining > 0) {
-      const duration = Math.min(blockHours(load), remaining);
-      units.push({ ...load, pendingIndex: index, pendingDuration: duration });
-      remaining -= duration;
-      index++;
-    }
-    return units;
-  });
+  const mode = byId("viewMode")?.value || "";
+  const filter = byId("viewFilter")?.value || "";
+  return (EPQA.data.loads || [])
+    .filter((load) => {
+      if (mode === "group" && filter && filter !== "__ALL_GROUPS__") return String(load.group) === String(filter);
+      if (mode === "teacher" && filter && filter !== "__ALL_TEACHERS__") return sameTeacherLoose(load.teacher, filter);
+      return true;
+    })
+    .flatMap((load) => {
+      const missing = Math.max(0, Number(load.hours || 0) - (used.get(load.id) || 0));
+      const units = [];
+      let remaining = missing;
+      let index = 1;
+      while (remaining > 0) {
+        const duration = pendingBlockSize(load, remaining);
+        units.push({ ...load, pendingIndex: index, pendingDuration: duration });
+        remaining -= duration;
+        index++;
+      }
+      return units;
+    });
 }
 
 function usedHoursByLoad() {
@@ -2189,6 +2348,11 @@ function usedHoursByLoad() {
 function loadForSlot(slot) {
   const byId = findLoad(slot.loadId);
   if (byId) return byId;
+  const key = slot.loadKey ? normalizeKey(slot.loadKey) : "";
+  if (key) {
+    const byKey = (EPQA.data.loads || []).find((load) => normalizeKey(load.loadKey || loadSignature(load)) === key);
+    if (byKey) return byKey;
+  }
   return (EPQA.data.loads || []).find((load) =>
     sameTeacherLoose(slot.teacher, load.teacher) &&
     normalizeKey(slot.subject) === normalizeKey(load.subject) &&
@@ -2201,6 +2365,7 @@ function normalizeSlotLoadLinks() {
     const load = loadForSlot(slot);
     if (!load) return;
     slot.loadId = load.id;
+    slot.loadKey = load.loadKey || loadSignature(load);
     slot.teacher = load.teacher;
     slot.subject = load.subject;
     slot.group = load.group;
@@ -2210,8 +2375,10 @@ function normalizeSlotLoadLinks() {
 function renderPendingCard(load) {
   const color = colorForItem(load, "pending");
   const duration = Number(load.pendingDuration || 1);
+  const canSplit = duration > 1;
   return `
     <div class="class-card pending-card ${duration > 1 ? "block-card" : ""}" data-load-id="${escapeHtml(load.id)}" data-duration="${duration}" style="background:${color};border-left-color:${borderColor(color)}">
+      ${canSplit ? `<button class="split-pending" type="button" data-split-pending="${escapeHtml(load.id)}" aria-label="Separar bloque">1h</button>` : ""}
       <div class="card-topline">
         <span class="duration-badge">${duration}h</span>
         <span class="subject-badge">${escapeHtml(load.group)}</span>
@@ -2228,12 +2395,38 @@ function wireAvailableTray() {
   if (!tray || !window.Sortable) return;
   if (tray.dataset.sortableReady) return;
   tray.dataset.sortableReady = "1";
+  tray.addEventListener("click", onAvailableTrayClick);
+  tray.addEventListener("pointerover", onPendingPreviewPointer);
+  tray.addEventListener("pointerout", onPendingPreviewPointerOut);
   Sortable.create(tray, {
     group: { name: "schedule", pull: "clone", put: false },
     sort: false,
-    animation: 150,
+    animation: 90,
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 4,
+    touchStartThreshold: 4,
+    ghostClass: "drag-ghost",
+    chosenClass: "drag-chosen",
+    dragClass: "drag-active",
     draggable: ".pending-card"
   });
+}
+
+function onAvailableTrayClick(event) {
+  const button = event.target.closest("[data-split-pending]");
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  EPQA.ui.splitPendingLoads = EPQA.ui.splitPendingLoads || {};
+  EPQA.ui.splitPendingLoads[button.dataset.splitPending] = true;
+  renderAvailableTray();
+  notify("Bloque separado", "La carga pendiente ahora aparece en horas sueltas para ubicar manualmente.", "info");
+}
+
+function pendingBlockSize(load, remaining) {
+  if (EPQA.ui.splitPendingLoads?.[load.id]) return 1;
+  return Math.min(blockHours(load), remaining);
 }
 
 function renderCard(slot) {
@@ -2368,18 +2561,121 @@ function splitSlotBlock(slotId) {
   renderTeacherDetailPanel();
 }
 
+function handlePendingDrop(event) {
+  const item = event.item;
+  const targetCell = event.to?.classList?.contains("slot-cell") ? event.to : event.to?.closest?.(".slot-cell");
+  if (!item?.dataset?.loadId || !targetCell?.classList.contains("slot-cell")) return;
+  item.remove();
+  document.body.classList.remove("schedule-dragging");
+  clearPendingAvailabilityPreview();
+  const load = findLoad(item.dataset.loadId);
+  const targetDay = targetCell.dataset.day;
+  const targetPeriod = Number(targetCell.dataset.period);
+  if (!load || !targetDay || !targetPeriod) {
+    renderAvailableTray();
+    renderBoard();
+    return;
+  }
+  const duration = Number(item.dataset.duration || blockHours(load));
+  const pendingItem = { ...load, pendingDuration: duration, duration };
+  const context = validatePlacementContext(pendingItem, targetCell, true);
+  if (!context.ok) {
+    renderAvailableTray();
+    renderBoard();
+    return;
+  }
+  const slot = slotFromLoad(load, targetDay, targetPeriod, duration);
+  slot.room = context.room || slot.room;
+  slot.roomId = context.roomId || slot.roomId;
+  slot.site = context.site || slot.site;
+  slot.siteId = context.site || slot.siteId;
+  const affected = affectedSlotsForIncoming(slot, targetDay, targetPeriod);
+  if (affected.length) {
+    confirmReplacementFromPending(slot, affected, targetDay, targetPeriod);
+    renderAvailableTray();
+    renderBoard();
+    return;
+  }
+  const verdict = prevalidateMove(slot, slot.day, slot.period);
+  if (verdict.ok || !byId("breakMode").checked) {
+    slot.source = "manual";
+    EPQA.slots.push(slot);
+    playUiSound("drop");
+  } else {
+    notify("Movimiento bloqueado", restrictionMessage(verdict.reason), "error", true);
+  }
+  renderAvailableTray();
+  renderBoard();
+  auditNow();
+  renderTeacherDetailPanel();
+}
+
+function affectedSlotsForIncoming(incoming, day, period) {
+  return EPQA.slots.filter((slot) =>
+    slot.id !== incoming.id &&
+    slotsOverlap(slot, { ...incoming, day, period }) &&
+    (
+      sameTeacher(slot.teacher, incoming.teacher) ||
+      slot.group === incoming.group ||
+      (isProtectedRoom(incoming.room) && slot.room === incoming.room && sameSite(itemSite(slot), itemSite(incoming)))
+    )
+  );
+}
+
+function confirmReplacementFromPending(slot, affected, targetDay, targetPeriod) {
+  const details = affected.map((item) =>
+    `${item.subject} de ${item.group} con ${item.teacher} (${item.day} H${item.period}, ${item.room || "Aula"})`
+  ).join("\n");
+  confirmAction(
+    "Confirmar reemplazo",
+    `La celda destino tiene conflicto con:\n${details}\n\nSi aceptas, esa(s) clase(s) volveran a pendientes y se ubicara ${slot.subject} de ${slot.group} con ${slot.teacher} en ${targetDay} H${targetPeriod}.`,
+    () => {
+      const displaced = displaceAffectedSlots(slot, targetDay, targetPeriod);
+      const verdict = prevalidateMove(slot, slot.day, slot.period);
+      if (!verdict.ok && byId("breakMode").checked) {
+        EPQA.slots.push(...displaced);
+        notify("Movimiento bloqueado", restrictionMessage(verdict.reason), "error", true);
+        renderBoard();
+        renderAvailableTray();
+        return;
+      }
+      slot.source = "manual";
+      EPQA.slots.push(slot);
+      playUiSound("drop");
+      notify("Reemplazo aplicado", `${displaced.length} clase(s) volvieron a pendientes.`, "warning");
+      renderAvailableTray();
+      renderBoard();
+      auditNow();
+      renderTeacherDetailPanel();
+    },
+    "Aceptar reemplazo"
+  );
+}
+
 function wireDragAndDrop() {
   document.querySelectorAll(".slot-cell:not(.covered-cell)").forEach((cell) => {
     Sortable.create(cell, {
-      group: "schedule",
-      animation: 150,
+      group: { name: "schedule", put: true },
+      animation: 90,
       forceFallback: true,
       fallbackOnBody: true,
+      fallbackTolerance: 4,
+      touchStartThreshold: 4,
+      ghostClass: "drag-ghost",
+      chosenClass: "drag-chosen",
+      dragClass: "drag-active",
       swapThreshold: 0.65,
       emptyInsertThreshold: 18,
       draggable: ".class-card",
+      onAdd(event) {
+        handlePendingDrop(event);
+      },
       onStart(event) {
         closeScheduleContextMenu();
+        document.body.classList.add("schedule-dragging");
+        EPQA.ui.dragMoveKey = "";
+        EPQA.ui.dragMoveResult = null;
+        showPendingAvailabilityPreview(event.item.dataset.loadId, Number(event.item.dataset.duration || 1));
         playUiSound("lift");
         cleanupDragState(event.item);
       },
@@ -2391,15 +2687,31 @@ function wireDragAndDrop() {
           EPQA.ui.lastDropTarget.classList.remove("drop-ok", "drop-denied");
         }
         EPQA.ui.lastDropTarget = target;
+        const moveKey = [
+          event.dragged.dataset.loadId || event.dragged.dataset.slotId || "",
+          event.dragged.dataset.duration || "",
+          target.dataset.day || "",
+          target.dataset.period || "",
+          target.dataset.group || ""
+        ].join("|");
+        if (EPQA.ui.dragMoveKey === moveKey && EPQA.ui.dragMoveResult) {
+          target.classList.toggle("drop-ok", EPQA.ui.dragMoveResult.ok);
+          target.classList.toggle("drop-denied", !EPQA.ui.dragMoveResult.ok);
+          if (EPQA.ui.dragMoveResult.message) event.dragged.dataset.pendingDropMessage = EPQA.ui.dragMoveResult.message;
+          else delete event.dragged.dataset.pendingDropMessage;
+          return true;
+        }
         const load = event.dragged.dataset.loadId ? findLoad(event.dragged.dataset.loadId) : null;
         const slot = load
-          ? slotFromLoad(load, target.dataset.day, Number(target.dataset.period))
+          ? slotFromLoad(load, target.dataset.day, Number(target.dataset.period), Number(event.dragged.dataset.duration || blockHours(load)))
           : findSlot(event.dragged.dataset.slotId);
         const context = validatePlacementContext(slot || load, target, false);
         if (!context.ok) {
           target.classList.toggle("drop-ok", false);
           target.classList.toggle("drop-denied", true);
           event.dragged.dataset.pendingDropMessage = context.message || "";
+          EPQA.ui.dragMoveKey = moveKey;
+          EPQA.ui.dragMoveResult = { ok: false, message: context.message || "" };
           return true;
         }
         delete event.dragged.dataset.pendingDropMessage;
@@ -2410,60 +2722,29 @@ function wireDragAndDrop() {
         if (targetOccupied) {
           target.classList.toggle("drop-ok", true);
           target.classList.toggle("drop-denied", false);
+          EPQA.ui.dragMoveKey = moveKey;
+          EPQA.ui.dragMoveResult = { ok: true, message: "" };
           return true;
         }
         const verdict = prevalidateMove(slot, target.dataset.day, Number(target.dataset.period));
         target.classList.toggle("drop-ok", verdict.ok);
         target.classList.toggle("drop-denied", !verdict.ok);
         if (!verdict.ok) event.dragged.dataset.pendingDropMessage = restrictionMessage(verdict.reason);
+        EPQA.ui.dragMoveKey = moveKey;
+        EPQA.ui.dragMoveResult = { ok: verdict.ok, message: verdict.ok ? "" : restrictionMessage(verdict.reason) };
         return true;
       },
       onEnd(event) {
         document.querySelectorAll(".drop-ok,.drop-denied").forEach((el) => el.classList.remove("drop-ok", "drop-denied"));
+        document.body.classList.remove("schedule-dragging");
+        clearPendingAvailabilityPreview();
         EPQA.ui.lastDropTarget = null;
+        EPQA.ui.dragMoveKey = "";
+        EPQA.ui.dragMoveResult = null;
         const targetCell = event.to?.classList?.contains("slot-cell") ? event.to : event.to?.closest?.(".slot-cell");
         const targetDay = targetCell?.dataset?.day;
         const targetPeriod = Number(targetCell?.dataset?.period);
-        if (event.item.dataset.loadId && targetCell?.classList.contains("slot-cell")) {
-          const load = findLoad(event.item.dataset.loadId);
-          if (!load) {
-            renderAvailableTray();
-            renderBoard();
-            cleanupDragState(event.item);
-            return;
-          }
-          const context = validatePlacementContext(load, targetCell, true);
-          if (!context.ok) {
-            renderAvailableTray();
-            renderBoard();
-            cleanupDragState(event.item);
-            return;
-          }
-          const slot = slotFromLoad(load, targetDay, targetPeriod, Number(event.item.dataset.duration || blockHours(load)));
-          slot.room = context.room || slot.room;
-          slot.roomId = context.roomId || slot.roomId;
-          slot.site = context.site || slot.site;
-          slot.siteId = context.site || slot.siteId;
-          const displaced = displaceAffectedSlots(slot, targetDay, targetPeriod);
-          const verdict = prevalidateMove(slot, slot.day, slot.period);
-          if (verdict.ok || !byId("breakMode").checked) {
-            slot.source = "manual";
-            EPQA.slots.push(slot);
-            playUiSound("drop");
-            if (displaced.length) {
-              notify("Horas desplazadas", `${displaced.length} hora(s) afectada(s) volvieron a pendientes.`, "warning");
-            }
-          } else {
-            EPQA.slots.push(...displaced);
-            notify("Movimiento bloqueado", restrictionMessage(verdict.reason), "error", true);
-          }
-          renderAvailableTray();
-          renderBoard();
-          auditNow();
-          renderTeacherDetailPanel();
-          cleanupDragState(event.item);
-          return;
-        }
+        if (event.item.dataset.loadId) return;
         const slot = findSlot(event.item.dataset.slotId);
         if (!slot || !targetDay) {
           renderBoard();
@@ -2547,6 +2828,44 @@ function wireDragAndDrop() {
         cleanupDragState(event.item);
       }
     });
+  });
+}
+
+function onPendingPreviewPointer(event) {
+  const card = event.target.closest(".pending-card");
+  if (!card || card.dataset.previewActive === "1") return;
+  card.dataset.previewActive = "1";
+  showPendingAvailabilityPreview(card.dataset.loadId, Number(card.dataset.duration || 1));
+}
+
+function onPendingPreviewPointerOut(event) {
+  const card = event.target.closest(".pending-card");
+  if (!card || card.contains(event.relatedTarget)) return;
+  delete card.dataset.previewActive;
+  if (!document.body.classList.contains("schedule-dragging")) clearPendingAvailabilityPreview();
+}
+
+function showPendingAvailabilityPreview(loadId, duration = 1) {
+  clearPendingAvailabilityPreview();
+  const load = findLoad(loadId);
+  if (!load) return;
+  document.querySelectorAll(".slot-cell:not(.covered-cell)").forEach((cell) => {
+    const day = cell.dataset.day;
+    const period = Number(cell.dataset.period || 0);
+    if (!day || !period) return;
+    const periods = Array.from({ length: Math.max(1, duration) }, (_, index) => `${day}-${period + index}`);
+    const sameGroupSlots = (EPQA.slots || []).filter((slot) => slot.group === load.group && slot.day === day);
+    const occupiedByGroup = sameGroupSlots.some((slot) => periods.some((key) => occupiedPeriods(slot).includes(key)));
+    const isCurrentGroupCell = byId("viewMode")?.value !== "group" || byId("viewFilter")?.value === load.group || byId("viewFilter")?.value === "__ALL_GROUPS__";
+    cell.classList.add("pending-preview-cell");
+    cell.classList.toggle("pending-preview-free", isCurrentGroupCell && !occupiedByGroup);
+    cell.classList.toggle("pending-preview-busy", occupiedByGroup);
+  });
+}
+
+function clearPendingAvailabilityPreview() {
+  document.querySelectorAll(".pending-preview-cell,.pending-preview-free,.pending-preview-busy").forEach((cell) => {
+    cell.classList.remove("pending-preview-cell", "pending-preview-free", "pending-preview-busy");
   });
 }
 
@@ -2740,8 +3059,13 @@ function validatePlacementContext(item, targetCell, showAlert) {
   const filter = byId("viewFilter").value;
   const result = { ok: true, room: item.room, roomId: item.roomId, site: item.site || item.siteId };
   const day = targetCell.dataset.day;
+  const targetSite = targetPlacementSite(mode, filter, targetCell, item);
   const targetDaySite = siteForTeacherDay(item.teacher, day);
   const sourceDaySite = siteForTeacherDay(item.teacher, item.day);
+  if (targetSite) {
+    result.site = targetSite;
+    result.siteId = targetSite;
+  }
   if (sourceDaySite && targetDaySite && !sameSite(sourceDaySite, targetDaySite)) {
     return placementDenied(`No se puede arrastrar entre dias de sedes diferentes.\nOrigen: ${item.day} - sede ${sourceDaySite}\nDestino: ${day} - sede ${targetDaySite}`, showAlert);
   }
@@ -2753,7 +3077,7 @@ function validatePlacementContext(item, targetCell, showAlert) {
     return placementDenied(`No se puede asignar esta hora en otro grado. Esta carga pertenece a ${item.group}.`, showAlert);
   }
 
-  if (mode === "teacher" && filter && filter !== "__ALL_TEACHERS__" && !sameTeacher(item.teacher, filter)) {
+  if (mode === "teacher" && filter && filter !== "__ALL_TEACHERS__" && !sameTeacherLoose(item.teacher, filter)) {
     return placementDenied(`No se puede asignar esta hora a otro docente. Esta carga pertenece a ${item.teacher}.`, showAlert);
   }
 
@@ -2774,12 +3098,12 @@ function validatePlacementContext(item, targetCell, showAlert) {
   }
 
   const teacherDaySite = siteForTeacherDay(item.teacher, day);
-  if (teacherDaySite && result.site && !sameSite(teacherDaySite, result.site)) {
-    return placementDenied(`No se puede asignar: ${item.teacher} tiene sede asignada para ${day}: ${teacherDaySite}, y esta celda corresponde a ${result.site}.`, showAlert);
+  if (teacherDaySite && targetSite && !sameSite(teacherDaySite, targetSite)) {
+    return placementDenied(`No se puede asignar: ${item.teacher} tiene sede asignada para ${day}: ${teacherDaySite}, y esta celda corresponde a ${targetSite}.`, showAlert);
   }
 
   const availability = teacherAvailability(item.teacher, day);
-  if (availability?.site && result.site && !sameSite(availability.site, result.site)) {
+  if (availability?.site && targetSite && !sameSite(availability.site, targetSite)) {
     return placementDenied(`No se puede asignar en sedes diferentes. ${item.teacher} esta disponible en ${availability.site} el dia ${day}.`, showAlert);
   }
   if (availability?.slots) {
@@ -2797,7 +3121,7 @@ function validatePlacementContext(item, targetCell, showAlert) {
       return placementDenied(`No se puede asignar: ${item.teacher} supera las ${availability.hours} horas disponibles el dia ${day}.`, showAlert);
     }
   }
-  const globalDailyMax = maxTeacherHoursForDay(item.teacher, day, result.site || itemSite(item));
+  const globalDailyMax = maxTeacherHoursForDay(item.teacher, day, targetSite || itemSite(item));
   const alreadyByRule = teacherHoursOnDay(item.teacher, day, item.id);
   const movingHours = Number(item.pendingDuration || item.duration || blockHours(item) || 1);
   if (globalDailyMax && alreadyByRule + movingHours > globalDailyMax) {
@@ -2810,6 +3134,22 @@ function validatePlacementContext(item, targetCell, showAlert) {
 function teacherAvailability(teacherId, day) {
   const teacher = findTeacher(teacherId);
   return teacher ? normalizeAvailabilityRecord(teacher?.availability?.[day]) : null;
+}
+
+function targetPlacementSite(mode, filter, targetCell, item) {
+  if (mode === "room") {
+    const room = roomContext(filter || targetCell?.dataset?.room || item?.room || item?.roomId || "");
+    return room.site || "";
+  }
+  if (mode === "group") {
+    const groupId = targetCell?.dataset?.group || (filter && filter !== "__ALL_GROUPS__" ? filter : "") || item?.group || "";
+    return groupObjectById(groupId)?.siteId || groupObjectById(groupId)?.site || "";
+  }
+  if (mode === "teacher") {
+    const day = targetCell?.dataset?.day || item?.day || "";
+    return siteForTeacherDay(item?.teacher, day) || teacherFixedSite(item?.teacher) || "";
+  }
+  return item?.siteId || item?.site || "";
 }
 
 function siteForTeacherDay(teacherId, day) {
@@ -3127,9 +3467,10 @@ function openRelaxedProposalModal(strictBest, relaxedBest) {
     relaxed.items.length ? `Cambios propuestos:\n${relaxed.items.slice(0, 10).map((item) => `- ${item}`).join("\n")}` : "La alternativa solo relaja penalizaciones menores del modelo."
   ].join("\n\n");
   openUxModal("Se podria armar, pero...", message, "warning", {
-    confirmLabel: "Usar esta propuesta",
+    confirmLabel: "Aplicar y recalcular",
     cancelLabel: "Mantener propuesta parcial",
-    onConfirm: applyRelaxedProposal
+    wide: true,
+    onConfirm: applyRelaxedProposalAndRecalculate
   });
 }
 
@@ -3172,8 +3513,21 @@ async function applyRelaxedProposal() {
   notify("Propuesta aplicada", "Se aplico la alternativa con P0 intactas y reglas flexibles justificadas.", "success");
 }
 
+async function applyRelaxedProposalAndRecalculate() {
+  await applyRelaxedProposal();
+  await generateOptimizedSchedule(true);
+}
+
 function normalizeExistingSlotsForOptimization(slots) {
-  return (slots || []).map((slot) => ({ ...slot, source: slot.source || "manual" }));
+  return (slots || []).map((slot) => {
+    const copy = { ...slot, source: slot.source || "manual" };
+    const load = loadForSlot(copy);
+    if (load) {
+      copy.loadId = load.id;
+      copy.loadKey = load.loadKey || loadSignature(load);
+    }
+    return copy;
+  });
 }
 
 function buildOptimizedProposal(seed, lockedSlots = [], options = {}) {
@@ -3209,9 +3563,14 @@ function buildOptimizedProposal(seed, lockedSlots = [], options = {}) {
 function loadUnitsForOptimization(seed, lockedSlots = []) {
   const units = [];
   const used = new Map();
-  lockedSlots.forEach((slot) => used.set(slot.loadId, (used.get(slot.loadId) || 0) + slotDuration(slot)));
+  lockedSlots.forEach((slot) => {
+    const key = slot.loadId || slot.loadKey || "";
+    if (!key) return;
+    used.set(key, (used.get(key) || 0) + slotDuration(slot));
+  });
   (EPQA.data.loads || []).forEach((load) => {
-    const remainingHours = Math.max(0, Number(load.hours || 0) - (used.get(load.id) || 0));
+    const key = load.id || load.loadKey || loadSignature(load);
+    const remainingHours = Math.max(0, Number(load.hours || 0) - (used.get(load.id) || used.get(load.loadKey || key) || 0));
     if (!remainingHours) return;
     blockDurationsForLoad({ ...load, hours: remainingHours }).forEach((duration, index) => {
       units.push({ ...load, duration, pendingDuration: duration, pendingIndex: index + 1, rulePriority: loadRulePriority(load) });
@@ -3735,8 +4094,39 @@ function exportExcel() {
 function exportPdf(type) {
   if (!window.jspdf) return;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
-  const mode = type === "teacher" ? "teacher" : type === "room" ? "room" : "group";
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  if (type === "teacher" || type === "final") {
+    const teachers = exportTeacherTargets();
+    if (type === "final") {
+      drawFinalCoverPage(doc, teachers);
+    }
+    teachers.forEach((teacherId, index) => {
+      if (type === "final" || index > 0) doc.addPage();
+      drawTeacherPdfPage(doc, teacherId, type);
+    });
+    doc.save(type === "final" ? "epqa_horario_final.pdf" : "epqa_horario_profesores.pdf");
+    return;
+  }
+
+  const mode = type === "room" ? "room" : "group";
+  if (type === "group") {
+    const groups = exportGroupTargets();
+    groups.forEach((groupId, page) => {
+      if (page) doc.addPage();
+      drawGroupPdfPage(doc, groupId);
+    });
+    doc.save("epqa_horario_grados.pdf");
+    return;
+  }
+  if (type === "room") {
+    const rooms = exportRoomTargets();
+    rooms.forEach((roomId, page) => {
+      if (page) doc.addPage();
+      drawRoomPdfPage(doc, roomId);
+    });
+    doc.save("epqa_horario_espacios.pdf");
+    return;
+  }
   const values = unique(EPQA.slots.map((slot) => slot[mode])).sort(naturalSort);
   values.forEach((value, page) => {
     if (page) doc.addPage();
@@ -3763,7 +4153,494 @@ function exportPdf(type) {
       }
     });
   });
-  doc.save(type === "final" ? "epqa_horario_final.pdf" : `epqa_horario_${type}.pdf`);
+  doc.save(`epqa_horario_${type}.pdf`);
+}
+
+function exportTeacherTargets() {
+  return unique([
+    ...(EPQA.data.teachers || []).map((teacher) => teacherKey(teacher)),
+    ...(EPQA.data.loads || []).map((load) => load.teacher),
+    ...(EPQA.slots || []).map((slot) => slot.teacher)
+  ]).filter((teacherId) => {
+    return (EPQA.data.loads || []).some((load) => sameTeacherLoose(load.teacher, teacherId)) ||
+      (EPQA.slots || []).some((slot) => sameTeacherLoose(slot.teacher, teacherId));
+  }).sort(naturalSort);
+}
+
+function exportGroupTargets() {
+  return unique([
+    ...(EPQA.data.groups || []).map((group) => group.id || group.name),
+    ...(EPQA.data.loads || []).map((load) => load.group),
+    ...(EPQA.slots || []).map((slot) => slot.group)
+  ]).filter((groupId) => {
+    return (EPQA.data.loads || []).some((load) => String(load.group) === String(groupId)) ||
+      (EPQA.slots || []).some((slot) => String(slot.group) === String(groupId));
+  }).sort(naturalSort);
+}
+
+function exportRoomTargets() {
+  return unique([
+    ...(EPQA.data.rooms || []).map((room) => room.id || room.name),
+    ...(EPQA.data.loads || []).map((load) => load.roomId || load.room),
+    ...(EPQA.slots || []).map((slot) => slot.roomId || slot.room)
+  ]).filter((roomId) => {
+    return (EPQA.data.loads || []).some((load) => normalizeKey(load.roomId || load.room) === normalizeKey(roomId)) ||
+      (EPQA.slots || []).some((slot) => normalizeKey(slot.roomId || slot.room) === normalizeKey(roomId));
+  }).sort(naturalSort);
+}
+
+function drawFinalCoverPage(doc, teachers) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 28;
+  doc.setFillColor(245, 250, 255);
+  doc.rect(0, 0, pageW, doc.internal.pageSize.getHeight(), "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("EPQA Horario Final", margin, 40);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Profesores: ${teachers.length} · Cargas: ${(EPQA.data.loads || []).length} · Horas ubicadas: ${(EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0)}h`, margin, 58);
+  doc.text(`P0 ${EPQA.audit?.counts?.P0 || 0} · P1 ${EPQA.audit?.counts?.P1 || 0} · P2 ${EPQA.audit?.counts?.P2 || 0}`, margin, 72);
+  doc.setDrawColor(174, 197, 222);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(margin, 96, pageW - margin * 2, 120, 8, 8, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.text("Contenido", margin + 14, 120);
+  doc.setFont("helvetica", "normal");
+  const lines = [
+    "Cada pagina de docente incluye la cuadricula visual con colores, su carga laboral total, horas asignadas, pendientes y el listado de areas por grado.",
+    "El archivo final mantiene el mismo lenguaje visual de la plataforma para entrega a los docentes."
+  ];
+  let y = 138;
+  lines.forEach((line) => {
+    doc.text(doc.splitTextToSize(line, pageW - margin * 2 - 28), margin + 14, y);
+    y += 28;
+  });
+}
+
+function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
+  const teacher = findTeacher(teacherId) || { id: teacherId, name: teacherId, type: "secondary" };
+  const teacherName = teacher.name || teacher.id || teacherId;
+  const loads = (EPQA.data.loads || []).filter((load) => sameTeacherLoose(load.teacher, teacherId));
+  const slots = (EPQA.slots || []).filter((slot) => sameTeacherLoose(slot.teacher, teacherId));
+  const assignedHours = slots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+  const loadHours = loads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const level = normalizeLevel(teacher.type || teacher.level || slots[0]?.level || "secondary");
+  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const periods = pdfPeriodCountForTeacher(level, slots);
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 26;
+  const headerH = 70;
+  const gridTop = 114;
+  const gridLeft = margin;
+  const rowHeaderW = 70;
+  const gridW = pageW - margin * 2 - rowHeaderW;
+  const cellW = gridW / days.length;
+  const cellH = Math.max(20, Math.min(24, Math.floor((pageH - 360) / Math.max(1, periods))));
+  const gridH = cellH * periods;
+  const blockCount = countTeacherTwoHourBlocks(slots);
+
+  doc.setFillColor(250, 252, 255);
+  doc.rect(0, 0, pageW, pageH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(`${teacherName}`, margin, 34);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`${mode === "final" ? "Final" : "Docente"} · ${level === "primary" ? "Primaria" : "Secundaria"} · ${teacher.type || ""}`, margin, 48);
+  doc.text(`Carga total ${loadHours}h · Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+
+  const summaryY = 72;
+  const cardW = (pageW - margin * 2 - 18) / 4;
+  const cards = [
+    { title: "Cargas", value: `${loads.length}` },
+    { title: "Horas", value: `${loadHours}h` },
+    { title: "Asignadas", value: `${assignedHours}h` },
+    { title: "Pendientes", value: `${pendingHours}h` }
+  ];
+  cards.forEach((card, index) => {
+    const x = margin + index * (cardW + 6);
+    const fill = index === 2 ? [225, 248, 238] : index === 3 ? [255, 247, 237] : [255, 255, 255];
+    doc.setFillColor(...fill);
+    doc.setDrawColor(196, 210, 225);
+    doc.roundedRect(x, summaryY, cardW, 32, 6, 6, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(card.title, x + 8, summaryY + 12);
+    doc.setFontSize(13);
+    doc.text(card.value, x + 8, summaryY + 25);
+  });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(`Bloques de 2h o mas: ${blockCount}`, margin, summaryY + 44);
+
+  doc.setDrawColor(120, 139, 160);
+  doc.setFontSize(8);
+  days.forEach((day, index) => {
+    const x = gridLeft + rowHeaderW + index * cellW;
+    doc.setFillColor(236, 242, 248);
+    doc.rect(x, gridTop, cellW, 18, "F");
+    doc.text(day, x + 4, gridTop + 12);
+  });
+  for (let period = 1; period <= periods; period++) {
+    const y = gridTop + 18 + (period - 1) * cellH;
+    doc.setFillColor(240, 245, 250);
+    doc.rect(gridLeft, y, rowHeaderW, cellH, "F");
+    doc.text(`H${period}`, gridLeft + 18, y + cellH / 2 + 3);
+    days.forEach((day, dayIndex) => {
+      const x = gridLeft + rowHeaderW + dayIndex * cellW;
+      const slot = slots.find((item) => item.day === day && occupiedPeriods(item).includes(`${day}-${period}`));
+      const start = slot && Number(slot.period) === period;
+      const fill = slot ? hexToRgb(colorForItem(slot, "teacher")) : [255, 255, 255];
+      doc.setFillColor(...fill);
+      doc.setDrawColor(194, 205, 216);
+      doc.rect(x, y, cellW, cellH, "FD");
+      if (slot) {
+        drawPdfTwoLineCell(doc, x, y, cellW, cellH, teacherPdfBlockLines(slot), true);
+      }
+    });
+  }
+
+  const listsTop = gridTop + 18 + gridH + 18;
+  const leftColW = (pageW - margin * 2 - 12) * 0.58;
+  const rightX = margin + leftColW + 12;
+  drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Areas a dictar", loads.map((load) => ({
+    title: `${load.subject} · ${load.group}`,
+    body: `${Number(load.hours || 0)}h · ${load.room || load.roomId || "Aula"}`
+  })));
+  drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen laboral", [
+    { title: "Total", body: `${loadHours}h` },
+    { title: "Asignadas", body: `${assignedHours}h` },
+    { title: "Pendientes", body: `${pendingHours}h` },
+    ...dailyTeacherSummary(slots)
+  ]);
+}
+
+function drawGroupPdfPage(doc, groupId) {
+  const group = groupObjectById(groupId) || { id: groupId, name: groupId, level: inferGroupLevel(groupId) };
+  const groupName = group.name || group.id || groupId;
+  const level = normalizeLevel(group.level || inferGroupLevel(group.id));
+  const loads = (EPQA.data.loads || []).filter((load) => String(load.group) === String(groupId));
+  const slots = (EPQA.slots || []).filter((slot) => String(slot.group) === String(groupId));
+  const assignedHours = slots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+  const loadHours = loads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const requiredHours = level === "primary" ? 25 : 30;
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 26;
+  const gridTop = 114;
+  const gridLeft = margin;
+  const rowHeaderW = 70;
+  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const periods = maxPeriod(level);
+  const gridW = pageW - margin * 2 - rowHeaderW;
+  const cellW = gridW / days.length;
+  const cellH = Math.max(20, Math.min(24, Math.floor((pageH - 360) / Math.max(1, periods))));
+  const gridH = cellH * periods;
+
+  doc.setFillColor(250, 252, 255);
+  doc.rect(0, 0, pageW, pageH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(groupName, margin, 34);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`${level === "primary" ? "Primaria" : "Secundaria"} · meta ${requiredHours}h semanales`, margin, 48);
+  doc.text(`Carga total ${loadHours}h · Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+
+  const summaryY = 72;
+  const cardW = (pageW - margin * 2 - 18) / 4;
+  const cards = [
+    { title: "Materias", value: `${loads.length}` },
+    { title: "Horas", value: `${loadHours}h` },
+    { title: "Asignadas", value: `${assignedHours}h` },
+    { title: "Pendientes", value: `${pendingHours}h` }
+  ];
+  cards.forEach((card, index) => {
+    const x = margin + index * (cardW + 6);
+    const fill = index === 2 ? [225, 248, 238] : index === 3 ? [255, 247, 237] : [255, 255, 255];
+    doc.setFillColor(...fill);
+    doc.setDrawColor(196, 210, 225);
+    doc.roundedRect(x, summaryY, cardW, 32, 6, 6, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(card.title, x + 8, summaryY + 12);
+    doc.setFontSize(13);
+    doc.text(card.value, x + 8, summaryY + 25);
+  });
+
+  doc.setDrawColor(120, 139, 160);
+  doc.setFontSize(8);
+  days.forEach((day, index) => {
+    const x = gridLeft + rowHeaderW + index * cellW;
+    doc.setFillColor(236, 242, 248);
+    doc.rect(x, gridTop, cellW, 18, "F");
+    doc.text(day, x + 4, gridTop + 12);
+  });
+  for (let period = 1; period <= periods; period++) {
+    const y = gridTop + 18 + (period - 1) * cellH;
+    doc.setFillColor(240, 245, 250);
+    doc.rect(gridLeft, y, rowHeaderW, cellH, "F");
+    doc.text(`H${period}`, gridLeft + 18, y + cellH / 2 + 3);
+    days.forEach((day, dayIndex) => {
+      const x = gridLeft + rowHeaderW + dayIndex * cellW;
+      const slot = slots.find((item) => item.day === day && occupiedPeriods(item).includes(`${day}-${period}`));
+      const start = slot && Number(slot.period) === period;
+      const fill = slot ? hexToRgb(colorForItem(slot, "group")) : [255, 255, 255];
+      doc.setFillColor(...fill);
+      doc.setDrawColor(194, 205, 216);
+      doc.rect(x, y, cellW, cellH, "FD");
+      if (slot) {
+        drawPdfTwoLineCell(doc, x, y, cellW, cellH, groupPdfBlockLines(slot), true);
+      }
+    });
+  }
+
+  const listsTop = gridTop + 18 + gridH + 18;
+  const leftColW = (pageW - margin * 2 - 12) * 0.58;
+  const rightX = margin + leftColW + 12;
+  drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", loads.map((load) => ({
+    title: `${load.subject} · ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h · ${load.room || load.roomId || "Aula"}`
+  })));
+  drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del grado", [
+    { title: "Total", body: `${loadHours}h` },
+    { title: "Asignadas", body: `${assignedHours}h` },
+    { title: "Pendientes", body: `${pendingHours}h` },
+    ...dailyTeacherSummary(slots)
+  ]);
+}
+
+function drawRoomPdfPage(doc, roomId) {
+  const room = (EPQA.data.rooms || []).find((item) => String(item.id) === String(roomId) || String(item.name) === String(roomId)) || { id: roomId, name: roomId };
+  const roomNameValue = room.name || room.id || roomId;
+  const roomSlots = (EPQA.slots || []).filter((slot) => normalizeKey(slot.roomId || slot.room) === normalizeKey(roomId) || normalizeKey(slot.room) === normalizeKey(roomNameValue));
+  const roomLoads = (EPQA.data.loads || []).filter((load) => normalizeKey(load.roomId || load.room) === normalizeKey(roomId) || normalizeKey(load.room) === normalizeKey(roomNameValue));
+  const loadHours = roomLoads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+  const assignedHours = roomSlots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 26;
+  const gridTop = 114;
+  const gridLeft = margin;
+  const rowHeaderW = 70;
+  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const periods = Math.max(5, ...roomSlots.map((slot) => Number(slot.period || 1) + slotDuration(slot) - 1), ...roomLoads.map((load) => maxPeriod(load.level || "secondary")));
+  const gridW = pageW - margin * 2 - rowHeaderW;
+  const cellW = gridW / days.length;
+  const cellH = Math.max(20, Math.min(24, Math.floor((pageH - 360) / Math.max(1, periods))));
+  const gridH = cellH * periods;
+
+  doc.setFillColor(250, 252, 255);
+  doc.rect(0, 0, pageW, pageH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text(roomNameValue, margin, 34);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Espacio · Cargas ${roomLoads.length} · Horas definidas ${loadHours}h`, margin, 48);
+  doc.text(`Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+
+  const summaryY = 72;
+  const cardW = (pageW - margin * 2 - 18) / 4;
+  const cards = [
+    { title: "Cargas", value: `${roomLoads.length}` },
+    { title: "Horas", value: `${loadHours}h` },
+    { title: "Asignadas", value: `${assignedHours}h` },
+    { title: "Pendientes", value: `${pendingHours}h` }
+  ];
+  cards.forEach((card, index) => {
+    const x = margin + index * (cardW + 6);
+    const fill = index === 2 ? [225, 248, 238] : index === 3 ? [255, 247, 237] : [255, 255, 255];
+    doc.setFillColor(...fill);
+    doc.setDrawColor(196, 210, 225);
+    doc.roundedRect(x, summaryY, cardW, 32, 6, 6, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(card.title, x + 8, summaryY + 12);
+    doc.setFontSize(13);
+    doc.text(card.value, x + 8, summaryY + 25);
+  });
+
+  doc.setDrawColor(120, 139, 160);
+  doc.setFontSize(8);
+  days.forEach((day, index) => {
+    const x = gridLeft + rowHeaderW + index * cellW;
+    doc.setFillColor(236, 242, 248);
+    doc.rect(x, gridTop, cellW, 18, "F");
+    doc.text(day, x + 4, gridTop + 12);
+  });
+  for (let period = 1; period <= periods; period++) {
+    const y = gridTop + 18 + (period - 1) * cellH;
+    doc.setFillColor(240, 245, 250);
+    doc.rect(gridLeft, y, rowHeaderW, cellH, "F");
+    doc.text(`H${period}`, gridLeft + 18, y + cellH / 2 + 3);
+    days.forEach((day, dayIndex) => {
+      const x = gridLeft + rowHeaderW + dayIndex * cellW;
+      const slot = roomSlots.find((item) => item.day === day && occupiedPeriods(item).includes(`${day}-${period}`));
+      const start = slot && Number(slot.period) === period;
+      const fill = slot ? hexToRgb(colorForItem(slot, "group")) : [255, 255, 255];
+      doc.setFillColor(...fill);
+      doc.setDrawColor(194, 205, 216);
+      doc.rect(x, y, cellW, cellH, "FD");
+      if (slot) {
+        drawPdfTwoLineCell(doc, x, y, cellW, cellH, roomPdfBlockLines(slot), true);
+      }
+    });
+  }
+
+  const listsTop = gridTop + 18 + gridH + 18;
+  const leftColW = (pageW - margin * 2 - 12) * 0.58;
+  const rightX = margin + leftColW + 12;
+  drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", roomLoads.map((load) => ({
+    title: `${load.subject} · ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h · ${load.group || ""}`
+  })));
+  drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del espacio", [
+    { title: "Total", body: `${loadHours}h` },
+    { title: "Asignadas", body: `${assignedHours}h` },
+    { title: "Pendientes", body: `${pendingHours}h` }
+  ]);
+}
+
+function teacherPdfBlockLines(slot) {
+  return [
+    slot.subject || "",
+    `${slot.teacher || ""} · ${slot.group || ""} · ${slot.room || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+  ];
+}
+
+function groupPdfBlockLines(slot) {
+  return [
+    slot.subject || "",
+    `${slot.teacher || ""} · ${slot.room || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+  ];
+}
+
+function roomPdfBlockLines(slot) {
+  return [
+    slot.subject || "",
+    `${slot.teacher || ""} · ${slot.group || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+  ];
+}
+
+function drawPdfTwoLineCell(doc, x, y, cellW, cellH, lines, topBold = true) {
+  const maxWidth = Math.max(10, cellW - 6);
+  const topText = String(lines?.[0] || "");
+  const bottomText = String(lines?.[1] || "");
+  const topSize = fitPdfFontSize(doc, topText, maxWidth, 5.2, 3.8);
+  const bottomSize = fitPdfFontSize(doc, bottomText, maxWidth, 4.9, 3.6);
+  doc.setTextColor(24, 33, 43);
+  doc.setFont("helvetica", topBold ? "bold" : "normal");
+  doc.setFontSize(topSize);
+  doc.text(topText, x + 3, y + 4.5, { maxWidth });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(bottomSize);
+  doc.text(bottomText, x + 3, y + cellH - 4.5, { maxWidth });
+}
+
+function fitPdfFontSize(doc, text, maxWidth, startSize, minSize = 3.5) {
+  let size = startSize;
+  while (size > minSize) {
+    doc.setFontSize(size);
+    if (doc.getTextWidth(text) <= maxWidth) break;
+    size -= 0.2;
+  }
+  return Math.max(minSize, Number(size.toFixed(1)));
+}
+
+function drawPdfSection(doc, x, y, w, h, title, rows) {
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(198, 210, 223);
+  doc.roundedRect(x, y, w, h, 8, 8, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(title, x + 8, y + 14);
+  let cursorY = y + 28;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  (rows || []).forEach((row) => {
+    const text = `${row.title} · ${row.body}`;
+    const lines = doc.splitTextToSize(text, w - 16);
+    if (cursorY + lines.length * 10 > y + h - 8) return;
+    doc.text(lines, x + 8, cursorY);
+    cursorY += lines.length * 10 + 4;
+  });
+}
+
+function dailyTeacherSummary(slots) {
+  const rows = [];
+  const byDay = new Map();
+  slots.forEach((slot) => {
+    const day = normalizeDay(slot.day);
+    byDay.set(day, (byDay.get(day) || 0) + slotDuration(slot));
+  });
+  [...byDay.entries()].sort((a, b) => naturalSort(a[0], b[0])).forEach(([day, hours]) => {
+    rows.push({ title: day, body: `${hours}h` });
+  });
+  return rows;
+}
+
+function countTeacherTwoHourBlocks(slots) {
+  const byDay = new Map();
+  (slots || []).forEach((slot) => {
+    const day = normalizeDay(slot.day);
+    const periods = occupiedPeriods(slot).map((key) => Number(key.split("-")[1])).sort((a, b) => a - b);
+    const list = byDay.get(day) || [];
+    list.push({ start: periods[0], end: periods[periods.length - 1] });
+    byDay.set(day, list);
+  });
+  let count = 0;
+  byDay.forEach((blocks) => {
+    const sorted = blocks.sort((a, b) => a.start - b.start);
+    let current = null;
+    sorted.forEach((block) => {
+      if (!current) {
+        current = { ...block };
+        return;
+      }
+      if (block.start <= current.end + 1) {
+        current.end = Math.max(current.end, block.end);
+        return;
+      }
+      if (current.end - current.start + 1 >= 2) count++;
+      current = { ...block };
+    });
+    if (current && current.end - current.start + 1 >= 2) count++;
+  });
+  return count;
+}
+
+function pdfPeriodCountForTeacher(level, slots) {
+  const base = maxPeriod(level);
+  const slotMax = Math.max(base, ...(slots || []).map((slot) => Number(slot.period || 1) + slotDuration(slot) - 1));
+  return Math.max(base, slotMax || base);
+}
+
+function hexToRgb(hex) {
+  const clean = String(hex || "").replace("#", "");
+  if (clean.length !== 6) return [255, 255, 255];
+  return [
+    parseInt(clean.slice(0, 2), 16),
+    parseInt(clean.slice(2, 4), 16),
+    parseInt(clean.slice(4, 6), 16)
+  ];
+}
+
+function subjectAbbrev(subject) {
+  const text = String(subject || "").trim();
+  if (!text) return "X";
+  return text.replace(/[^A-Za-z0-9]/g, "").slice(0, 1).toUpperCase() || text.slice(0, 1).toUpperCase();
+}
+
+function teacherAbbrev(teacher) {
+  const text = String(teacher || "").trim();
+  if (!text) return "X";
+  return text.replace(/[^A-Za-z0-9]/g, "").slice(0, 1).toUpperCase() || text.slice(0, 1).toUpperCase();
 }
 
 function slotHasConflict(slot) {
@@ -3780,6 +4657,29 @@ function findLoad(id) {
 
 function maxPeriod(level) {
   return normalizeLevel(level) === "primary" ? 5 : 6;
+}
+
+function boardPeriodCount(mode, filter, group = null) {
+  const records = [];
+  if (mode === "group") {
+    const groupId = group?.id || filter || "";
+    records.push(...(EPQA.data.loads || []).filter((load) => String(load.group) === String(groupId)));
+    records.push(...(EPQA.slots || []).filter((slot) => String(slot.group) === String(groupId)));
+  } else if (mode === "teacher") {
+    const teacherId = filter && filter !== "__ALL_TEACHERS__" ? filter : "";
+    records.push(...(EPQA.data.loads || []).filter((load) => !teacherId || sameTeacherLoose(load.teacher, teacherId)));
+    records.push(...(EPQA.slots || []).filter((slot) => !teacherId || sameTeacherLoose(slot.teacher, teacherId)));
+  } else if (mode === "room") {
+    const roomNameFilter = filter && filter !== "__ALL_ROOMS__" ? filter : "";
+    records.push(...(EPQA.data.loads || []).filter((load) => !roomNameFilter || sameRoom({ id: load.roomId || load.room, name: load.room || load.roomId }, load)));
+    records.push(...(EPQA.slots || []).filter((slot) => !roomNameFilter || normalizeKey(slot.room) === normalizeKey(roomNameFilter) || normalizeKey(slot.roomId) === normalizeKey(roomNameFilter)));
+  } else {
+    records.push(...(EPQA.data.loads || []), ...(EPQA.slots || []));
+  }
+
+  const hasSecondary = records.some((item) => normalizeLevel(item.level) === "secondary");
+  const hasLatePeriod = records.some((item) => Number(item.period || 0) > 5);
+  return hasSecondary || hasLatePeriod ? 6 : 5;
 }
 
 function normalizeImportedData(input) {
@@ -3829,7 +4729,7 @@ function normalizeImportedData(input) {
     blockHours: Number(load.blockHours || load.block_hours || 1),
     rulePriority: normalizeRulePriority(load.rulePriority || load.priority || load.blockPriority || "P0"),
     lockedTeacher: load.lockedTeacher ?? load.locked ?? load.lockedOriginalAssignment ?? true
-  }));
+  })).map((load) => ({ ...load, loadKey: loadSignature(load) }));
   data.slots = data.slots || [];
   return data;
 }
@@ -3861,7 +4761,8 @@ function normalizeCellAssignments(assignments, data) {
         blockHours: 1,
         rulePriority: "P0",
         lockedTeacher: assignment.lockedOriginalAssignment ?? true,
-        source: assignment.source || "JSON"
+        source: assignment.source || "JSON",
+        loadKey
       });
     }
 
@@ -3882,7 +4783,8 @@ function normalizeCellAssignments(assignments, data) {
       siteId: assignment.siteId || assignment.site || "",
       source: assignment.source || "JSON",
       locked: assignment.lockedOriginalAssignment ?? true,
-      duration: 1
+      duration: 1,
+      loadKey
     };
   });
 
@@ -3898,7 +4800,19 @@ function normalizeGroups(groups) {
 
 function normalizeTeachers(teachers) {
   if (!Array.isArray(teachers)) return [];
-  return teachers.map((teacher) => typeof teacher === "string" ? { id: teacher, name: teacher } : teacher);
+  return teachers.map((teacher) => {
+    const normalized = typeof teacher === "string" ? { id: teacher, name: teacher } : { ...teacher };
+    normalized.availability = normalizeTeacherAvailability(normalized.availability);
+    return normalized;
+  });
+}
+
+function normalizeTeacherAvailability(availability) {
+  if (!availability || typeof availability !== "object") return {};
+  return Object.entries(availability).reduce((carry, [day, record]) => {
+    carry[normalizeDay(day)] = record && typeof record === "object" ? { ...record } : record;
+    return carry;
+  }, {});
 }
 
 function normalizeRooms(rooms) {
@@ -3913,6 +4827,7 @@ function normalizeDays(days) {
 
 function normalizeDay(day) {
   const key = normalizeKey(day);
+  if (key.includes("MI") && key.includes("RCOLES")) return "Miercoles";
   return {
     LUNES: "Lunes",
     MARTES: "Martes",
@@ -3996,6 +4911,21 @@ function teacherKey(teacher) {
   return teacher.id || teacher.name || String(teacher);
 }
 
+function loadSignature(load) {
+  if (!load) return "";
+  return [
+    normalizeKey(load.teacher),
+    normalizeKey(load.group),
+    normalizeKey(load.subject),
+    normalizeLevel(load.level),
+    normalizeKey(load.siteId || load.site || ""),
+    normalizeKey(load.roomId || load.room || ""),
+    normalizeKey(load.blockHours || load.block_hours || 1),
+    normalizeRulePriority(load.rulePriority || load.priority || load.blockPriority || "P0"),
+    unique((load.preferredDays || []).map(normalizeDay)).sort(naturalSort).join(",")
+  ].join("|");
+}
+
 function sameTeacher(a, b) {
   return normalizeKey(a) === normalizeKey(b);
 }
@@ -4077,6 +5007,7 @@ function openUxModal(title, message, type = "info", options = null) {
   const okButton = byId("uxModalOk");
   const cancelButton = byId("uxModalCancel");
   const upgradeButton = byId("uxModalUpgrade");
+  modal.querySelector(".ux-modal-card")?.classList.toggle("wide", Boolean(options?.wide));
   okButton.textContent = options?.confirmLabel || "Entendido";
   okButton.onclick = () => {
     const action = modal._onConfirm;
@@ -4117,6 +5048,7 @@ function closeUxModal() {
     okButton.textContent = "Entendido";
     okButton.onclick = null;
   }
+  modal.querySelector(".ux-modal-card")?.classList.remove("wide");
   const cancelButton = byId("uxModalCancel");
   if (cancelButton) cancelButton.hidden = true;
   const upgradeButton = byId("uxModalUpgrade");
@@ -4207,10 +5139,168 @@ function playUiSound(type = "info") {
   }
 }
 
+function cellCycleLevel(mode, filter, primarySlot, day, period, groupId = "") {
+  if (mode === "group" && filter && filter !== "__ALL_GROUPS__") {
+    return normalizeLevel(groupObjectById(filter)?.level || inferGroupLevel(filter));
+  }
+  if (mode === "group" && groupId) {
+    return normalizeLevel(groupObjectById(groupId)?.level || inferGroupLevel(groupId));
+  }
+  if (mode === "teacher" && filter && filter !== "__ALL_TEACHERS__") {
+    const teacher = findTeacher(filter);
+    return normalizeLevel(teacher?.type || teacher?.level || "secondary");
+  }
+  if (primarySlot?.level) return normalizeLevel(primarySlot.level);
+  const contextual = (EPQA.slots || []).find((slot) => slot.day === day && Number(slot.period) === Number(period));
+  if (contextual?.level) return normalizeLevel(contextual.level);
+  return "secondary";
+}
+
+function teacherCycleLevel(teacher) {
+  const raw = teacher?.type || teacher?.level || teacher?.cycle || teacher?.stage || "secondary";
+  return normalizeLevel(raw);
+}
+
+function groupCycleLevel(group) {
+  return normalizeLevel(group?.level || inferGroupLevel(group?.id));
+}
+
+function availableTeachersForCell(level, day, period) {
+  const cycle = normalizeLevel(level || "secondary");
+  const timeKey = `${day}-${Number(period)}`;
+  return (EPQA.data.teachers || [])
+    .filter((teacher) => teacherCycleLevel(teacher) === cycle)
+    .filter((teacher) => {
+      const teacherName = teacherKey(teacher);
+      const occupied = (EPQA.slots || []).some((slot) => sameTeacherLoose(slot.teacher, teacherName) && occupiedPeriods(slot).includes(timeKey));
+      if (occupied) return false;
+      const availability = normalizeAvailabilityRecord(teacher.availability?.[day]);
+      if (availability?.slots) {
+        const periodKey = `H${Number(period)}`;
+        const state = normalizeAvailabilityState(availability.slots?.[periodKey] || "available");
+        if (state === "unavailable") return false;
+      }
+      return true;
+    })
+    .sort((a, b) => naturalSort(a.name || a.id || "", b.name || b.id || ""));
+}
+
+function availableGroupsForCell(level, day, period) {
+  const cycle = normalizeLevel(level || "secondary");
+  const timeKey = `${day}-${Number(period)}`;
+  return groupOptions()
+    .filter((group) => groupCycleLevel(group) === cycle)
+    .filter((group) => {
+      return !(EPQA.slots || []).some((slot) => String(slot.group) === String(group.id) && occupiedPeriods(slot).includes(timeKey));
+    })
+    .sort((a, b) => naturalSort(a.name || a.id || "", b.name || b.id || ""));
+}
+
+function buildCellAvailabilityTooltip(cell) {
+  const mode = cell.dataset.mode || byId("viewMode")?.value || "";
+  const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
+  const day = cell.dataset.day;
+  const period = Number(cell.dataset.period || 0);
+  if (!day || !period || cell.querySelector(".class-card, .panorama-card")) return "";
+
+  const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, day, period, cell.dataset.group || "");
+  const target = mode === "teacher" ? availableGroupsForCell(cycle, day, period) : availableTeachersForCell(cycle, day, period);
+  const label = mode === "teacher" ? "Grados disponibles" : "Docentes disponibles";
+  const emptyLabel = mode === "teacher" ? "Sin grados disponibles" : "Sin docentes disponibles";
+  const limit = 8;
+  const items = target.slice(0, limit).map((item) => {
+    const name = escapeHtml(item.name || item.id || "");
+    const site = escapeHtml(item.siteId || item.site || "");
+    return `<span class="tooltip-chip">${name}${site ? `<small>${site}</small>` : ""}</span>`;
+  }).join("");
+  const suffix = target.length > limit ? `<span class="tooltip-more">+${target.length - limit} mas</span>` : "";
+  return `
+    <div class="cell-tooltip">
+      <strong>${escapeHtml(day)} H${period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}</strong>
+      <p>${label} sin asignacion en esa franja.</p>
+      <div class="tooltip-chip-list">${items || `<span class="tooltip-empty">${emptyLabel}</span>`}${suffix}</div>
+    </div>
+  `;
+}
+
+function ensureHoverInspector() {
+  let inspector = byId("hoverInspector");
+  if (inspector) return inspector;
+  inspector = document.createElement("div");
+  inspector.id = "hoverInspector";
+  inspector.className = "hover-inspector";
+  inspector.hidden = true;
+  inspector.innerHTML = `
+    <strong></strong>
+    <span></span>
+  `;
+  document.body.appendChild(inspector);
+  return inspector;
+}
+
+function updateHoverInspector(title, body, tone = "info") {
+  const inspector = ensureHoverInspector();
+  inspector.hidden = false;
+  inspector.dataset.tone = tone;
+  inspector.querySelector("strong").textContent = title || "";
+  inspector.querySelector("span").textContent = body || "";
+}
+
+function clearHoverInspector() {
+  const inspector = byId("hoverInspector");
+  if (!inspector) return;
+  inspector.hidden = true;
+  inspector.dataset.tone = "";
+  inspector.querySelector("strong").textContent = "";
+  inspector.querySelector("span").textContent = "";
+}
+
 function activateTooltips() {
   if (!window.tippy) return;
+  ensureHoverInspector();
+  document.querySelectorAll(".slot-cell:not(.covered-cell)").forEach((cell) => {
+    if (cell.querySelector(".class-card, .panorama-card") || cell._epqaCellTip) return;
+    cell._epqaCellTip = tippy(cell, {
+      content: () => buildCellAvailabilityTooltip(cell),
+      allowHTML: true,
+      placement: "top",
+      delay: [120, 0],
+      maxWidth: 420,
+      theme: "epqa-availability",
+      interactive: true,
+      appendTo: () => document.body,
+      onShow() {
+        const mode = cell.dataset.mode || byId("viewMode")?.value || "";
+        const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
+        const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
+        const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
+        updateHoverInspector(
+          `${cell.dataset.day} H${cell.dataset.period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
+          `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
+          "info"
+        );
+      },
+      onHidden() {
+        clearHoverInspector();
+      }
+    });
+    cell.addEventListener("pointerenter", () => {
+      if (cell.querySelector(".class-card, .panorama-card")) return;
+      const mode = cell.dataset.mode || byId("viewMode")?.value || "";
+      const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
+      const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
+      const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
+      updateHoverInspector(
+        `${cell.dataset.day} H${cell.dataset.period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
+        `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
+        "info"
+      );
+    });
+    cell.addEventListener("pointerleave", clearHoverInspector);
+  });
   document.querySelectorAll(".slot-cell.conflict").forEach((cell) => {
-    tippy(cell, {
+    if (cell._epqaConflictTip) return;
+    cell._epqaConflictTip = tippy(cell, {
       content: cell.dataset.conflicts || "Esta hora tiene conflictos P0.",
       placement: "top",
       delay: [120, 0],
@@ -4223,7 +5313,8 @@ function activateTooltips() {
     if (!slot) return;
     const conflicts = conflictDetailsForSlot(slot);
     const conflictText = conflicts.length ? ` | Conflictos: ${conflicts.join(" | ")}` : "";
-    tippy(card, {
+    if (card._epqaCardTip) return;
+    card._epqaCardTip = tippy(card, {
       content: `${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room} · Fuente: ${slot.source}`,
       placement: "top",
       delay: [120, 0],
@@ -4233,6 +5324,34 @@ function activateTooltips() {
         instance.setContent(`${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room} · Fuente: ${slot.source}${conflictText}`);
       }
     });
+    card.addEventListener("pointerenter", () => {
+      updateHoverInspector(
+        `${slot.teacher} · ${slot.subject}`,
+        `${slot.group} · ${slot.day} H${slot.period} · ${slot.room || "Aula"} · ${slotDuration(slot)}h`,
+        "slot"
+      );
+    });
+    card.addEventListener("pointerleave", clearHoverInspector);
+  });
+  document.querySelectorAll(".pending-card").forEach((card) => {
+    if (card._epqaPendingTip) return;
+    card._epqaPendingTip = tippy(card, {
+      content: card.dataset.duration ? `${card.dataset.duration}h pendiente` : "Pendiente por ubicar",
+      placement: "top",
+      delay: [120, 0],
+      maxWidth: 320,
+      theme: "epqa"
+    });
+    const load = findLoad(card.dataset.loadId);
+    if (!load) return;
+    card.addEventListener("pointerenter", () => {
+      updateHoverInspector(
+        `${load.teacher} · ${load.subject}`,
+        `Pendiente ${card.dataset.duration || 1}h · ${load.group} · ${load.room || load.roomId || "Aula"} · revisar impactos al ubicar`,
+        "warn"
+      );
+    });
+    card.addEventListener("pointerleave", clearHoverInspector);
   });
 }
 
