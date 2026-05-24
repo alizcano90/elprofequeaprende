@@ -209,6 +209,61 @@ function epqa_latest_snapshot(PDO $pdo, int $scheduleId, int $userId): ?array
     return is_array($decoded) ? $decoded : null;
 }
 
+function epqa_latest_non_empty_snapshot(PDO $pdo, int $scheduleId, int $userId): ?array
+{
+    if (!epqa_table_exists($pdo, 'horario_schedule_versions')) {
+        return null;
+    }
+    $stmt = $pdo->prepare(
+        'SELECT snapshot FROM horario_schedule_versions
+         WHERE schedule_id = :schedule_id AND user_id = :user_id
+         ORDER BY version_number DESC, id DESC'
+    );
+    $stmt->execute(['schedule_id' => $scheduleId, 'user_id' => $userId]);
+    while (($raw = $stmt->fetchColumn()) !== false) {
+        if (!$raw) {
+            continue;
+        }
+        $decoded = json_decode((string)$raw, true);
+        if (is_array($decoded) && epqa_snapshot_has_data($decoded)) {
+            return $decoded;
+        }
+    }
+    return null;
+}
+
+function epqa_snapshot_has_data(array $snapshot): bool
+{
+    $data = isset($snapshot['data']) && is_array($snapshot['data']) ? $snapshot['data'] : $snapshot;
+    if (!is_array($data)) {
+        return false;
+    }
+    $teachers = is_array($data['teachers'] ?? null) ? count($data['teachers']) : 0;
+    $loads = is_array($data['loads'] ?? null) ? count($data['loads']) : 0;
+    $subjects = is_array($data['subjects'] ?? null) ? count($data['subjects']) : 0;
+    $sites = is_array($data['sites'] ?? null) ? count($data['sites']) : 0;
+    $rooms = is_array($data['rooms'] ?? null) ? count($data['rooms']) : 0;
+    $slots = is_array($data['slots'] ?? null) ? count($data['slots']) : 0;
+    $groups = 0;
+    if (is_array($data['groups'] ?? null)) {
+        $groups = count($data['groups']);
+    } elseif (is_array($data['groups']['primary'] ?? null) || is_array($data['groups']['secondary'] ?? null)) {
+        $groups = count($data['groups']['primary'] ?? []) + count($data['groups']['secondary'] ?? []);
+    }
+    $project = is_array($data['project'] ?? null) ? $data['project'] : [];
+    $projectText = trim((string)($project['institution'] ?? $project['name'] ?? $data['institution_name'] ?? $data['institution'] ?? $data['name'] ?? ''));
+    $rules = is_array($data['rules'] ?? null) ? $data['rules'] : [];
+    $general = is_array($rules['general'] ?? null) ? $rules['general'] : [];
+    $hasMeaningfulRules =
+        !empty($rules['critical']) ||
+        !empty($rules['teacherSite']) ||
+        !empty($rules['room']) ||
+        !empty($rules['block']) ||
+        !empty($general['dailyExceptions']) ||
+        ((int)($general['maxTeacherHoursPerDay'] ?? 6) !== 6);
+    return (bool)($teachers || $groups || $subjects || $loads || $sites || $rooms || $slots || $projectText !== '' || $hasMeaningfulRules);
+}
+
 function epqa_next_version_number(PDO $pdo, int $scheduleId, int $userId): int
 {
     $stmt = $pdo->prepare('SELECT COALESCE(MAX(version_number), 0) + 1 FROM horario_schedule_versions WHERE schedule_id = :schedule_id AND user_id = :user_id');

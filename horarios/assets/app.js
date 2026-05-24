@@ -1,4 +1,4 @@
-const EPQA = {
+﻿const EPQA = {
   storageKey: "epqa_horarios_avance_v1",
   data: null,
   slots: [],
@@ -78,7 +78,7 @@ function setupDataSectionTabs() {
   const cards = [...grid.querySelectorAll(".catalog-card")];
   const tabs = document.createElement("div");
   tabs.className = "config-tabs";
-  const labels = ["Institucion", "Sedes", "Docentes", "Resumen docente", "Resumen grados", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
+  const labels = ["Institución", "Sedes", "Docentes", "Resumen docente", "Resumen grados", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
   cards.forEach((card, index) => {
     card.dataset.configTab = String(index);
     if (index !== 0) card.hidden = true;
@@ -221,6 +221,11 @@ function bindActions() {
 async function loadSeed() {
   const serverLoaded = await loadScheduleWorkspace();
   if (serverLoaded) return;
+  const saved = readProgress();
+  if (saved?.data) {
+    applyProgress(saved);
+    return;
+  }
   initializeEmptyWorkspace();
 }
 
@@ -271,16 +276,21 @@ async function loadScheduleWorkspace(scheduleId = null) {
       EPQA.activeScheduleId = payload.active.id;
       const snapshotData = canonicalScheduleInput(payload.active.data || {});
       const currentData = canonicalScheduleInput(EPQA.data && typeof EPQA.data === "object" ? EPQA.data : {});
-      EPQA.data = normalizeImportedData(hasCanonicalScheduleData(snapshotData) ? snapshotData : currentData);
-      EPQA.slots = Array.isArray(payload.active.slots) ? payload.active.slots : (EPQA.data.slots || []);
+      const resolvedData = resolveScheduleData(snapshotData, currentData);
+      EPQA.data = normalizeImportedData(resolvedData);
+      EPQA.slots = Array.isArray(payload.active.slots) && payload.active.slots.length
+        ? payload.active.slots
+        : (EPQA.data.slots && EPQA.data.slots.length ? EPQA.data.slots : (Array.isArray(currentData.slots) ? currentData.slots : EPQA.slots));
       EPQA.audit = payload.active.audit || EPQA.audit;
       if (byId("jsonInput")) byId("jsonInput").value = JSON.stringify(EPQA.data, null, 2);
       updateDataLoadAlert({ data: EPQA.data, slots: EPQA.slots, audit: EPQA.audit });
+      traceWorkspaceState("before-render", payload.active);
       try {
         renderDataViews();
+        traceWorkspaceState("after-render", payload.active);
       } catch (renderError) {
         console.error("EPQA render error after loading schedule", renderError);
-        showDataLoadAlert("El horario activo cargo con advertencias visuales. Revisa si faltan datos en Institución, Docentes, Grados, Materias o Cargas.");
+        showDataLoadAlert("El horario activo cargó con advertencias visuales. Revisa si faltan datos en Institución, Docentes, Grados, Materias o Cargas.");
       }
       return true;
     }
@@ -289,6 +299,92 @@ async function loadScheduleWorkspace(scheduleId = null) {
     console.error("EPQA load schedule error", error);
     return false;
   }
+}
+
+function resolveScheduleData(snapshotData, fallbackData) {
+  const snapshot = snapshotData && typeof snapshotData === "object" ? snapshotData : {};
+  const fallback = fallbackData && typeof fallbackData === "object" ? fallbackData : {};
+  if (hasCanonicalScheduleData(snapshot)) return snapshot;
+  if (hasCanonicalScheduleData(fallback)) return fallback;
+  const merged = { ...fallback, ...snapshot };
+  merged.project = { ...(fallback.project || {}), ...(snapshot.project || {}) };
+  merged.days = Array.isArray(snapshot.days) && snapshot.days.length ? snapshot.days : (Array.isArray(fallback.days) ? fallback.days : merged.days);
+  merged.sites = Array.isArray(snapshot.sites) && snapshot.sites.length ? snapshot.sites : (Array.isArray(fallback.sites) ? fallback.sites : merged.sites);
+  merged.rooms = Array.isArray(snapshot.rooms) && snapshot.rooms.length ? snapshot.rooms : (Array.isArray(fallback.rooms) ? fallback.rooms : merged.rooms);
+  merged.teachers = Array.isArray(snapshot.teachers) && snapshot.teachers.length ? snapshot.teachers : (Array.isArray(fallback.teachers) ? fallback.teachers : merged.teachers);
+  merged.groups = Array.isArray(snapshot.groups) && snapshot.groups.length ? snapshot.groups : (Array.isArray(fallback.groups) ? fallback.groups : merged.groups);
+  merged.subjects = Array.isArray(snapshot.subjects) && snapshot.subjects.length ? snapshot.subjects : (Array.isArray(fallback.subjects) ? fallback.subjects : merged.subjects);
+  merged.loads = Array.isArray(snapshot.loads) && snapshot.loads.length ? snapshot.loads : (Array.isArray(fallback.loads) ? fallback.loads : merged.loads);
+  merged.slots = Array.isArray(snapshot.slots) && snapshot.slots.length ? snapshot.slots : (Array.isArray(fallback.slots) ? fallback.slots : merged.slots);
+  merged.rules = snapshot.rules && Object.keys(snapshot.rules).length ? snapshot.rules : fallback.rules || merged.rules;
+  return merged;
+}
+
+function traceWorkspaceState(stage, active) {
+  try {
+    const data = EPQA.data || {};
+    const teachers = Array.isArray(data.teachers) ? data.teachers.length : 0;
+    const groups = Array.isArray(data.groups)
+      ? data.groups.length
+      : (Array.isArray(data.groups?.primary) ? data.groups.primary.length : 0) + (Array.isArray(data.groups?.secondary) ? data.groups.secondary.length : 0);
+    const subjects = Array.isArray(data.subjects) ? data.subjects.length : 0;
+    const loads = Array.isArray(data.loads) ? data.loads.length : 0;
+    const slots = Array.isArray(EPQA.slots) ? EPQA.slots.length : 0;
+    const auditCounts = EPQA.audit?.counts || { P0: 0, P1: 0, P2: 0 };
+    const dataSummary = {
+      scheduleId: EPQA.activeScheduleId || active?.id || null,
+      scheduleName: active?.schedule?.name || data.project?.institution || data.project?.name || "",
+      teachers,
+      groups,
+      subjects,
+      loads,
+      slots,
+      p0: Number(auditCounts.P0 || 0),
+      p1: Number(auditCounts.P1 || 0),
+      p2: Number(auditCounts.P2 || 0)
+    };
+    const domSummary = {
+      dashHorarioActivo: textById("dashHorarioActivo"),
+      dashEstadoHorario: textById("dashEstadoHorario"),
+      dashUltimaActualizacion: textById("dashUltimaActualizacion"),
+      metricDocentes: textById("metricDocentes"),
+      metricGrados: textById("metricGrados"),
+      metricMaterias: textById("metricMaterias"),
+      metricCargas: textById("metricCargas"),
+      metricHorasAsignadas: textById("metricHorasAsignadas"),
+      metricHorasPendientes: textById("metricHorasPendientes"),
+      metricP0: textById("metricP0"),
+      metricP1: textById("metricP1"),
+      metricP2: textById("metricP2"),
+      metricCumplimiento: textById("metricCumplimiento"),
+      metricPendientesTexto: textById("metricPendientesTexto"),
+      metricAlertasTexto: textById("metricAlertasTexto")
+    };
+    console.groupCollapsed(`EPQA trace ${stage}`);
+    console.log("active payload", active || null);
+    console.log("data summary", dataSummary);
+    console.log("dom summary", domSummary);
+    console.log("comparison", {
+      docentes: String(dataSummary.teachers) === normalizeDomNumber(domSummary.metricDocentes),
+      grados: String(dataSummary.groups) === normalizeDomNumber(domSummary.metricGrados),
+      materias: String(dataSummary.subjects) === normalizeDomNumber(domSummary.metricMaterias),
+      cargas: String(dataSummary.loads) === normalizeDomNumber(domSummary.metricCargas),
+      p0: String(dataSummary.p0) === normalizeDomNumber(domSummary.metricP0),
+      p1: String(dataSummary.p1) === normalizeDomNumber(domSummary.metricP1),
+      p2: String(dataSummary.p2) === normalizeDomNumber(domSummary.metricP2)
+    });
+    console.groupEnd();
+  } catch (error) {
+    console.error("EPQA trace error", error);
+  }
+}
+
+function textById(id) {
+  return (byId(id)?.textContent || "").trim();
+}
+
+function normalizeDomNumber(value) {
+  return String(value || "").replace(/[^\d]/g, "");
 }
 
 function chooseLoadedScheduleId(schedules, currentId = null) {
@@ -323,7 +419,7 @@ function updateDataLoadAlert(active) {
   if (!Array.isArray(data.groups) || (!data.groups.length && !data.groups?.primary?.length && !data.groups?.secondary?.length)) missing.push("no hay grados cargados");
   if (!Array.isArray(data.subjects) || !data.subjects.length) missing.push("no hay materias cargadas");
   if (!Array.isArray(EPQA.slots) || !EPQA.slots.length) missing.push("no hay propuesta de horario cargada");
-  if (!EPQA.audit || !Array.isArray(EPQA.audit.results)) missing.push("no hay auditoría cargada");
+  if (!EPQA.audit || !Array.isArray(EPQA.audit.results)) missing.push("no hay auditorÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â­a cargada");
   if (missing.length) {
     showDataLoadAlert(`El horario llegó con faltantes: ${missing.join(", ")}.`);
   } else {
@@ -349,7 +445,6 @@ function renderScheduleSwitcher(active) {
     createButton.disabled = !canCreate;
     createButton.title = canCreate ? "" : "Disponible en plan Pro";
   }
-  renderDashboardOverview(active);
 }
 
 function statusLabel(status) {
@@ -360,6 +455,19 @@ function statusLabel(status) {
     finalized: "Finalizado",
     archived: "Archivado"
   }[status] || status || "Borrador";
+}
+
+function formatShortDate(value) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
 }
 
 async function loadScheduleById(scheduleId) {
@@ -599,7 +707,7 @@ function renderDashboardOverview(active = null) {
   const nextHelp = chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
   const executiveSummary = hasBasics
     ? `Tu horario tiene ${teachers.length} docentes, ${groups.length} grados y ${loads.length} cargas académicas. Hay ${critical} problemas obligatorios y ${strong} reglas importantes por revisar.`
-    : "Empieza por registrar la información base para construir un horario claro y publicable.";
+    : "Empieza por registrar la informaciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n base para construir un horario claro y publicable.";
 
   setTextAny(scheduleName, "dashHorarioActivo", "activeScheduleName", "workspaceHeroTitle");
   setTextAny(scheduleStatus, "activeScheduleStatus");
@@ -608,7 +716,7 @@ function renderDashboardOverview(active = null) {
   setTextAny(nextTitle, "dashNextActionTitle", "workspaceNextAction");
   setTextAny(nextHelp, "dashNextActionHelp", "workspaceNextActionHelp");
   setTextAny(executiveSummary, "workspaceDiagnostic");
-  setTextAny(critical > 0 ? "Corrección obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar", "workspaceNextActionBadge");
+  setTextAny(critical > 0 ? "corrección obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar", "workspaceNextActionBadge");
 
   const dashboardSelect = byAnyId("dashHorarioSelect", "scheduleSelect");
   if (dashboardSelect) {
@@ -629,13 +737,13 @@ function renderDashboardOverview(active = null) {
       dashboardStep("Cargas", hasLoads, !hasLoads),
       dashboardStep("Disponibilidad", hasAvailability, !hasAvailability),
       dashboardStep("Reglas", hasRules, !hasRules),
-      dashboardStep("Generación", hasProposal, !hasProposal),
-      dashboardStep("Auditoría", critical === 0, critical > 0),
+      dashboardStep("GeneraciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n", hasProposal, !hasProposal),
+      dashboardStep("AuditorÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â­a", critical === 0, critical > 0),
       dashboardStep("Consolidado", critical === 0 && hasProposal, critical > 0 || !hasProposal)
     ];
     stepper.innerHTML = steps.map((step, index) => `
-      <div class="epqa-flow-step-v2 ${step.state === "is-complete" ? "epqa-flow-step-v2--done" : step.label === "Generación" && step.state !== "is-complete" ? "epqa-flow-step-v2--active" : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "epqa-flow-step-v2--warning" : step.state === "is-pending" ? "epqa-flow-step-v2--pending" : "epqa-flow-step-v2--warning"}">
-        <span>${step.state === "is-complete" ? "✓" : step.label === "Generación" && step.state !== "is-complete" ? index + 1 : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "!" : step.state === "is-pending" ? index + 1 : "!"}</span>
+      <div class="epqa-flow-step-v2 ${step.state === "is-complete" ? "epqa-flow-step-v2--done" : step.label === "GeneraciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n" && step.state !== "is-complete" ? "epqa-flow-step-v2--active" : (step.label === "AuditorÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â­a" || step.label === "Consolidado") && critical > 0 ? "epqa-flow-step-v2--warning" : step.state === "is-pending" ? "epqa-flow-step-v2--pending" : "epqa-flow-step-v2--warning"}">
+        <span>${step.state === "is-complete" ? "ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚Â¦ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â“ÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â…ÃƒÂ¢Ã‚Â€Ã‚Âœ" : step.label === "GeneraciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n" && step.state !== "is-complete" ? index + 1 : (step.label === "AuditorÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â­a" || step.label === "Consolidado") && critical > 0 ? "!" : step.state === "is-pending" ? index + 1 : "!"}</span>
         <small>${escapeHtml(step.label)}</small>
       </div>
     `).join("");
@@ -658,8 +766,8 @@ function renderDashboardOverview(active = null) {
   if (alerts) {
     const rows = [];
     if (critical > 0) rows.push(dashboardAlert("critical", `Hay ${critical} problemas obligatorios`, "Corrige estas situaciones antes de publicar."));
-    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse según el criterio institucional."));
-    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revisión o exportación."));
+    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse segÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Âºn el criterio Instituciónal."));
+    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revisión o exportaciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n."));
     alerts.innerHTML = rows.join("");
   }
 }
@@ -679,7 +787,7 @@ function dashboardAlert(tone, title, copy) {
 }
 
 function chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
-  if (!hasBasics) return "Continuar construccion";
+  if (!hasBasics) return "Continuar construcción";
   if (!hasLoads) return "Asignar materias";
   if (!hasProposal) return "Generar horario";
   if (critical > 0) return "Revisar problemas";
@@ -689,7 +797,7 @@ function chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical,
 }
 
 function chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
-  if (!hasBasics) return "Registra institucion, docentes, grupos y materias para empezar.";
+  if (!hasBasics) return "Registra Institución, docentes, grupos y materias para empezar.";
   if (!hasLoads) return "Define la carga academica para que el sistema pueda proponer un horario.";
   if (!hasProposal) return "Con la carga lista, el sistema puede generar una propuesta completa.";
   if (critical > 0) return "Hay problemas obligatorios que conviene revisar antes de publicar.";
@@ -807,7 +915,7 @@ function openEditLoadModal(loadId) {
   byId("editLoadModalTitle").textContent = `${load.subject} - ${load.group}`;
   byId("editLoadSummary").innerHTML = `
     <strong>${escapeHtml(load.teacher)}</strong>
-    <span>${escapeHtml(load.subject)} · ${escapeHtml(load.group)}</span>
+    <span>${escapeHtml(load.subject)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(load.group)}</span>
   `;
   byId("editLoadHours").value = Number(load.hours || 1);
   byId("editLoadBlockHours").value = String(blockHours(load));
@@ -868,7 +976,7 @@ function renderDataViews() {
       step();
     } catch (error) {
       console.error(`EPQA ${name} error`, error);
-      showDataLoadAlert(`La vista de edición tuvo un problema al dibujar ${name}. Revisa la consola para el detalle.`);
+      showDataLoadAlert(`La vista de ediciÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â³n tuvo un problema al dibujar ${name}. Revisa la consola para el detalle.`);
       return;
     }
   }
@@ -1128,7 +1236,7 @@ function dailyRuleExceptions() {
 function addDailyRuleException() {
   const selectedDay = byId("dailyRuleDay")?.value || "";
   const days = selectedDay === "__ALL_DAYS__"
-    ? (EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]).map(normalizeDay)
+    ? (EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]).map(normalizeDay)
     : [normalizeDay(selectedDay)];
   const baseRule = {
     teacher: byId("dailyRuleTeacher")?.value || "",
@@ -1268,8 +1376,8 @@ function renderTeacherManager() {
       <td><select data-catalog-field="teacher-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, teacherSiteId) ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
       <td><input data-catalog-field="teacher-min" type="number" min="0" value="${Number(teacher.minWeeklyHours || teacher.min_secondary_hours || 0)}"></td>
       <td class="catalog-actions">
-        <button class="epqa-icon-action-v4" data-save-teacher="${index}" type="button" title="Guardar docente" aria-label="Guardar docente">💾</button>
-        <button class="epqa-icon-action-v4 epqa-icon-action-v4--danger" data-delete-teacher="${index}" type="button" title="Borrar docente" aria-label="Borrar docente">🗑️</button>
+        <button class="epqa-icon-action-v4" data-save-teacher="${index}" type="button" title="Guardar docente" aria-label="Guardar docente">ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â°ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚Â¦ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¸ÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂžÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¾</button>
+        <button class="epqa-icon-action-v4 epqa-icon-action-v4--danger" data-delete-teacher="${index}" type="button" title="Borrar docente" aria-label="Borrar docente">ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â°ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚Â¦ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¸ÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ‚Ã‚ÂÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â‹ÃƒÂ…Ã‚Â“ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¯ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¸ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â</button>
       </td>
     </tr>`;
   }).join("");
@@ -1299,6 +1407,38 @@ function teacherTypeBadgeClass(value) {
   return "epqa-type-badge-v4--otro";
 }
 
+function applyTeacherFilters() {
+  const search = normalizeKey(byId("teacherSearchInput")?.value || "");
+  const typeFilter = byId("teacherTypeFilter")?.value || "__ALL__";
+  const siteFilter = byId("teacherSiteFilter")?.value || "__ALL__";
+  const rows = document.querySelectorAll("#teacherManager tbody tr[data-teacher-index]");
+  let visibleCount = 0;
+
+  rows.forEach((row) => {
+    const label = normalizeKey(row.dataset.teacherLabel || row.textContent || "");
+    const teacherType = normalizeLevel(row.dataset.teacherType || "");
+    const teacherSite = row.dataset.teacherSite || "";
+    const matchesSearch = !search || label.includes(search);
+    const matchesType = typeFilter === "__ALL__" || teacherTypeLabel(teacherType) === typeFilter || teacherType === normalizeLevel(typeFilter);
+    const matchesSite = siteFilter === "__ALL__" || sameSite(teacherSite, siteFilter);
+    const visible = matchesSearch && matchesType && matchesSite;
+    row.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+
+  const emptyRow = document.querySelector("#teacherManager .epqa-teacher-no-results-row");
+  if (emptyRow) emptyRow.hidden = visibleCount > 0;
+}
+
+function populateTeacherFilterSites() {
+  const select = byId("teacherSiteFilter");
+  if (!select) return;
+  const currentValue = select.value || "__ALL__";
+  const options = [{ id: "__ALL__", name: "Todas las sedes" }, ...siteOptionsWithEmpty().filter((site) => site.id)];
+  select.innerHTML = options.map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
+  select.value = options.some((site) => site.id === currentValue) ? currentValue : "__ALL__";
+}
+
 function ensureTeacherV4Chrome() {
   const mainCard = document.querySelector(".epqa-docentes-main-card-v3");
   if (!mainCard) return;
@@ -1318,10 +1458,11 @@ function ensureTeacherV4Chrome() {
   const addTeacherButton = byId("btnAddTeacher");
   if (addTeacherButton) addTeacherButton.innerHTML = "<span>＋</span><span>Agregar docente</span>";
   const footerIcon = mainCard.querySelector(".epqa-footer-icon-v3");
-  if (footerIcon) footerIcon.textContent = "♙";
+  if (footerIcon) footerIcon.textContent = "◌";
 
   const layout = mainCard.querySelector(".epqa-docentes-layout-v3");
   if (layout) layout.classList.add("epqa-docentes-layout-v3--compact");
+  ensureTeacherSummaryV4Chrome();
 
   if (!document.getElementById("teacherFormModal")) {
     const formPanel = mainCard.querySelector(".epqa-docentes-form-panel-v3");
@@ -1343,7 +1484,10 @@ function ensureTeacherV4Chrome() {
         </div>
         <div class="epqa-teacher-modal-body"></div>
       </div>`;
-    if (teacherForm) modal.querySelector(".epqa-teacher-modal-body")?.appendChild(teacherForm);
+    if (teacherForm) {
+      teacherForm.classList.add("epqa-docente-form-v3--modal");
+      modal.querySelector(".epqa-teacher-modal-body")?.appendChild(teacherForm);
+    }
     formPanel.remove();
     document.body.appendChild(modal);
   }
@@ -1407,38 +1551,12 @@ function ensureTeacherV4Chrome() {
   }
 }
 
-function populateTeacherFilterSites() {
-  const select = byId("teacherSiteFilter");
-  if (!select) return;
-  const currentValue = select.value || "__ALL__";
-  const options = [{ id: "__ALL__", name: "Todas las sedes" }, ...siteOptionsWithEmpty().filter((site) => site.id)];
-  select.innerHTML = options.map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
-  select.value = options.some((site) => site.id === currentValue) ? currentValue : "__ALL__";
+function ensureTeacherSummaryV4Chrome() {
+  const card = document.querySelector(".teacher-summary-card");
+  if (!card) return;
+  const title = card.querySelector(":scope > h2");
+  if (title) title.textContent = "Resumen docente";
 }
-
-function applyTeacherFilters() {
-  const target = byId("teacherManager");
-  if (!target) return;
-  const search = normalizeKey(byId("teacherSearchInput")?.value || "");
-  const typeFilter = byId("teacherTypeFilter")?.value || "__ALL__";
-  const siteFilter = byId("teacherSiteFilter")?.value || "__ALL__";
-  const rows = target.querySelectorAll("tbody tr[data-teacher-index]");
-  const noResultsRow = target.querySelector(".epqa-teacher-no-results-row");
-  let visible = 0;
-  rows.forEach((row) => {
-    const label = normalizeKey(row.dataset.teacherLabel || row.textContent || "");
-    const type = normalizeKey(row.dataset.teacherType || "");
-    const site = row.dataset.teacherSite || "";
-    const matchesSearch = !search || label.includes(search);
-    const matchesType = typeFilter === "__ALL__" || normalizeKey(typeFilter) === type;
-    const matchesSite = siteFilter === "__ALL__" || sameSite(site, siteFilter) || normalizeKey(site) === normalizeKey(siteFilter);
-    const show = matchesSearch && matchesType && matchesSite;
-    row.hidden = !show;
-    if (show) visible += 1;
-  });
-  if (noResultsRow) noResultsRow.hidden = visible > 0;
-}
-
 function bindTeacherV4Actions() {
   const quickCreate = byId("btnTeacherQuickCreate");
   if (quickCreate && !quickCreate.dataset.bound) {
@@ -1495,6 +1613,7 @@ function openTeacherModal() {
   const modal = byId("teacherFormModal");
   if (!modal) return;
   modal.hidden = false;
+  refreshTeacherModalSearchables();
   const input = byId("teacherName");
   setTimeout(() => input?.focus(), 0);
 }
@@ -1503,6 +1622,12 @@ function closeTeacherModal() {
   const modal = byId("teacherFormModal");
   if (!modal) return;
   modal.hidden = true;
+}
+
+function refreshTeacherModalSearchables() {
+  const modal = byId("teacherFormModal");
+  if (!modal) return;
+  modal.querySelectorAll(".searchable-select select").forEach((select) => updateSearchableSelect(select));
 }
 
 function downloadTeacherTemplate() {
@@ -1896,7 +2021,7 @@ function saveTeacherFromRow(button) {
 function ensureTeacherDefaultAvailabilitySite(teacher, siteId = "") {
   if (!teacher || !siteId) return;
   teacher.availability = teacher.availability || {};
-  const days = EPQA.data?.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
+  const days = EPQA.data?.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
   const hasSavedAvailability = Object.values(teacher.availability).some((record) =>
     record && typeof record === "object" && ("site" in record || "slots" in record || "hours" in record)
   );
@@ -2119,7 +2244,7 @@ function renderBulkLoadDrafts() {
       <article class="bulk-load-draft">
         <div>
           <strong>${escapeHtml(item.subject)}</strong>
-          <span>${escapeHtml(group?.name || item.group)} · ${Number(item.hours || 0)}h · bloque ${Number(item.blockHours || 1)}h · ${escapeHtml(item.rulePriority)}</span>
+          <span>${escapeHtml(group?.name || item.group)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${Number(item.hours || 0)}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· bloque ${Number(item.blockHours || 1)}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(item.rulePriority)}</span>
         </div>
         <button type="button" class="ghost danger" data-remove-bulk-draft="${index}">Quitar</button>
       </article>
@@ -2286,7 +2411,7 @@ function normalizeAvailabilityRecord(record, sites = siteOptions()) {
     });
     return normalized;
   }
-  const hours = Math.max(0, Math.min(periods.length, Number(record?.hours ?? periods.length)));
+  const hours = Math.max(0, Math.min(periods.length, Number(record?.hours || periods.length)));
   const defaultState = normalizeAvailabilityState(record?.state || "available");
   periods.forEach((period, index) => {
     normalized.slots[period] = index < hours ? defaultState : "unavailable";
@@ -2375,7 +2500,7 @@ function renderAvailabilityModal(teacherId = null) {
     )).join("");
     const cells = availabilityPeriods().map((period) => {
       const state = record.slots[period] || "available";
-      const label = state === "flexible" ? "F" : state === "unavailable" ? "X" : "✓";
+      const label = state === "flexible" ? "F" : state === "unavailable" ? "X" : "ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚Â¦ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â“ÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â…ÃƒÂ¢Ã‚Â€Ã‚Âœ";
       return `<button type="button" class="availability-cell ${state}" data-teacher="${escapeHtml(currentTeacherKey)}" data-day="${escapeHtml(day)}" data-period="${period}" data-state="${state}">
         <span>${period}</span>
         <strong>${label}</strong>
@@ -2475,7 +2600,7 @@ function onAvailabilityModalGridClick(event) {
   cell.classList.remove("available", "flexible", "unavailable");
   cell.classList.add(next);
   const label = cell.querySelector("strong");
-  if (label) label.textContent = next === "flexible" ? "F" : next === "unavailable" ? "X" : "✓";
+  if (label) label.textContent = next === "flexible" ? "F" : next === "unavailable" ? "X" : "ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚Â¦ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â“ÃƒÂƒÃ‚ÂƒÃƒÂ‚Ã‚Â¢ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â¬ÃƒÂƒÃ‚Â…ÃƒÂ¢Ã‚Â€Ã‚Âœ";
 }
 
 function onAvailabilityModalGridChange(event) {
@@ -2497,7 +2622,7 @@ function renderTeacherDetailPanel() {
   const teacherId = select.value || teacherOptions()[0]?.id || "";
   const teacher = findTeacher(teacherId);
   if (!teacher) {
-    panel.innerHTML = `<div class="teacher-empty">No hay docente disponible para mostrar.</div>`;
+    panel.innerHTML = `<div class="teacher-empty teacher-empty-v4">No hay docente disponible para mostrar.</div>`;
     return;
   }
 
@@ -2508,7 +2633,7 @@ function renderTeacherDetailPanel() {
   const assignedHours = slots.reduce((sum, slot) => sum + slotDuration(slot), 0);
   const pendingHours = Math.max(0, loadHours - assignedHours);
   const availabilityStats = teacherAvailabilityTotals(teacher);
-  const availabilityHours = availabilityStats.available;
+  const availableHours = availabilityStats.available;
   const usagePct = Math.min(100, availabilityStats.total ? Math.round((assignedHours / availabilityStats.total) * 100) : 0);
   const orderedLoads = unique(loads.map((load) => `${load.subject}|${load.group}`))
     .map((key) => {
@@ -2518,58 +2643,53 @@ function renderTeacherDetailPanel() {
       const total = itemLoads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
       const assigned = itemSlots.reduce((sum, slot) => sum + slotDuration(slot), 0);
       const color = generatedPastel(`${subject}|${group}`);
-      return {
-        subject,
-        group,
-        total,
-        assigned,
-        pending: Math.max(0, total - assigned),
-        color
-      };
+      return { subject, group, total, assigned, pending: Math.max(0, total - assigned), color };
     });
   const topColors = orderedLoads.slice(0, 3).map((item) => item.color);
   const background = topColors.length
     ? `linear-gradient(135deg, ${topColors[0]} 0%, ${topColors[1] || topColors[0]} 52%, ${topColors[2] || topColors[1] || topColors[0]} 100%)`
     : "linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%)";
-
   const barSegments = orderedLoads.length
     ? orderedLoads.map((item) => {
         const width = loadHours ? Math.max(8, Math.round((item.total / loadHours) * 100)) : 0;
-        return `<span class="teacher-bar-segment" style="width:${width}%;background:${item.color}" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} · ${item.total}h"></span>`;
+        return `<span class="teacher-bar-segment teacher-bar-segment-v4" style="width:${width}%;background:${item.color}" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} ÃƒÂ‚Ã‚Â· ${item.total}h"></span>`;
       }).join("")
     : `<span class="teacher-bar-empty"></span>`;
 
   panel.innerHTML = `
-    <section class="teacher-summary-hero" style="background:${background}">
-      <div>
-        <p class="eyebrow">Docente seleccionado</p>
+    <section class="teacher-summary-hero teacher-summary-hero-v4" style="background:${background}">
+      <div class="teacher-summary-copy-v4">
+        <p class="teacher-summary-eyebrow-v4">DOCENTE SELECCIONADO</p>
         <h3>${escapeHtml(teacher.name || teacher.id)}</h3>
-        <p>${escapeHtml(teacher.type || "")} · mínimo ${Number(teacher.minWeeklyHours || 0)}h</p>
-        <button type="button" class="ghost open-availability-btn" data-open-availability="${escapeHtml(teacherIdForData)}">Definir horas disponibles</button>
+        <p>${escapeHtml(teacher.type || "")} ÃƒÂ‚Ã‚Â· mÃƒÂƒÃ‚Â­nimo ${Number(teacher.minWeeklyHours || 0)}h</p>
+        <button type="button" class="ghost open-availability-btn teacher-summary-cta-v4" data-open-availability="${escapeHtml(teacherIdForData)}">Definir horas disponibles</button>
       </div>
-      <div class="teacher-score">
+      <div class="teacher-score teacher-score-v4">
         <strong>${assignedHours}h</strong>
         <span>asignadas</span>
       </div>
     </section>
-    <div class="teacher-stats">
-      <article><strong>${loadHours}h</strong><span>cargas definidas</span></article>
-      <article><strong>${assignedHours}h</strong><span>en propuesta</span></article>
-      <article><strong>${pendingHours}h</strong><span>pendientes</span></article>
-      <article><strong>${availabilityStats.available}h</strong><span>disponibles</span></article>
+
+    <div class="teacher-kpi-grid-v4">
+      <article class="teacher-kpi-card-v4 teacher-kpi-card-v4--blue"><strong>${loadHours}h</strong><span>cargas definidas</span></article>
+      <article class="teacher-kpi-card-v4 teacher-kpi-card-v4--green"><strong>${assignedHours}h</strong><span>en propuesta</span></article>
+      <article class="teacher-kpi-card-v4 teacher-kpi-card-v4--amber"><strong>${pendingHours}h</strong><span>pendientes</span></article>
+      <article class="teacher-kpi-card-v4 teacher-kpi-card-v4--slate"><strong>${availableHours}h</strong><span>disponibles</span></article>
     </div>
-    <div class="teacher-progress" aria-label="Resumen de horas asignadas">
-      <div class="teacher-progress-bar">${barSegments}</div>
-      <small>${usagePct}% de la matriz usada · ${availabilityStats.flexible} flexibles · ${availabilityStats.unavailable} no disponibles</small>
+
+    <div class="teacher-progress teacher-progress-v4" aria-label="Resumen de horas asignadas">
+      <div class="teacher-progress-bar teacher-progress-bar-v4">${barSegments}</div>
+      <small>${usagePct}% de la matriz usada ÃƒÂ‚Ã‚Â· ${availabilityStats.flexible} flexibles ÃƒÂ‚Ã‚Â· ${availabilityStats.unavailable} no disponibles</small>
     </div>
-    <div class="teacher-load-list">
+
+    <div class="teacher-load-list teacher-load-list-v4">
       ${orderedLoads.length ? orderedLoads.map((item) => `
-        <div class="teacher-load-chip" style="--chip:${item.color}">
+        <div class="teacher-load-chip teacher-load-chip-v4" style="--chip:${item.color}">
           <strong>${escapeHtml(item.subject)}</strong>
           <span>${escapeHtml(item.group)}</span>
           <em>${item.assigned}/${item.total}h</em>
         </div>
-      `).join("") : `<div class="teacher-empty">Este docente todavía no tiene cargas asignadas.</div>`}
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este docente todavÃƒÂƒÃ‚Â­a no tiene cargas asignadas.</div>`}
     </div>
   `;
   panel.querySelectorAll("[data-open-availability]").forEach((button) => {
@@ -2584,7 +2704,7 @@ function renderGroupDetailPanel() {
   const groupId = select.value || groupOptions()[0]?.id || "";
   const group = groupOptions().find((item) => String(item.id) === String(groupId)) || null;
   if (!group) {
-    panel.innerHTML = `<div class="teacher-empty">No hay grado disponible para mostrar.</div>`;
+    panel.innerHTML = `<div class="teacher-empty teacher-empty-v4">No hay grado disponible para mostrar.</div>`;
     return;
   }
   const level = normalizeLevel(group.level || inferGroupLevel(group.id));
@@ -2610,7 +2730,7 @@ function renderGroupDetailPanel() {
       <div>
         <p class="eyebrow">Grado seleccionado</p>
         <h3>${escapeHtml(group.name || group.id)}</h3>
-        <p>${level === "primary" ? "Primaria" : "Secundaria"} · meta ${requiredHours}h semanales</p>
+        <p>${level === "primary" ? "Primaria" : "Secundaria"} ÃƒÂ‚Ã‚Â· meta ${requiredHours}h semanales</p>
       </div>
       <div class="teacher-score ${statusClass}">
         <strong>${assignedHours}/${requiredHours}h</strong>
@@ -2625,7 +2745,7 @@ function renderGroupDetailPanel() {
     </div>
     <div class="teacher-progress" aria-label="Cumplimiento semanal del grado">
       <div class="teacher-progress-bar"><span class="teacher-bar-segment ${statusClass}" style="width:${pct}%"></span></div>
-      <small>${pct}% de la meta semanal · ${weeklyStatus}</small>
+      <small>${pct}% de la meta semanal ÃƒÂ‚Ã‚Â· ${weeklyStatus}</small>
     </div>
     <div class="teacher-load-list">
       ${rows.length ? rows.map((item) => `
@@ -2634,11 +2754,10 @@ function renderGroupDetailPanel() {
           <span>${escapeHtml(item.teacher)}</span>
           <em>${item.assigned}/${item.total}h</em>
         </div>
-      `).join("") : `<div class="teacher-empty">Este grado todavia no tiene cargas asignadas.</div>`}
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este grado todavÃƒÂƒÃ‚Â­a no tiene cargas asignadas.</div>`}
     </div>
   `;
 }
-
 function teacherAvailabilityTotals(teacher) {
   const availability = teacher?.availability || {};
   const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
@@ -2697,7 +2816,7 @@ function renderBoard() {
 }
 
 function renderTeacherPanoramaBoard(board) {
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
   const periods = Array.from({ length: boardPeriodCount("teacher", "__ALL_TEACHERS__") }, (_, index) => index + 1);
   const rows = [`<div class="board-head board-corner">Profesores general</div>`];
   periods.forEach((period, index) => {
@@ -2723,7 +2842,7 @@ function renderTeacherPanoramaBoard(board) {
 }
 
 function renderGroupPanoramaBoard(board) {
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
   const groups = groupOptions();
   const rows = [`<div class="board-head board-corner">Grados general</div>`];
   days.forEach((day, index) => {
@@ -2758,7 +2877,7 @@ function renderGroupPanoramaBoard(board) {
 function renderPanoramaSlot(slot, mode = "teacher") {
   const color = colorForItem(slot, "teacher");
   const symbol = mode === "group" ? subjectAbbrev(slot.subject) : teacherAbbrev(slot.teacher);
-  const tooltip = `${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room || "Aula"} · ${slot.day} H${slot.period}`;
+  const tooltip = `${slot.teacher} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.group} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.room || "Aula"} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.day} H${slot.period}`;
   return `
     <div class="class-card panorama-card ${slot.locked ? "locked" : ""}" data-slot-id="${slot.id}" data-duration="${slotDuration(slot)}" data-short-label="${escapeHtml(symbol)}" title="${escapeHtml(tooltip)}" style="background:${color};border-left-color:${borderColor(color)}">
       <button class="remove-slot" type="button" data-slot-id="${slot.id}" aria-label="Quitar hora">x</button>
@@ -2791,9 +2910,9 @@ function renderBoardCell(mode, filter, day, period, column, row) {
   const content = starts.length
     ? starts.map(renderCard).join("")
     : covered.length
-      ? `<span class="block-continuation">Continúa ${escapeHtml(covered[0].subject)} · ${escapeHtml(covered[0].teacher)}</span>`
+      ? `<span class="block-continuation">ContinÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â†ÃƒÂ¢Ã‚Â€Ã‚Â™ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Âºa ${escapeHtml(covered[0].subject)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(covered[0].teacher)}</span>`
       : "";
-  const title = conflictText || (primary ? `${primary.subject} · ${primary.teacher} · ${primary.group}` : "");
+  const title = conflictText || (primary ? `${primary.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${primary.teacher} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${primary.group}` : "");
   const style = `grid-column:${column};grid-row:${row}${rowSpan > 1 ? ` / span ${rowSpan}` : ""}`;
   return `<div class="${classes}" data-day="${escapeHtml(day)}" data-period="${period}" data-level="${escapeHtml(cycleLevel)}" data-mode="${escapeHtml(mode)}" data-filter="${escapeHtml(filter || "")}" data-conflicts="${escapeHtml(conflictText)}" title="${escapeHtml(title)}" style="${style}">${content}</div>`;
 }
@@ -2884,8 +3003,8 @@ function renderPendingCard(load) {
         <span class="subject-badge">${escapeHtml(load.group)}</span>
       </div>
       <strong>${escapeHtml(load.subject)}</strong>
-      <span>${escapeHtml(load.teacher)} · ${escapeHtml(load.group)}</span>
-      <small>Pendiente ${load.pendingIndex} · ${escapeHtml(load.room || load.roomId || "Aula disponible")}</small>
+      <span>${escapeHtml(load.teacher)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(load.group)}</span>
+      <small>Pendiente ${load.pendingIndex} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(load.room || load.roomId || "Aula disponible")}</small>
     </div>
   `;
 }
@@ -2940,8 +3059,8 @@ function renderCard(slot) {
         <span class="subject-badge">${escapeHtml(slot.room || slot.site || "")}</span>
       </div>
       <strong>${escapeHtml(slot.subject)}</strong>
-      <span>${escapeHtml(slot.teacher)} · ${escapeHtml(slot.group)}</span>
-      <small>${escapeHtml(slot.room)} · ${escapeHtml(slot.source || "manual")}</small>
+      <span>${escapeHtml(slot.teacher)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(slot.group)}</span>
+      <small>${escapeHtml(slot.room)} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${escapeHtml(slot.source || "manual")}</small>
     </div>
   `;
 }
@@ -3270,7 +3389,7 @@ function wireDragAndDrop() {
           if (swapResult.ok) {
             confirmAction(
               "Confirmar intercambio",
-              `${swapResult.message || "La celda destino ya tiene una clase."}\n\n¿Deseas continuar?\nSe intercambiaran las dos clases.`,
+              `${swapResult.message || "La celda destino ya tiene una clase."}\n\nÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¿Deseas continuar?\nSe intercambiaran las dos clases.`,
               () => {
                 applyDirectSwap(slot.id, swapResult.otherId, swapResult.movingTarget, swapResult.otherTarget);
                 renderAvailableTray();
@@ -3284,7 +3403,7 @@ function wireDragAndDrop() {
           } else if (swapResult.replaceable) {
             confirmAction(
               "Reemplazar clase",
-              `${swapResult.message}\n\n¿Deseas continuar?\nLa clase que estaba en esa celda volvera a pendientes.`,
+              `${swapResult.message}\n\nÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂƒÃ‚Â‚ÃƒÂ‚Ã‚Â¿Deseas continuar?\nLa clase que estaba en esa celda volvera a pendientes.`,
               () => {
                 applyReplacementMove(slot.id, source, targetDay, targetPeriod, context);
               },
@@ -4032,7 +4151,7 @@ function normalizeExistingSlotsForOptimization(slots) {
 }
 
 function buildOptimizedProposal(seed, lockedSlots = [], options = {}) {
-  const days = shuffleArray(EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"], seed);
+  const days = shuffleArray(EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"], seed);
   const units = loadUnitsForOptimization(seed, lockedSlots);
   const state = { slots: [...lockedSlots], occupancy: new Set(), teacherDayHours: new Map(), unplaced: [], relaxed: [], relaxLevel: options.relaxLevel || "strict", score: 0, hardConflicts: 0 };
   lockedSlots.forEach((slot) => {
@@ -4478,7 +4597,7 @@ async function parseExcelFile(file) {
   const payload = {
     project: {
       name: "EPQA Horarios Inteligentes",
-      institution: byId("schoolName")?.value || "Institucion importada"
+      institution: byId("schoolName")?.value || "Institución importada"
     },
     days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"],
     teachers: normalizeExcelTeachers(teacherRows, baseRows, assignmentRows),
@@ -4513,14 +4632,14 @@ function normalizeExcelLoads(rows) {
 
 function normalizeExcelAssignments(rows) {
   return rows
-    .filter((row) => row.day || row.Dia || row.Día || row.period || row.Hora)
+    .filter((row) => row.day || row.Dia || row["D?a"] || row.period || row.Hora)
     .map((row, index) => ({
       id: row.id || row.ID || `excel-slot-${index + 1}`,
       siteId: row.siteId || row.Sede || "",
       site: row.site || row.Sede || "",
       level: row.level || row.Nivel || "secondary",
       group: row.group || row.Grupo || row.grado || row.Grado,
-      day: row.day || row.Dia || row.Día,
+      day: row.day || row.Dia || row["D?a"],
       period: row.period || row.Hora || row.H,
       subject: row.subject || row.Materia || row.Asignatura,
       teacher: row.teacher || row.Docente || row.Profesor,
@@ -4581,7 +4700,7 @@ async function saveVersion(final) {
     return;
   }
   const log = byId("versionLog");
-  log.insertAdjacentHTML("afterbegin", `<div><strong>${escapeHtml(payload.status)}</strong> · ${new Date().toLocaleString()} · P0 ${EPQA.audit.counts.P0}</div>`);
+  log.insertAdjacentHTML("afterbegin", `<div><strong>${escapeHtml(payload.status)}</strong> ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${new Date().toLocaleString()} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· P0 ${EPQA.audit.counts.P0}</div>`);
   notify(final ? "Version final lista" : "Version guardada", final ? "Se iniciara la descarga del PDF final." : "La version quedo registrada.", "success");
   if (final) exportPdf("final");
 }
@@ -4640,7 +4759,7 @@ function exportPdf(type) {
     doc.text(`EPQA Horarios Inteligentes - ${labelForMode(mode)} ${value}`, 36, 36);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`Auditoria: P0 ${EPQA.audit.counts.P0 || 0} · P1 ${EPQA.audit.counts.P1 || 0} · P2 ${EPQA.audit.counts.P2 || 0}`, 36, 54);
+    doc.text(`Auditoria: P0 ${EPQA.audit.counts.P0 || 0} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· P1 ${EPQA.audit.counts.P1 || 0} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· P2 ${EPQA.audit.counts.P2 || 0}`, 36, 54);
     let y = 78;
     (EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]).forEach((day) => {
       doc.setFont("helvetica", "bold");
@@ -4648,7 +4767,7 @@ function exportPdf(type) {
       y += 14;
       EPQA.slots.filter((slot) => slot[mode] === value && slot.day === day).sort((a, b) => a.period - b.period).forEach((slot) => {
         doc.setFont("helvetica", "normal");
-        doc.text(`H${slot.period} · ${slot.subject} · ${slot.teacher} · ${slot.group} · ${slot.room}`, 52, y);
+        doc.text(`H${slot.period} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.teacher} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.group} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.room}`, 52, y);
         y += 13;
       });
       y += 8;
@@ -4704,8 +4823,8 @@ function drawFinalCoverPage(doc, teachers) {
   doc.text("EPQA Horario Final", margin, 40);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Profesores: ${teachers.length} · Cargas: ${(EPQA.data.loads || []).length} · Horas ubicadas: ${(EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0)}h`, margin, 58);
-  doc.text(`P0 ${EPQA.audit?.counts?.P0 || 0} · P1 ${EPQA.audit?.counts?.P1 || 0} · P2 ${EPQA.audit?.counts?.P2 || 0}`, margin, 72);
+  doc.text(`Profesores: ${teachers.length} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Cargas: ${(EPQA.data.loads || []).length} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Horas ubicadas: ${(EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0)}h`, margin, 58);
+  doc.text(`P0 ${EPQA.audit?.counts?.P0 || 0} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· P1 ${EPQA.audit?.counts?.P1 || 0} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· P2 ${EPQA.audit?.counts?.P2 || 0}`, margin, 72);
   doc.setDrawColor(174, 197, 222);
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(margin, 96, pageW - margin * 2, 120, 8, 8, "FD");
@@ -4754,8 +4873,8 @@ function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
   doc.text(`${teacherName}`, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`${mode === "final" ? "Final" : "Docente"} · ${level === "primary" ? "Primaria" : "Secundaria"} · ${teacher.type || ""}`, margin, 48);
-  doc.text(`Carga total ${loadHours}h · Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+  doc.text(`${mode === "final" ? "Final" : "Docente"} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${level === "primary" ? "Primaria" : "Secundaria"} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${teacher.type || ""}`, margin, 48);
+  doc.text(`Carga total ${loadHours}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Asignadas ${assignedHours}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Pendientes ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -4812,8 +4931,8 @@ function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Areas a dictar", loads.map((load) => ({
-    title: `${load.subject} · ${load.group}`,
-    body: `${Number(load.hours || 0)}h · ${load.room || load.roomId || "Aula"}`
+    title: `${load.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.group}`,
+    body: `${Number(load.hours || 0)}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.room || load.roomId || "Aula"}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen laboral", [
     { title: "Total", body: `${loadHours}h` },
@@ -4853,8 +4972,8 @@ function drawGroupPdfPage(doc, groupId) {
   doc.text(groupName, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`${level === "primary" ? "Primaria" : "Secundaria"} · meta ${requiredHours}h semanales`, margin, 48);
-  doc.text(`Carga total ${loadHours}h · Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+  doc.text(`${level === "primary" ? "Primaria" : "Secundaria"} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· meta ${requiredHours}h semanales`, margin, 48);
+  doc.text(`Carga total ${loadHours}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Asignadas ${assignedHours}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Pendientes ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -4908,8 +5027,8 @@ function drawGroupPdfPage(doc, groupId) {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", loads.map((load) => ({
-    title: `${load.subject} · ${load.teacher}`,
-    body: `${Number(load.hours || 0)}h · ${load.room || load.roomId || "Aula"}`
+    title: `${load.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.room || load.roomId || "Aula"}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del grado", [
     { title: "Total", body: `${loadHours}h` },
@@ -4947,8 +5066,8 @@ function drawRoomPdfPage(doc, roomId) {
   doc.text(roomNameValue, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`Espacio · Cargas ${roomLoads.length} · Horas definidas ${loadHours}h`, margin, 48);
-  doc.text(`Asignadas ${assignedHours}h · Pendientes ${pendingHours}h`, margin, 60);
+  doc.text(`Espacio ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Cargas ${roomLoads.length} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Horas definidas ${loadHours}h`, margin, 48);
+  doc.text(`Asignadas ${assignedHours}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· Pendientes ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -5002,8 +5121,8 @@ function drawRoomPdfPage(doc, roomId) {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", roomLoads.map((load) => ({
-    title: `${load.subject} · ${load.teacher}`,
-    body: `${Number(load.hours || 0)}h · ${load.group || ""}`
+    title: `${load.subject} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${load.group || ""}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del espacio", [
     { title: "Total", body: `${loadHours}h` },
@@ -5015,21 +5134,21 @@ function drawRoomPdfPage(doc, roomId) {
 function teacherPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.group || ""} · ${slot.room || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+    `${slot.teacher || ""} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.group || ""} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.room || ""}`.trim().replace(/^[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+|[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+$/g, "")
   ];
 }
 
 function groupPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.room || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+    `${slot.teacher || ""} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.room || ""}`.trim().replace(/^[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+|[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+$/g, "")
   ];
 }
 
 function roomPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.group || ""}`.trim().replace(/^[·\s]+|[·\s]+$/g, "")
+    `${slot.teacher || ""} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${slot.group || ""}`.trim().replace(/^[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+|[ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â·\s]+$/g, "")
   ];
 }
 
@@ -5069,7 +5188,7 @@ function drawPdfSection(doc, x, y, w, h, title, rows) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   (rows || []).forEach((row) => {
-    const text = `${row.title} · ${row.body}`;
+    const text = `${row.title} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${row.body}`;
     const lines = doc.splitTextToSize(text, w - 16);
     if (cursorY + lines.length * 10 > y + h - 8) return;
     doc.text(lines, x + 8, cursorY);
@@ -5233,7 +5352,7 @@ function normalizeImportedData(input) {
     hours: Number(load.hours || 0),
     blockHours: Number(load.blockHours || load.block_hours || 1),
     rulePriority: normalizeRulePriority(load.rulePriority || load.priority || load.blockPriority || "P0"),
-    lockedTeacher: load.lockedTeacher ?? load.locked ?? load.lockedOriginalAssignment ?? true
+    lockedTeacher: Boolean(load.lockedTeacher || load.locked || load.lockedOriginalAssignment),
   })).map((load) => ({ ...load, loadKey: loadSignature(load) }));
   data.slots = data.slots || [];
   return data;
@@ -5313,7 +5432,7 @@ function hasDirectScheduleData(input) {
 
 function projectShapeScore(project) {
   if (!project || typeof project !== "object") return 0;
-  return Object.keys(project).filter((key) => String(project[key] ?? "").trim() !== "").length;
+  return Object.keys(project).filter((key) => String(project[key] || "").trim() !== "").length;
 }
 
 function rulesShapeScore(rules) {
@@ -5350,7 +5469,7 @@ function normalizeCellAssignments(assignments, data) {
         hours: 0,
         blockHours: 1,
         rulePriority: "P0",
-        lockedTeacher: assignment.lockedOriginalAssignment ?? true,
+        lockedTeacher: Boolean(assignment.lockedOriginalAssignment),
         source: assignment.source || "JSON",
         loadKey
       });
@@ -5372,7 +5491,7 @@ function normalizeCellAssignments(assignments, data) {
       site: assignment.siteId || assignment.site || "",
       siteId: assignment.siteId || assignment.site || "",
       source: assignment.source || "JSON",
-      locked: assignment.lockedOriginalAssignment ?? true,
+      locked: Boolean(assignment.lockedOriginalAssignment),
       duration: 1,
       loadKey
     };
@@ -5417,11 +5536,11 @@ function normalizeDays(days) {
 
 function normalizeDay(day) {
   const key = normalizeKey(day);
-  if (key.includes("MI") && key.includes("RCOLES")) return "Miercoles";
+  if (key.includes("Miércoles")) return "Miércoles";
   return {
     LUNES: "Lunes",
     MARTES: "Martes",
-    MIERCOLES: "Miércoles",
+    Miércoles: "Miércoles",
     JUEVES: "Jueves",
     VIERNES: "Viernes"
   }[key] || day;
@@ -5806,7 +5925,7 @@ function buildCellAvailabilityTooltip(cell) {
   const suffix = target.length > limit ? `<span class="tooltip-more">+${target.length - limit} mas</span>` : "";
   return `
     <div class="cell-tooltip">
-      <strong>${escapeHtml(day)} H${period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}</strong>
+      <strong>${escapeHtml(day)} H${period} ÃƒÂƒÃ‚ÂƒÃƒÂ†Ã‚Â’ÃƒÂƒÃ‚Â¢ÃƒÂ¢Ã‚Â‚Ã‚Â¬ÃƒÂ…Ã‚Â¡ÃƒÂƒÃ‚ÂƒÃƒÂ¢Ã‚Â€Ã‚ÂšÃƒÂ‚Ã‚Â· ${cycle === "primary" ? "Primaria" : "Secundaria"}</strong>
       <p>${label} sin asignacion en esa franja.</p>
       <div class="tooltip-chip-list">${items || `<span class="tooltip-empty">${emptyLabel}</span>`}${suffix}</div>
     </div>
@@ -5846,103 +5965,108 @@ function clearHoverInspector() {
 }
 
 function activateTooltips() {
-  if (!window.tippy) return;
+  if (!window.tippy || window.__EPQA_TIPPY_DISABLED) return;
   ensureHoverInspector();
-  document.querySelectorAll(".slot-cell:not(.covered-cell)").forEach((cell) => {
-    if (cell.querySelector(".class-card, .panorama-card") || cell._epqaCellTip) return;
-    cell._epqaCellTip = tippy(cell, {
-      content: () => buildCellAvailabilityTooltip(cell),
-      allowHTML: true,
-      placement: "top",
-      delay: [120, 0],
-      maxWidth: 420,
-      theme: "epqa-availability",
-      interactive: true,
-      appendTo: () => document.body,
-      onShow() {
+  try {
+    document.querySelectorAll(".slot-cell:not(.covered-cell)").forEach((cell) => {
+      if (cell.querySelector(".class-card, .panorama-card") || cell._epqaCellTip) return;
+      cell._epqaCellTip = tippy(cell, {
+        content: () => buildCellAvailabilityTooltip(cell),
+        allowHTML: true,
+        placement: "top",
+        delay: [120, 0],
+        maxWidth: 420,
+        theme: "epqa-availability",
+        interactive: true,
+        appendTo: () => document.body,
+        onShow() {
+          const mode = cell.dataset.mode || byId("viewMode")?.value || "";
+          const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
+          const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
+          const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
+          updateHoverInspector(
+            `${cell.dataset.day} H${cell.dataset.period} ÃƒÂ‚Ã‚Â· ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
+            `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
+            "info"
+          );
+        },
+        onHidden() {
+          clearHoverInspector();
+        }
+      });
+      cell.addEventListener("pointerenter", () => {
+        if (cell.querySelector(".class-card, .panorama-card")) return;
         const mode = cell.dataset.mode || byId("viewMode")?.value || "";
         const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
         const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
         const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
         updateHoverInspector(
-          `${cell.dataset.day} H${cell.dataset.period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
+          `${cell.dataset.day} H${cell.dataset.period} ÃƒÂ‚Ã‚Â· ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
           `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
           "info"
         );
-      },
-      onHidden() {
-        clearHoverInspector();
-      }
+      });
+      cell.addEventListener("pointerleave", clearHoverInspector);
     });
-    cell.addEventListener("pointerenter", () => {
-      if (cell.querySelector(".class-card, .panorama-card")) return;
-      const mode = cell.dataset.mode || byId("viewMode")?.value || "";
-      const filter = cell.dataset.filter || byId("viewFilter")?.value || "";
-      const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
-      const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
-      updateHoverInspector(
-        `${cell.dataset.day} H${cell.dataset.period} · ${cycle === "primary" ? "Primaria" : "Secundaria"}`,
-        `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
-        "info"
-      );
+    document.querySelectorAll(".slot-cell.conflict").forEach((cell) => {
+      if (cell._epqaConflictTip) return;
+      cell._epqaConflictTip = tippy(cell, {
+        content: cell.dataset.conflicts || "Esta hora tiene conflictos P0.",
+        placement: "top",
+        delay: [120, 0],
+        maxWidth: 380,
+        theme: "epqa-conflict"
+      });
     });
-    cell.addEventListener("pointerleave", clearHoverInspector);
-  });
-  document.querySelectorAll(".slot-cell.conflict").forEach((cell) => {
-    if (cell._epqaConflictTip) return;
-    cell._epqaConflictTip = tippy(cell, {
-      content: cell.dataset.conflicts || "Esta hora tiene conflictos P0.",
-      placement: "top",
-      delay: [120, 0],
-      maxWidth: 380,
-      theme: "epqa-conflict"
+    document.querySelectorAll(".class-card").forEach((card) => {
+      const slot = findSlot(card.dataset.slotId);
+      if (!slot) return;
+      const conflicts = conflictDetailsForSlot(slot);
+      const conflictText = conflicts.length ? ` | Conflictos: ${conflicts.join(" | ")}` : "";
+      if (card._epqaCardTip) return;
+      card._epqaCardTip = tippy(card, {
+        content: `${slot.teacher} ÃƒÂ‚Ã‚Â· ${slot.group} ÃƒÂ‚Ã‚Â· ${slot.subject} ÃƒÂ‚Ã‚Â· ${slot.room} ÃƒÂ‚Ã‚Â· Fuente: ${slot.source}`,
+        placement: "top",
+        delay: [120, 0],
+        maxWidth: 380,
+        theme: conflicts.length ? "epqa-conflict" : "epqa",
+        onShow(instance) {
+          instance.setContent(`${slot.teacher} ÃƒÂ‚Ã‚Â· ${slot.group} ÃƒÂ‚Ã‚Â· ${slot.subject} ÃƒÂ‚Ã‚Â· ${slot.room} ÃƒÂ‚Ã‚Â· Fuente: ${slot.source}${conflictText}`);
+        }
+      });
+      card.addEventListener("pointerenter", () => {
+        updateHoverInspector(
+          `${slot.teacher} ÃƒÂ‚Ã‚Â· ${slot.subject}`,
+          `${slot.group} ÃƒÂ‚Ã‚Â· ${slot.day} H${slot.period} ÃƒÂ‚Ã‚Â· ${slot.room || "Aula"} ÃƒÂ‚Ã‚Â· ${slotDuration(slot)}h`,
+          "slot"
+        );
+      });
+      card.addEventListener("pointerleave", clearHoverInspector);
     });
-  });
-  document.querySelectorAll(".class-card").forEach((card) => {
-    const slot = findSlot(card.dataset.slotId);
-    if (!slot) return;
-    const conflicts = conflictDetailsForSlot(slot);
-    const conflictText = conflicts.length ? ` | Conflictos: ${conflicts.join(" | ")}` : "";
-    if (card._epqaCardTip) return;
-    card._epqaCardTip = tippy(card, {
-      content: `${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room} · Fuente: ${slot.source}`,
-      placement: "top",
-      delay: [120, 0],
-      maxWidth: 380,
-      theme: conflicts.length ? "epqa-conflict" : "epqa",
-      onShow(instance) {
-        instance.setContent(`${slot.teacher} · ${slot.group} · ${slot.subject} · ${slot.room} · Fuente: ${slot.source}${conflictText}`);
-      }
+    document.querySelectorAll(".pending-card").forEach((card) => {
+      if (card._epqaPendingTip) return;
+      card._epqaPendingTip = tippy(card, {
+        content: card.dataset.duration ? `${card.dataset.duration}h pendiente` : "Pendiente por ubicar",
+        placement: "top",
+        delay: [120, 0],
+        maxWidth: 320,
+        theme: "epqa"
+      });
+      const load = findLoad(card.dataset.loadId);
+      if (!load) return;
+      card.addEventListener("pointerenter", () => {
+        updateHoverInspector(
+          `${load.teacher} ÃƒÂ‚Ã‚Â· ${load.subject}`,
+          `Pendiente ${card.dataset.duration || 1}h ÃƒÂ‚Ã‚Â· ${load.group} ÃƒÂ‚Ã‚Â· ${load.room || load.roomId || "Aula"} ÃƒÂ‚Ã‚Â· revisar impactos al ubicar`,
+          "warn"
+        );
+      });
+      card.addEventListener("pointerleave", clearHoverInspector);
     });
-    card.addEventListener("pointerenter", () => {
-      updateHoverInspector(
-        `${slot.teacher} · ${slot.subject}`,
-        `${slot.group} · ${slot.day} H${slot.period} · ${slot.room || "Aula"} · ${slotDuration(slot)}h`,
-        "slot"
-      );
-    });
-    card.addEventListener("pointerleave", clearHoverInspector);
-  });
-  document.querySelectorAll(".pending-card").forEach((card) => {
-    if (card._epqaPendingTip) return;
-    card._epqaPendingTip = tippy(card, {
-      content: card.dataset.duration ? `${card.dataset.duration}h pendiente` : "Pendiente por ubicar",
-      placement: "top",
-      delay: [120, 0],
-      maxWidth: 320,
-      theme: "epqa"
-    });
-    const load = findLoad(card.dataset.loadId);
-    if (!load) return;
-    card.addEventListener("pointerenter", () => {
-      updateHoverInspector(
-        `${load.teacher} · ${load.subject}`,
-        `Pendiente ${card.dataset.duration || 1}h · ${load.group} · ${load.room || load.roomId || "Aula"} · revisar impactos al ubicar`,
-        "warn"
-      );
-    });
-    card.addEventListener("pointerleave", clearHoverInspector);
-  });
+  } catch (error) {
+    window.__EPQA_TIPPY_DISABLED = true;
+    console.warn("EPQA tooltips disabled", error);
+  }
 }
 
 function borderColor(hex) {
@@ -6026,7 +6150,7 @@ function openConfigSection(sectionName) {
 }
 
 function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",

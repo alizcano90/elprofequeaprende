@@ -41,6 +41,12 @@ if ($method === 'GET') {
     if ($scheduleId > 0) {
         $schedule = epqa_assert_schedule_belongs($pdo, $scheduleId, $userId);
         $snapshot = epqa_latest_snapshot($pdo, $scheduleId, $userId);
+        if ((!is_array($snapshot) || !epqa_snapshot_has_data($snapshot))) {
+            $fallback = epqa_latest_non_empty_snapshot($pdo, $scheduleId, $userId);
+            if (is_array($fallback)) {
+                $snapshot = $fallback;
+            }
+        }
         $active = [
             'id' => $scheduleId,
             'schedule' => $schedule,
