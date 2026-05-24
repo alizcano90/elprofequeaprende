@@ -588,6 +588,129 @@ function downloadJson(data, filename) {
   URL.revokeObjectURL(url);
 }
 
+function epqaIcon(name, className = "epqa-svg-icon") {
+  const icons = {
+    school: `<path d="M3 21h18"/><path d="M6 21V10"/><path d="M18 21V10"/><path d="M12 3 4 8h16l-8-5Z"/><path d="M9 21v-6h6v6"/>`,
+    pin: `<path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>`,
+    users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+    file: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/>`,
+    monitor: `<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/>`,
+    "book-open": `<path d="M12 7v14"/><path d="M3 5a4 4 0 0 1 4-2h5v18H7a4 4 0 0 0-4 2V5Z"/><path d="M21 5a4 4 0 0 0-4-2h-5v18h5a4 4 0 0 1 4 2V5Z"/>`,
+    calculator: `<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>`,
+    leaf: `<path d="M11 20A7 7 0 0 1 4 13c0-6 8-10 16-10 0 8-4 16-10 16Z"/><path d="M4 20c4-7 8-10 16-17"/>`,
+    brain: `<path d="M9.5 2A3.5 3.5 0 0 0 6 5.5v.7A4 4 0 0 0 4 13a4 4 0 0 0 4 7h1.5V2Z"/><path d="M14.5 2A3.5 3.5 0 0 1 18 5.5v.7A4 4 0 0 1 20 13a4 4 0 0 1-4 7h-1.5V2Z"/><path d="M9.5 8H7"/><path d="M14.5 8H17"/><path d="M9.5 14H7"/><path d="M14.5 14H17"/>`,
+    message: `<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 9h8"/><path d="M8 13h5"/>`,
+    running: `<path d="M13 4a2 2 0 1 0 0 .01"/><path d="M10 16 6 21"/><path d="m14 12 2 3 4 1"/><path d="m8 11 3-3 4 2"/><path d="m11 8-1 5 4 3"/>`,
+    atom: `<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2-2-1.2-8.4-7.2-14.4S.6-3.4-1.4-1.4 1 7 7 13s11.2 9.2 13.2 7.2Z" transform="translate(2.6 2.6)"/><path d="M3.8 20.2c-2-2 1.2-8.4 7.2-14.4S23.4-3.4 25.4-1.4 23 7 17 13 5.8 22.2 3.8 20.2Z" transform="translate(-2.6 2.6)"/>`,
+    ruler: `<path d="M3 17 17 3l4 4L7 21l-4-4Z"/><path d="m14 6 2 2"/><path d="m11 9 2 2"/><path d="m8 12 2 2"/><path d="m5 15 2 2"/>`,
+    sparkle: `<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/>`,
+    heart: `<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/>`,
+    chart: `<path d="M3 3v18h18"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-3"/>`,
+    book: `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5Z"/>`,
+    scale: `<path d="M12 3v18"/><path d="M5 7h14"/><path d="m6 7-3 6h6L6 7Z"/><path d="m18 7-3 6h6l-3-6Z"/>`,
+    calendar: `<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>`,
+    code: `<path d="m8 18-6-6 6-6"/><path d="m16 6 6 6-6 6"/>`,
+    layers: `<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>`,
+    download: `<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>`,
+    upload: `<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/>`,
+    pencil: `<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>`,
+    trash: `<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/>`,
+    plus: `<path d="M12 5v14"/><path d="M5 12h14"/>`,
+    search: `<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,
+    save: `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>`,
+    clock: `<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
+    check: `<path d="m5 12 4 4L19 6"/>`,
+    alert: `<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>`,
+    hash: `<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="m16 3-2 18"/>`,
+    palette: `<path d="M12 22a10 10 0 1 1 10-10c0 1.7-1.3 3-3 3h-1.5a2.5 2.5 0 0 0-2 4 2 2 0 0 1-1.6 3H12Z"/><circle cx="7.5" cy="10.5" r=".5"/><circle cx="10.5" cy="7.5" r=".5"/><circle cx="14.5" cy="7.5" r=".5"/><circle cx="16.5" cy="10.5" r=".5"/>`,
+    globe: `<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/>`,
+    briefcase: `<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>`,
+    map: `<path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/>`,
+    activity: `<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>`
+  };
+  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.file}</svg>`;
+}
+
+const SUBJECT_ICON_KEYS = ["monitor", "book-open", "calculator", "palette", "leaf", "globe", "brain", "briefcase", "scale", "sparkle", "message", "running", "atom", "chart", "ruler", "code"];
+const SUBJECT_COLOR_KEYS = ["blue", "green", "purple", "orange", "cyan", "pink", "yellow", "red", "neutral"];
+
+function getDefaultSubjectVisual(subjectName = "", abbreviation = "") {
+  const key = normalizeKey(`${abbreviation} ${subjectName}`);
+  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return { iconKey: "monitor", colorKey: "blue" };
+  if (key.includes("DPC") || key.includes("PENSAMIENTO")) return { iconKey: "brain", colorKey: "green" };
+  if (key.includes("EMP") || key.includes("EMPREND")) return { iconKey: "briefcase", colorKey: "orange" };
+  if (key.includes("GEOMET")) return { iconKey: "ruler", colorKey: "purple" };
+  if (key.includes("ESTAD")) return { iconKey: "chart", colorKey: "cyan" };
+  if (key.includes("ARITMET") || key.includes("MATEMATIC")) return { iconKey: "calculator", colorKey: "blue" };
+  if (key.includes("ARTIST")) return { iconKey: "palette", colorKey: "pink" };
+  if (key.includes("BIOLOG") || key.includes("NATURAL")) return { iconKey: "leaf", colorKey: "green" };
+  if (key.includes("CASTELL") || key.includes("LENGUA") || key.includes("ESPAN")) return { iconKey: "book-open", colorKey: "orange" };
+  if (key.includes("INGLES") || key.includes("ENGLISH")) return { iconKey: "message", colorKey: "cyan" };
+  if (key.includes("FISICA") && !key.includes("EDU")) return { iconKey: "atom", colorKey: "blue" };
+  if (key.includes("FISICA") || key.includes("DEPORTE")) return { iconKey: "running", colorKey: "green" };
+  if (key.includes("ETICA")) return { iconKey: "scale", colorKey: "purple" };
+  if (key.includes("RELIG")) return { iconKey: "sparkle", colorKey: "pink" };
+  if (key.includes("SOCIAL")) return { iconKey: "globe", colorKey: "cyan" };
+  return { iconKey: "book-open", colorKey: "neutral" };
+}
+
+function normalizeSubject(subject) {
+  const source = subject && typeof subject === "object" ? { ...subject } : { id: subject, name: subject };
+  const name = String(source.name || source.nombre || source.subject || source.id || "").trim();
+  const id = String(source.id || source.abreviatura || source.abbreviation || name).trim();
+  const abbreviation = String(source.abreviatura || source.abbreviation || source.shortName || id || name).trim();
+  const defaults = getDefaultSubjectVisual(name, abbreviation);
+  return {
+    ...source,
+    id: id || name,
+    name: name || id || "Sin asignar",
+    nombre: source.nombre || name || id || "Sin asignar",
+    abreviatura: abbreviation || subjectAbbrev(name || id),
+    iconKey: SUBJECT_ICON_KEYS.includes(source.iconKey) ? source.iconKey : defaults.iconKey,
+    colorKey: SUBJECT_COLOR_KEYS.includes(source.colorKey) ? source.colorKey : defaults.colorKey
+  };
+}
+
+function ensureSubjectMetadata() {
+  const subjects = Array.isArray(EPQA.data?.subjects) ? EPQA.data.subjects : [];
+  const byId = new Map(subjects.map((subject) => {
+    const normalized = normalizeSubject(subject);
+    return [normalizeKey(normalized.id || normalized.name), normalized];
+  }));
+  (EPQA.data?.loads || []).forEach((load) => {
+    const id = normalizeKey(load.subject || "");
+    if (id && !byId.has(id)) byId.set(id, normalizeSubject(load.subject));
+  });
+  EPQA.data.subjects = [...byId.values()];
+}
+
+function subjectMeta(subject) {
+  const key = normalizeKey(typeof subject === "object" ? (subject.id || subject.name || subject.nombre) : subject);
+  const found = (EPQA.data?.subjects || []).map(normalizeSubject).find((item) =>
+    normalizeKey(item.id) === key ||
+    normalizeKey(item.name) === key ||
+    normalizeKey(item.nombre) === key ||
+    normalizeKey(item.abreviatura) === key
+  );
+  return found || normalizeSubject(subject);
+}
+
+function getSubjectIconKey(subject) {
+  return subjectMeta(subject).iconKey;
+}
+
+function getSubjectColorKey(subject) {
+  return subjectMeta(subject).colorKey;
+}
+
+function renderSubjectIcon(subject, className = "epqa-svg-icon") {
+  return epqaIcon(getSubjectIconKey(subject), className);
+}
+
+function getSubjectVisualClass(subject) {
+  return `color-${getSubjectColorKey(subject)}`;
+}
+
 function buildEmptyProposal(data) {
   const slots = [];
   (data.loads || []).forEach((load) => {
@@ -992,6 +1115,8 @@ function renderCatalogEditor() {
   if (byId("schoolName")) byId("schoolName").value = EPQA.data.project?.institution || EPQA.data.project?.name || "";
   if (byId("schoolOwner")) byId("schoolOwner").value = EPQA.data.project?.owner || "";
   if (byId("maxTeacherHoursPerDay")) byId("maxTeacherHoursPerDay").value = maxTeacherHoursPerDay();
+  ensureGradeEditorV6Chrome();
+  ensureSubjectEditorV7Chrome();
   fillSelect("dailyRuleTeacher", teacherOptions(), "id", "name");
   fillSelect("dailyRuleSite", siteOptions(), "id", "name");
   fillSelect("dailyRuleDay", dayOptions(), "id", "name");
@@ -1033,6 +1158,7 @@ function syncSearchableSelect(select, force = false) {
     updateSearchableSelect(select);
     return;
   }
+  if (select.closest(".epqa-grades-card-v6")) return;
   if (!force && !select.closest(".load-builder, .compact-form, .modal-card, .teacher-summary-toolbar, .loads-filter-bar, .catalog-manager")) return;
   select.dataset.searchReady = "1";
   select.classList.add("native-search-select");
@@ -1189,8 +1315,8 @@ function refreshLoadGroupOptions() {
 }
 
 function subjectOptions() {
-  return unique([...(EPQA.data.subjects || []), ...(EPQA.data.loads || []).map((load) => load.subject)])
-    .map((subject) => typeof subject === "string" ? { id: subject, name: subject } : { id: subject.name || subject.id, name: subject.name || subject.id });
+  ensureSubjectMetadata();
+  return (EPQA.data.subjects || []).map(normalizeSubject);
 }
 
 function roomOptions() {
@@ -1561,7 +1687,7 @@ function ensureTeacherSummaryV5Chrome() {
     <section class="epqa-teacher-summary-v5">
       <header class="epqa-teacher-summary-header-v5">
         <div class="epqa-teacher-title-v5">
-          <span class="epqa-teacher-title-icon-v5" aria-hidden="true">📊</span>
+          <span class="epqa-teacher-title-icon-v5">${epqaIcon("file")}</span>
           <div>
             <h1>Resumen docente</h1>
             <p>Visualiza la carga, disponibilidad y distribución horaria de cada docente.</p>
@@ -1592,7 +1718,7 @@ function ensureGradeSummaryV6Chrome() {
     <section class="epqa-grade-summary-v6">
       <header class="epqa-grade-summary-header-v6">
         <div class="epqa-grade-title-v6">
-          <span class="epqa-grade-title-icon-v6" aria-hidden="true">🏫</span>
+          <span class="epqa-grade-title-icon-v6">${epqaIcon("school")}</span>
           <div>
             <h1>Resumen grados</h1>
             <p>Visualiza el cumplimiento semanal y la distribución académica por grado.</p>
@@ -1703,42 +1829,344 @@ function downloadTeacherTemplate() {
   XLSX.writeFile(wb, "plantilla_docentes_epqa.xlsx");
 }
 
+function ensureGradeEditorV6Chrome() {
+  const legacyInput = byId("groupName");
+  const card = legacyInput?.closest(".catalog-card") || byId("groupManager")?.closest(".catalog-card");
+  if (!card || card.classList.contains("epqa-grades-card-v6")) return;
+  card.className = "catalog-card wide epqa-grades-card-v6";
+  card.innerHTML = `
+    <header class="epqa-grades-header-v6">
+      <div class="epqa-grades-title-v6">
+        <span class="epqa-grades-title-icon-v6">${epqaIcon("school")}</span>
+        <div>
+          <h1>Grados</h1>
+          <p>Administra los grados por sede y nivel académico.</p>
+        </div>
+      </div>
+      <div class="epqa-grades-actions-v6">
+        <button class="epqa-grades-btn-v6" id="btnGradeTemplate" type="button">
+          ${epqaIcon("download")}
+          <span>Descargar plantilla</span>
+        </button>
+        <button class="epqa-grades-btn-v6 epqa-grades-btn-v6--primary" id="btnGradeImport" type="button">
+          ${epqaIcon("upload")}
+          <span>Importar grados</span>
+        </button>
+      </div>
+    </header>
+    <div class="epqa-grades-body-v6">
+      <aside class="epqa-grade-form-card-v6">
+        <h2>Nuevo grado</h2>
+        <p>Registra un nuevo grado para una sede y nivel.</p>
+        <div class="epqa-grade-form-v6">
+          <label class="epqa-grade-field-v6">
+            <span>Grado</span>
+            <span class="epqa-grade-input-shell-v6">
+              ${epqaIcon("school")}
+              <input id="groupName" type="text" placeholder="Ej: 1F, 10A...">
+            </span>
+          </label>
+          <label class="epqa-grade-field-v6">
+            <span>Sede</span>
+            <span class="epqa-grade-input-shell-v6">
+              ${epqaIcon("pin")}
+              <select id="groupSite"></select>
+            </span>
+          </label>
+          <label class="epqa-grade-field-v6">
+            <span>Nivel</span>
+            <span class="epqa-grade-input-shell-v6">
+              ${epqaIcon("layers")}
+              <select id="groupLevel">
+                <option value="primary">Primaria</option>
+                <option value="secondary">Secundaria</option>
+              </select>
+            </span>
+          </label>
+          <button id="btnAddGroup" class="epqa-grade-add-btn-v6" type="button">
+            <span>${epqaIcon("plus")}</span>
+            <strong>Agregar grado</strong>
+          </button>
+        </div>
+      </aside>
+      <section class="epqa-grades-table-card-v6">
+        <header class="epqa-grades-table-head-v6">
+          <h2>Grados creados</h2>
+        </header>
+        <div class="epqa-grades-filters-v6">
+          <label class="epqa-grade-filter-v6">
+            ${epqaIcon("search")}
+            <input id="gradeSearchInput" type="search" placeholder="Buscar grado o sede...">
+          </label>
+          <label class="epqa-grade-filter-v6">
+            <select id="gradeLevelFilter">
+              <option value="__ALL__">Todos los niveles</option>
+              <option value="primary">Primaria</option>
+              <option value="secondary">Secundaria</option>
+            </select>
+          </label>
+          <label class="epqa-grade-filter-v6">
+            <select id="gradeSiteFilter"></select>
+          </label>
+        </div>
+        <div id="groupManager" class="catalog-manager epqa-grades-manager-v6"></div>
+      </section>
+    </div>`;
+  byId("btnAddGroup")?.addEventListener("click", addGroup);
+  byId("btnGradeTemplate")?.addEventListener("click", downloadGradeTemplate);
+  byId("btnGradeImport")?.addEventListener("click", importGradesFromToolbar);
+  byId("gradeSearchInput")?.addEventListener("input", applyGradeFilters);
+  byId("gradeLevelFilter")?.addEventListener("change", applyGradeFilters);
+  byId("gradeSiteFilter")?.addEventListener("change", applyGradeFilters);
+}
+
+function downloadGradeTemplate() {
+  if (!window.XLSX) {
+    downloadJson({ groups: [{ id: "", name: "", siteId: "", level: "primary" }] }, "plantilla_grados_epqa.json");
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["ID", "Nombre", "Sede", "Nivel"],
+    ["1F", "1F", "", "Primaria"]
+  ]);
+  ws["!cols"] = [{ wch: 18 }, { wch: 22 }, { wch: 28 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws, "Grados");
+  XLSX.writeFile(wb, "plantilla_grados_epqa.xlsx");
+}
+
+function importGradesFromToolbar() {
+  const input = byId("dataFileInput");
+  if (input) {
+    input.click();
+    return;
+  }
+  notify("Importación no disponible", "No se encontró el selector de archivo del módulo.", "warning", true);
+}
+
+function populateGradeSiteFilter() {
+  const select = byId("gradeSiteFilter");
+  if (!select) return;
+  const current = select.value || "__ALL__";
+  const options = [{ id: "__ALL__", name: "Todas las sedes" }, ...siteOptionsWithEmpty().filter((site) => site.id)];
+  select.innerHTML = options.map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
+  select.value = options.some((site) => site.id === current) ? current : "__ALL__";
+}
+
+function applyGradeFilters() {
+  const search = normalizeKey(byId("gradeSearchInput")?.value || "");
+  const level = byId("gradeLevelFilter")?.value || "__ALL__";
+  const site = byId("gradeSiteFilter")?.value || "__ALL__";
+  let visible = 0;
+  document.querySelectorAll("#groupManager tbody tr[data-group-id]").forEach((row) => {
+    const text = normalizeKey(row.dataset.groupSearch || row.textContent || "");
+    const rowLevel = row.dataset.groupLevel || "";
+    const rowSite = row.dataset.groupSite || "";
+    const matches = (!search || text.includes(search)) &&
+      (level === "__ALL__" || rowLevel === level) &&
+      (site === "__ALL__" || sameSite(rowSite, site));
+    row.hidden = !matches;
+    if (matches) visible++;
+  });
+  const empty = byId("gradeNoResultsRow");
+  if (empty) empty.hidden = visible > 0;
+  const summary = byId("gradeTableSummary");
+  const total = document.querySelectorAll("#groupManager tbody tr[data-group-id]").length;
+  if (summary) summary.textContent = `Mostrando ${visible ? 1 : 0} a ${visible} de ${total} grados`;
+}
+
+function ensureSubjectEditorV7Chrome() {
+  const legacyInput = byId("subjectName");
+  const card = legacyInput?.closest(".catalog-card") || byId("subjectManager")?.closest(".catalog-card");
+  if (!card || card.classList.contains("epqa-subjects-card-v7")) return;
+  card.className = "catalog-card wide epqa-subjects-card-v7";
+  card.innerHTML = `
+    <header class="epqa-subjects-header-v7">
+      <div class="epqa-subjects-title-v7">
+        <span class="epqa-subjects-title-icon-v7">${epqaIcon("book-open")}</span>
+        <div>
+          <h1>Materias</h1>
+          <p>Define materias con abreviatura, icono SVG y color visual para los resúmenes.</p>
+        </div>
+      </div>
+    </header>
+    <div class="epqa-subjects-body-v7">
+      <aside class="epqa-subject-form-card-v7">
+        <h2>Nueva materia</h2>
+        <p>Registra una materia y elige un icono seguro de la biblioteca local.</p>
+        <div class="epqa-subject-form-v7">
+          <label class="epqa-grade-field-v6">
+            <span>Nombre de materia</span>
+            <span class="epqa-grade-input-shell-v6">${epqaIcon("book-open")}<input id="subjectName" type="text" placeholder="Ej: Tecnología e Informática"></span>
+          </label>
+          <label class="epqa-grade-field-v6">
+            <span>Abreviatura</span>
+            <span class="epqa-grade-input-shell-v6">${epqaIcon("hash")}<input id="subjectAbbreviation" type="text" placeholder="Ej: TI"></span>
+          </label>
+          <input type="hidden" id="subjectIconKey" value="book-open">
+          <input type="hidden" id="subjectColorKey" value="blue">
+          <div>
+            <span class="epqa-subject-picker-label-v7">Icono SVG</span>
+            <div class="epqa-subject-icon-picker-v7">${renderSubjectIconPicker("subjectIconKey", "book-open")}</div>
+          </div>
+          <div>
+            <span class="epqa-subject-picker-label-v7">Color visual</span>
+            <div class="epqa-subject-color-picker-v7">${renderSubjectColorPicker("subjectColorKey", "blue")}</div>
+          </div>
+          <div class="epqa-subject-preview-v7" id="subjectPreview">${renderSubjectIcon({ iconKey: "book-open", colorKey: "blue", name: "Materia" })}<span>Vista previa</span></div>
+          <button id="btnAddSubject" class="epqa-grade-add-btn-v6" type="button"><span>${epqaIcon("plus")}</span><strong>Agregar materia</strong></button>
+        </div>
+      </aside>
+      <section class="epqa-subjects-table-card-v7">
+        <header class="epqa-grades-table-head-v6"><h2>Materias creadas</h2></header>
+        <div id="subjectManager" class="catalog-manager epqa-subjects-manager-v7"></div>
+      </section>
+    </div>`;
+  byId("btnAddSubject")?.addEventListener("click", addSubject);
+  byId("subjectName")?.addEventListener("input", updateSubjectPreview);
+  bindSubjectPickers(card);
+}
+
+function renderSubjectIconPicker(inputId, current) {
+  return SUBJECT_ICON_KEYS.map((key) => `
+    <button class="epqa-subject-icon-option-v7 ${key === current ? "active" : ""}" data-subject-icon-target="${escapeHtml(inputId)}" data-icon-key="${escapeHtml(key)}" type="button" title="${escapeHtml(key)}" aria-label="Icono ${escapeHtml(key)}">
+      ${epqaIcon(key)}
+    </button>
+  `).join("");
+}
+
+function renderSubjectColorPicker(inputId, current) {
+  return SUBJECT_COLOR_KEYS.map((key) => `
+    <button class="epqa-subject-color-option-v7 ${key === current ? "active" : ""} color-${escapeHtml(key)}" data-subject-color-target="${escapeHtml(inputId)}" data-color-key="${escapeHtml(key)}" type="button" title="${escapeHtml(key)}" aria-label="Color ${escapeHtml(key)}"></button>
+  `).join("");
+}
+
+function bindSubjectPickers(root = document) {
+  root.querySelectorAll("[data-subject-icon-target]").forEach((button) => {
+    if (button.dataset.bound) return;
+    button.dataset.bound = "1";
+    button.addEventListener("click", () => {
+      const input = byId(button.dataset.subjectIconTarget);
+      if (input) input.value = button.dataset.iconKey || "book-open";
+      button.parentElement?.querySelectorAll("[data-subject-icon-target]").forEach((item) => item.classList.toggle("active", item === button));
+      updateSubjectPreview();
+    });
+  });
+  root.querySelectorAll("[data-subject-color-target]").forEach((button) => {
+    if (button.dataset.bound) return;
+    button.dataset.bound = "1";
+    button.addEventListener("click", () => {
+      const input = byId(button.dataset.subjectColorTarget);
+      if (input) input.value = button.dataset.colorKey || "neutral";
+      button.parentElement?.querySelectorAll("[data-subject-color-target]").forEach((item) => item.classList.toggle("active", item === button));
+      updateSubjectPreview();
+    });
+  });
+}
+
+function updateSubjectPreview() {
+  const preview = byId("subjectPreview");
+  if (!preview) return;
+  const subject = {
+    name: byId("subjectName")?.value || "Materia",
+    iconKey: byId("subjectIconKey")?.value || "book-open",
+    colorKey: byId("subjectColorKey")?.value || "blue"
+  };
+  preview.className = `epqa-subject-preview-v7 ${getSubjectVisualClass(subject)}`;
+  preview.innerHTML = `${renderSubjectIcon(subject)}<span>${escapeHtml(subject.name || "Vista previa")}</span>`;
+}
+
 function renderGroupManager() {
   const target = byId("groupManager");
   if (!target) return;
+  populateGradeSiteFilter();
   const groups = groupOptions().map((group) => groupObjectById(group.id));
-  const groupRows = groups.map((group, index) => `
-    <tr data-group-id="${escapeHtml(group.id || group.name || "")}">
-      <td><input data-catalog-field="group-id" value="${escapeHtml(group.id || group.name || "")}"></td>
-      <td><input data-catalog-field="group-name" value="${escapeHtml(group.name || group.id || "")}"></td>
-      <td><select data-catalog-field="group-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, group.siteId || group.site || "") ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
-      <td><select data-catalog-field="group-level">
-        <option value="primary" ${normalizeLevel(group.level) === "primary" ? "selected" : ""}>Primaria</option>
-        <option value="secondary" ${normalizeLevel(group.level) === "secondary" ? "selected" : ""}>Secundaria</option>
-      </select></td>
-      <td class="catalog-actions">
-        <button class="ghost" data-save-group="${escapeHtml(group.id || group.name || "")}" type="button">Guardar</button>
-        <button class="ghost danger" data-delete-group="${escapeHtml(group.id || group.name || "")}" type="button">Borrar</button>
+  const siteOptionsHtml = (selected) => siteOptionsWithEmpty().map((site) =>
+    `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, selected || "") ? "selected" : ""}>${escapeHtml(site.name || "Sin sede")}</option>`
+  ).join("");
+  const groupRows = groups.map((group) => {
+    const id = group.id || group.name || "";
+    const name = group.name || group.id || "";
+    const siteId = group.siteId || group.site || "";
+    const siteLabel = siteNameForId(siteId) || "Sin sede";
+    const level = normalizeLevel(group.level || inferGroupLevel(id));
+    const levelLabel = level === "primary" ? "Primaria" : "Secundaria";
+    const badgeClass = level === "primary" ? "epqa-grade-level-badge-v6--primary" : "epqa-grade-level-badge-v6--secondary";
+    const searchText = `${id} ${name} ${siteLabel} ${levelLabel}`;
+    return `
+    <tr data-group-id="${escapeHtml(id)}" data-group-site="${escapeHtml(siteId)}" data-group-level="${escapeHtml(level)}" data-group-search="${escapeHtml(searchText)}">
+      <td><input data-catalog-field="group-id" value="${escapeHtml(id)}" aria-label="ID del grado"></td>
+      <td><input data-catalog-field="group-name" value="${escapeHtml(name)}" aria-label="Nombre del grado"></td>
+      <td><select data-catalog-field="group-site" aria-label="Sede del grado">${siteOptionsHtml(siteId)}</select></td>
+      <td>
+        <select data-catalog-field="group-level" aria-label="Nivel del grado">
+          <option value="primary" ${level === "primary" ? "selected" : ""}>Primaria</option>
+          <option value="secondary" ${level === "secondary" ? "selected" : ""}>Secundaria</option>
+        </select>
+        <span class="epqa-grade-level-badge-v6 ${badgeClass}">${escapeHtml(levelLabel)}</span>
       </td>
-    </tr>`).join("") || `<tr><td colspan="5">Sin grados.</td></tr>`;
+      <td class="catalog-actions epqa-grade-row-actions-v6">
+        <button class="epqa-grade-icon-btn-v6" data-save-group="${escapeHtml(id)}" type="button" title="Guardar grado" aria-label="Guardar grado">${epqaIcon("save")}</button>
+        <button class="epqa-grade-icon-btn-v6 epqa-grade-icon-btn-v6--danger" data-delete-group="${escapeHtml(id)}" type="button" title="Eliminar grado" aria-label="Eliminar grado">${epqaIcon("trash")}</button>
+      </td>
+    </tr>`;
+  }).join("");
   target.innerHTML = `
-    <section><h3>Grados creados</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>ID</th><th>Nombre</th><th>Sede</th><th>Nivel</th><th></th></tr></thead><tbody>${groupRows}</tbody></table></div></section>`;
+    <div class="epqa-grades-table-wrap-v6">
+      <table class="epqa-grades-table-v6">
+        <thead><tr><th>ID</th><th>Nombre</th><th>Sede</th><th>Nivel</th><th>Acciones</th></tr></thead>
+        <tbody>
+          ${groupRows || `<tr><td colspan="5">Sin grados.</td></tr>`}
+          <tr id="gradeNoResultsRow" hidden><td colspan="5">Sin coincidencias para los filtros activos.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="epqa-grades-footer-v6">
+      <span id="gradeTableSummary">Mostrando ${groups.length ? 1 : 0} a ${groups.length} de ${groups.length} grados</span>
+      <div class="epqa-grades-pagination-v6" aria-label="Paginación de grados">
+        <button type="button" disabled>‹</button>
+        <button type="button" class="active">1</button>
+        <button type="button" disabled>›</button>
+      </div>
+    </footer>`;
   bindCatalogManagerActions(target);
+  applyGradeFilters();
 }
 
 function renderSubjectManager() {
   const target = byId("subjectManager");
   if (!target) return;
-  const subjectRows = subjectOptions().map((subject, index) => `
-    <tr data-subject-id="${escapeHtml(subject.id)}">
-      <td><input data-catalog-field="subject-name" value="${escapeHtml(subject.name)}"></td>
-      <td class="catalog-actions">
-        <button class="ghost" data-save-subject="${escapeHtml(subject.id)}" type="button">Guardar</button>
-        <button class="ghost danger" data-delete-subject="${escapeHtml(subject.id)}" type="button">Borrar</button>
+  const subjectRows = subjectOptions().map((subject) => {
+    const item = normalizeSubject(subject);
+    const used = usesSubject(item.id) || usesSubject(item.name) || usesSubject(item.abreviatura);
+    return `
+    <tr data-subject-id="${escapeHtml(item.id)}" data-subject-name="${escapeHtml(item.name)}" data-subject-abbreviation="${escapeHtml(item.abreviatura)}">
+      <td><span class="epqa-subject-table-icon-v7 ${getSubjectVisualClass(item)}">${renderSubjectIcon(item)}</span></td>
+      <td><input data-catalog-field="subject-name" value="${escapeHtml(item.name)}" aria-label="Nombre de la materia"></td>
+      <td><input data-catalog-field="subject-abbreviation" value="${escapeHtml(item.abreviatura)}" aria-label="Abreviatura de la materia"></td>
+      <td><span class="epqa-subject-use-badge-v7 ${used ? "is-used" : ""}">${used ? "En uso" : "Sin uso"}</span></td>
+      <td>
+        <input type="hidden" data-catalog-field="subject-icon" id="subjectIcon-${escapeHtml(item.id)}" value="${escapeHtml(item.iconKey)}">
+        <div class="epqa-subject-icon-picker-v7 epqa-subject-icon-picker-v7--row">${renderSubjectIconPicker(`subjectIcon-${item.id}`, item.iconKey)}</div>
       </td>
-    </tr>`).join("") || `<tr><td colspan="2">Sin materias.</td></tr>`;
+      <td>
+        <input type="hidden" data-catalog-field="subject-color" id="subjectColor-${escapeHtml(item.id)}" value="${escapeHtml(item.colorKey)}">
+        <div class="epqa-subject-color-picker-v7">${renderSubjectColorPicker(`subjectColor-${item.id}`, item.colorKey)}</div>
+      </td>
+      <td class="catalog-actions epqa-grade-row-actions-v6">
+        <button class="epqa-grade-icon-btn-v6" data-save-subject="${escapeHtml(item.id)}" type="button" title="Guardar materia" aria-label="Guardar materia">${epqaIcon("save")}</button>
+        <button class="epqa-grade-icon-btn-v6 epqa-grade-icon-btn-v6--danger" data-delete-subject="${escapeHtml(item.id)}" type="button" title="Eliminar materia" aria-label="Eliminar materia">${epqaIcon("trash")}</button>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7">Sin materias.</td></tr>`;
   target.innerHTML = `
-    <section><h3>Materias creadas</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>Materia</th><th></th></tr></thead><tbody>${subjectRows}</tbody></table></div></section>`;
+    <div class="epqa-grades-table-wrap-v6">
+      <table class="epqa-grades-table-v6 epqa-subjects-table-v7">
+        <thead><tr><th>Icono</th><th>Materia</th><th>Abreviatura</th><th>Uso</th><th>Icono SVG</th><th>Color</th><th>Acciones</th></tr></thead>
+        <tbody>${subjectRows}</tbody>
+      </table>
+    </div>`;
+  bindSubjectPickers(target);
   bindCatalogManagerActions(target);
 }
 
@@ -1971,16 +2399,26 @@ function addGroup() {
 }
 
 function addSubject() {
-  const subject = normalizeKey(byId("subjectName").value);
-  if (!subject) {
+  const name = String(byId("subjectName")?.value || "").trim();
+  const abbreviation = String(byId("subjectAbbreviation")?.value || "").trim() || normalizeKey(name);
+  if (!name && !abbreviation) {
     notify("Falta la materia", "Escribe el nombre de la materia antes de agregarla.", "warning", true);
     return;
   }
   EPQA.data.subjects = EPQA.data.subjects || [];
-  if (subject) {
-    if (!EPQA.data.subjects.includes(subject)) EPQA.data.subjects.push(subject);
+  const subject = normalizeSubject({
+    id: abbreviation || name,
+    name: name || abbreviation,
+    nombre: name || abbreviation,
+    abreviatura: abbreviation || subjectAbbrev(name),
+    iconKey: byId("subjectIconKey")?.value || "",
+    colorKey: byId("subjectColorKey")?.value || ""
+  });
+  if (!subjectOptions().some((item) => normalizeKey(item.id) === normalizeKey(subject.id) || normalizeKey(item.name) === normalizeKey(subject.name))) {
+    EPQA.data.subjects.push(subject);
   }
-  byId("subjectName").value = "";
+  if (byId("subjectName")) byId("subjectName").value = "";
+  if (byId("subjectAbbreviation")) byId("subjectAbbreviation").value = "";
   renderDataViews();
 }
 
@@ -2129,10 +2567,32 @@ function deleteGroup(id) {
 function saveSubjectFromRow(button) {
   const oldId = button.dataset.saveSubject;
   const row = button.closest("tr");
+  if (!row) return;
+  const oldName = row.dataset.subjectName || oldId;
+  const oldAbbreviation = row.dataset.subjectAbbreviation || oldId;
   const newName = field(row, "subject-name") || oldId;
-  replaceSubjectReferences(oldId, newName);
-  EPQA.data.subjects = subjectOptions().map((subject) => subject.id === oldId ? newName : subject.name || subject.id);
+  const abbreviation = field(row, "subject-abbreviation") || subjectAbbrev(newName);
+  const newId = abbreviation || newName;
+  const iconKey = field(row, "subject-icon") || getSubjectIconKey(oldId);
+  const colorKey = field(row, "subject-color") || getSubjectColorKey(oldId);
+  const subjectsBeforeSave = subjectOptions();
+  unique([oldId, oldName, oldAbbreviation]).forEach((alias) => replaceSubjectReferences(alias, newId));
+  EPQA.data.subjects = subjectsBeforeSave.map((subject) => {
+    const item = normalizeSubject(subject);
+    const matchesOldSubject = [oldId, oldName, oldAbbreviation].some((alias) =>
+      normalizeKey(item.id) === normalizeKey(alias) ||
+      normalizeKey(item.name) === normalizeKey(alias) ||
+      normalizeKey(item.nombre) === normalizeKey(alias) ||
+      normalizeKey(item.abreviatura) === normalizeKey(alias)
+    );
+    return matchesOldSubject
+      ? normalizeSubject({ ...item, id: newId, name: newName, nombre: newName, abreviatura: abbreviation, iconKey, colorKey })
+      : item;
+  }).filter((subject, index, list) => list.findIndex((item) => normalizeKey(item.id) === normalizeKey(subject.id)) === index);
+  syncWorkspaceSnapshot();
+  void persistWorkspaceDraft("Materia editada");
   renderDataViews();
+  notify("Materia actualizada", "Se guardaron el nombre, abreviatura, icono y color.", "success");
 }
 
 function deleteSubject(id) {
@@ -2140,7 +2600,10 @@ function deleteSubject(id) {
     notify("No se puede borrar", "Esta materia tiene cargas u horas en el horario.", "warning", true);
     return;
   }
-  EPQA.data.subjects = (EPQA.data.subjects || []).filter((subject) => (typeof subject === "string" ? subject : subject.name || subject.id) !== id);
+  EPQA.data.subjects = (EPQA.data.subjects || []).filter((subject) => {
+    const item = normalizeSubject(subject);
+    return normalizeKey(item.id) !== normalizeKey(id) && normalizeKey(item.name) !== normalizeKey(id) && normalizeKey(item.abreviatura) !== normalizeKey(id);
+  });
   renderDataViews();
 }
 
@@ -2752,32 +3215,11 @@ function renderTeacherDetailPanelV4Legacy() {
 }
 
 function teacherSummarySubjectIcon(subject) {
-  const key = normalizeKey(subject);
-  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return "💻";
-  if (key.includes("DPC")) return "🧭";
-  if (key.includes("EMP") || key.includes("EMPREND")) return "💼";
-  if (key.includes("MATEMATIC") || key.includes("ARITMET")) return "🔢";
-  if (key.includes("CASTELL") || key.includes("LENGUA") || key.includes("ESPAN")) return "📚";
-  if (key.includes("INGLES") || key.includes("ENGLISH")) return "🌐";
-  if (key.includes("FISICA") || key.includes("DEPORTE")) return "🏃";
-  if (key.includes("BIOLOG")) return "🧬";
-  if (key.includes("ARTIST")) return "🎨";
-  if (key.includes("ETICA")) return "⚖️";
-  if (key.includes("RELIG")) return "✝️";
-  if (key.includes("SOCIAL")) return "🗺️";
-  return "📘";
+  return getSubjectIconKey(subject);
 }
 
 function teacherSummaryColorClass(subject, index = 0) {
-  const key = normalizeKey(subject);
-  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return "color-blue";
-  if (key.includes("BIOLOG") || key.includes("NATURAL")) return "color-green";
-  if (key.includes("DPC") || key.includes("INGLES") || key.includes("SOCIAL")) return "color-cyan";
-  if (key.includes("EMP") || key.includes("MATEMATIC") || key.includes("ARITMET")) return "color-purple";
-  if (key.includes("CASTELL") || key.includes("RELIG")) return "color-orange";
-  if (key.includes("ETICA")) return "color-red";
-  const rotation = ["color-blue", "color-green", "color-purple", "color-red", "color-orange", "color-cyan", "color-neutral"];
-  return rotation[index % rotation.length];
+  return getSubjectVisualClass(subject);
 }
 
 function teacherSummarySegmentColor(index = 0) {
@@ -2820,8 +3262,9 @@ function renderTeacherDetailPanel() {
       const itemSlots = slots.filter((slot) => slot.subject === subject && slot.group === group);
       const total = itemLoads.reduce((sum, load) => sum + safeHourValue(load.hours), 0);
       const assigned = itemSlots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
+      const meta = subjectMeta(subject);
       return {
-        subject: subject || "Sin asignar",
+        subject: meta.abreviatura || subject || "Sin asignar",
         group: group || "Sin asignar",
         total,
         assigned,
@@ -2844,7 +3287,7 @@ function renderTeacherDetailPanel() {
         <h2 id="teacherSummaryName">${escapeHtml(teacher.name || teacher.id || "Sin asignar")}</h2>
         <p id="teacherSummaryMeta">${escapeHtml(teacherType)} · mínimo ${minHours}h</p>
         <button type="button" class="epqa-teacher-availability-btn-v5" data-open-availability="${escapeHtml(teacherIdForData)}">
-          <span aria-hidden="true">🕒</span>
+          ${epqaIcon("clock")}
           <span>Definir horas disponibles</span>
         </button>
       </div>
@@ -2856,19 +3299,19 @@ function renderTeacherDetailPanel() {
 
     <section class="epqa-teacher-kpis-v5">
       <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--blue">
-        <span class="epqa-kpi-icon-v5" aria-hidden="true">📚</span>
+        <span class="epqa-kpi-icon-v5">${epqaIcon("book")}</span>
         <div><strong id="teacherDefinedLoads">${loadHours}h</strong><span>cargas definidas</span></div>
       </article>
       <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--purple">
-        <span class="epqa-kpi-icon-v5" aria-hidden="true">📌</span>
+        <span class="epqa-kpi-icon-v5">${epqaIcon("pin")}</span>
         <div><strong id="teacherProposalHours">${assignedHours}h</strong><span>en propuesta</span></div>
       </article>
       <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--clock">
-        <span class="epqa-kpi-icon-v5" aria-hidden="true">⏳</span>
+        <span class="epqa-kpi-icon-v5">${epqaIcon("clock")}</span>
         <div><strong id="teacherPendingHours">${pendingHours}h</strong><span>pendientes</span></div>
       </article>
       <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--green">
-        <span class="epqa-kpi-icon-v5" aria-hidden="true">✅</span>
+        <span class="epqa-kpi-icon-v5">${epqaIcon("check")}</span>
         <div><strong id="teacherAvailableHours">${availableHours}h</strong><span>disponibles</span></div>
       </article>
     </section>
@@ -2881,7 +3324,7 @@ function renderTeacherDetailPanel() {
     <section class="epqa-teacher-load-grid-v5" id="teacherLoadGrid">
       ${orderedLoads.length ? orderedLoads.map((item) => `
         <article class="epqa-teacher-load-card-v5 ${item.colorClass}">
-          <span class="epqa-load-icon-v5" aria-hidden="true">${item.icon}</span>
+          <span class="epqa-load-icon-v5">${epqaIcon(item.icon)}</span>
           <div>
             <strong>${escapeHtml(item.subject)}</strong>
             <span>${escapeHtml(item.group)}</span>
@@ -2959,20 +3402,7 @@ function renderGroupDetailPanelV4Legacy() {
 }
 
 function gradeSummarySubjectVisual(subject) {
-  const key = normalizeKey(subject);
-  if (key.includes("MATEMATIC") || key.includes("ARITMET")) return { icon: "🔢", colorClass: "color-blue" };
-  if (key.includes("ARTIST")) return { icon: "🎨", colorClass: "color-pink" };
-  if (key.includes("BIOLOG") || key.includes("NATURAL")) return { icon: "🧬", colorClass: "color-green" };
-  if (key.includes("CASTELL") || key.includes("LENGUA") || key.includes("ESPAN")) return { icon: "📚", colorClass: "color-orange" };
-  if (key.includes("FISICA") || key.includes("DEPORTE")) return { icon: "🏃", colorClass: "color-green" };
-  if (key.includes("ETICA")) return { icon: "⚖️", colorClass: "color-purple" };
-  if (key.includes("INGLES") || key.includes("ENGLISH")) return { icon: "🌐", colorClass: "color-blue" };
-  if (key.includes("RELIG")) return { icon: "✝️", colorClass: "color-pink" };
-  if (key.includes("SOCIAL")) return { icon: "🗺️", colorClass: "color-cyan" };
-  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return { icon: "💻", colorClass: "color-purple" };
-  if (key.includes("DPC")) return { icon: "🧭", colorClass: "color-green" };
-  if (key.includes("EMP") || key.includes("EMPREND")) return { icon: "💼", colorClass: "color-orange" };
-  return { icon: "📘", colorClass: "color-neutral" };
+  return { icon: getSubjectIconKey(subject), colorClass: getSubjectVisualClass(subject) };
 }
 
 function gradeWeeklyTarget(group) {
@@ -2987,9 +3417,9 @@ function gradeWeeklyTarget(group) {
 
 function gradeStatusMeta(assignedHours, requiredHours, pendingHours) {
   const overTarget = Math.max(0, assignedHours - requiredHours);
-  if (overTarget > 0) return { key: "over", label: "Sobre meta", icon: "⚠️", className: "is-over" };
-  if (pendingHours > 0 || assignedHours < requiredHours) return { key: "pending", label: "Pendiente", icon: "⚠️", className: "is-pending" };
-  return { key: "ok", label: "Cumple", icon: "✓", className: "is-ok" };
+  if (overTarget > 0) return { key: "over", label: "Sobre meta", icon: "alert", className: "is-over" };
+  if (pendingHours > 0 || assignedHours < requiredHours) return { key: "pending", label: "Pendiente", icon: "alert", className: "is-pending" };
+  return { key: "ok", label: "Cumple", icon: "check", className: "is-ok" };
 }
 
 function renderGroupDetailPanel() {
@@ -3023,8 +3453,9 @@ function renderGroupDetailPanel() {
     const assigned = itemSlots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
     const teachers = unique(itemLoads.map((load) => teacherName(load.teacher || "")).filter(Boolean));
     const visual = gradeSummarySubjectVisual(subject);
+    const meta = subjectMeta(subject);
     return {
-      subject: subject || "Sin asignar",
+      subject: meta.name || subject || "Sin asignar",
       teacher: teachers.length > 1 ? "Varios docentes" : (teachers[0] || teacherName(teacher) || "Sin asignar"),
       total,
       assigned,
@@ -3046,25 +3477,25 @@ function renderGroupDetailPanel() {
           <strong id="gradeAssignedTargetHours">${assignedHours}/${requiredHours}h</strong>
           <span id="gradeComplianceStatus">${status.label}</span>
         </div>
-        <span class="epqa-grade-status-icon-v6" aria-hidden="true">${status.icon}</span>
+        <span class="epqa-grade-status-icon-v6">${epqaIcon(status.icon)}</span>
       </div>
     </section>
 
     <section class="epqa-grade-kpis-v6">
       <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--blue">
-        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">📚</span>
+        <span class="epqa-grade-kpi-icon-v6">${epqaIcon("book")}</span>
         <div><strong id="gradeDefinedLoads">${loadHours}h</strong><span>cargas definidas</span></div>
       </article>
       <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--purple">
-        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">📌</span>
+        <span class="epqa-grade-kpi-icon-v6">${epqaIcon("pin")}</span>
         <div><strong id="gradeProposalHours">${assignedHours}h</strong><span>en propuesta</span></div>
       </article>
       <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--yellow">
-        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">⌛</span>
+        <span class="epqa-grade-kpi-icon-v6">${epqaIcon("clock")}</span>
         <div><strong id="gradePendingHours">${pendingHours}h</strong><span>pendientes</span></div>
       </article>
       <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--red">
-        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">⚠️</span>
+        <span class="epqa-grade-kpi-icon-v6">${epqaIcon("alert")}</span>
         <div><strong id="gradeOverTargetHours">${overTarget}h</strong><span>sobre/meta</span></div>
       </article>
     </section>
@@ -3079,7 +3510,7 @@ function renderGroupDetailPanel() {
     <section class="epqa-grade-subject-grid-v6" id="gradeSubjectGrid">
       ${rows.length ? rows.map((item) => `
         <article class="epqa-grade-subject-card-v6 ${item.colorClass}">
-          <span class="epqa-grade-subject-icon-v6" aria-hidden="true">${item.icon}</span>
+          <span class="epqa-grade-subject-icon-v6">${epqaIcon(item.icon)}</span>
           <div>
             <strong>${escapeHtml(item.subject)}</strong>
             <span>${escapeHtml(item.teacher)}</span>
@@ -5593,7 +6024,15 @@ function hexToRgb(hex) {
 function subjectAbbrev(subject) {
   const text = String(subject || "").trim();
   if (!text) return "X";
-  return text.replace(/[^A-Za-z0-9]/g, "").slice(0, 1).toUpperCase() || text.slice(0, 1).toUpperCase();
+  const key = normalizeKey(text);
+  const raw = (EPQA.data?.subjects || []).find((item) => {
+    const source = item && typeof item === "object" ? item : { id: item, name: item };
+    return normalizeKey(source.id) === key || normalizeKey(source.name || source.nombre) === key || normalizeKey(source.abreviatura || source.abbreviation) === key;
+  });
+  const abbreviation = raw && typeof raw === "object" ? (raw.abreviatura || raw.abbreviation || raw.id) : "";
+  if (abbreviation) return String(abbreviation).replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();
+  const cleaned = text.replace(/[^A-Za-z0-9]/g, "");
+  return cleaned.slice(0, Math.min(4, Math.max(1, cleaned.length))).toUpperCase() || text.slice(0, 1).toUpperCase();
 }
 
 function teacherAbbrev(teacher) {
@@ -5671,6 +6110,7 @@ function normalizeImportedData(input) {
     data.loads = normalized.loads;
     data.slots = normalized.slots;
     data.subjects = data.subjects || unique(data.loads.map((load) => load.subject));
+    data.subjects = data.subjects.map(normalizeSubject);
     return data;
   }
 
@@ -5689,6 +6129,7 @@ function normalizeImportedData(input) {
     rulePriority: normalizeRulePriority(load.rulePriority || load.priority || load.blockPriority || "P0"),
     lockedTeacher: Boolean(load.lockedTeacher || load.locked || load.lockedOriginalAssignment),
   })).map((load) => ({ ...load, loadKey: loadSignature(load) }));
+  data.subjects = (data.subjects && data.subjects.length ? data.subjects : unique(data.loads.map((load) => load.subject))).map(normalizeSubject);
   data.slots = data.slots || [];
   return data;
 }
@@ -5726,7 +6167,7 @@ function canonicalScheduleInput(input) {
     });
   }
   if (Array.isArray(data.subjects)) {
-    data.subjects = data.subjects.map((subject) => typeof subject === "string" ? subject : (subject.name || subject.id || subject.subject || subject));
+    data.subjects = data.subjects.map((subject) => typeof subject === "string" ? subject : { ...subject });
   }
   if (Array.isArray(data.sites)) {
     data.sites = data.sites.map((site) => typeof site === "string" ? { id: site, name: site } : { ...site });

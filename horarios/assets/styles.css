@@ -4549,6 +4549,26 @@ main > .schedule-switcher {
   color: #0891b2;
 }
 
+.epqa-teacher-load-card-v5.color-yellow {
+  background: linear-gradient(135deg, #fffdf4, #fff9e6);
+  border-color: #f6d56b;
+}
+
+.epqa-teacher-load-card-v5.color-yellow .epqa-load-icon-v5 {
+  background: #fff2bb;
+  color: #a16207;
+}
+
+.epqa-teacher-load-card-v5.color-pink {
+  background: linear-gradient(135deg, #fff8fc, #fdf0f7);
+  border-color: #f9b8d7;
+}
+
+.epqa-teacher-load-card-v5.color-pink .epqa-load-icon-v5 {
+  background: #fce0ef;
+  color: #db2777;
+}
+
 .epqa-teacher-load-card-v5.color-neutral {
   background: linear-gradient(135deg, #ffffff, #f8fafc);
   border-color: #dbe6f1;
@@ -5080,7 +5100,638 @@ main > .schedule-switcher {
   color: #475569;
 }
 
+.epqa-svg-icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.epqa-teacher-title-icon-v5 .epqa-svg-icon,
+.epqa-grade-title-icon-v6 .epqa-svg-icon,
+.epqa-grades-title-icon-v6 .epqa-svg-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.epqa-kpi-icon-v5 .epqa-svg-icon,
+.epqa-load-icon-v5 .epqa-svg-icon,
+.epqa-grade-status-icon-v6 .epqa-svg-icon,
+.epqa-grade-kpi-icon-v6 .epqa-svg-icon,
+.epqa-grade-subject-icon-v6 .epqa-svg-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.epqa-grades-card-v6 {
+  background: #ffffff;
+  border: 1px solid #dbe6f1;
+  border-radius: 22px;
+  box-shadow: 0 18px 45px rgba(15, 35, 66, 0.08);
+  overflow: hidden;
+  margin-top: 22px;
+  padding: 0;
+}
+
+.epqa-grades-header-v6 {
+  min-height: 126px;
+  padding: 28px 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #e8eef5;
+}
+
+.epqa-grades-title-v6 {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.epqa-grades-title-icon-v6 {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #0f6bff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.epqa-grades-title-v6 h1 {
+  margin: 0;
+  font-size: 31px;
+  line-height: 1.1;
+  font-weight: 950;
+  color: #0f2442;
+  letter-spacing: 0;
+}
+
+.epqa-grades-title-v6 p {
+  margin: 8px 0 0;
+  font-size: 17px;
+  color: #61738a;
+  font-weight: 500;
+}
+
+.epqa-grades-actions-v6 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.epqa-grades-btn-v6 {
+  height: 50px;
+  border-radius: 13px;
+  padding: 0 20px;
+  border: 1px solid #d5e1ee;
+  background: #ffffff;
+  color: #0f2442;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.epqa-grades-btn-v6--primary {
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f6bff 0%, #0755dd 100%);
+  box-shadow: 0 14px 28px rgba(15, 107, 255, 0.28);
+}
+
+.epqa-grades-body-v6 {
+  padding: 26px 28px 30px;
+  display: grid;
+  grid-template-columns: 345px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.epqa-grade-form-card-v6,
+.epqa-grades-table-card-v6 {
+  background: #ffffff;
+  border: 1px solid #dbe6f1;
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgba(15, 35, 66, 0.06);
+  padding: 22px;
+}
+
+.epqa-grade-form-card-v6 h2,
+.epqa-grades-table-head-v6 h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 950;
+  color: #0f2442;
+}
+
+.epqa-grade-form-card-v6 p {
+  margin: 10px 0 24px;
+  color: #61738a;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.epqa-grade-form-v6 {
+  display: grid;
+  gap: 20px;
+}
+
+.epqa-grade-field-v6 {
+  display: grid;
+  gap: 9px;
+}
+
+.epqa-grade-field-v6 > span:first-child {
+  font-size: 14px;
+  font-weight: 900;
+  color: #183050;
+}
+
+.epqa-grade-input-shell-v6 {
+  height: 54px;
+  border: 1px solid #d5e1ee;
+  border-radius: 13px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 12px;
+  color: #425872;
+  min-width: 0;
+}
+
+.epqa-grade-input-shell-v6 input,
+.epqa-grade-input-shell-v6 select,
+.epqa-grade-filter-v6 input,
+.epqa-grade-filter-v6 select,
+.epqa-grades-table-v6 input,
+.epqa-grades-table-v6 select {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f2442;
+  font-size: 15px;
+  font-weight: 750;
+  min-width: 0;
+}
+
+.epqa-grade-input-shell-v6 .searchable-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.epqa-grade-add-btn-v6 {
+  height: 62px;
+  border: 0;
+  border-radius: 15px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f6bff 0%, #0755dd 100%);
+  box-shadow: 0 14px 28px rgba(15, 107, 255, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.epqa-grade-add-btn-v6 > span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+}
+
+.epqa-grades-filters-v6 {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(180px, 0.7fr) minmax(180px, 0.7fr);
+  gap: 14px;
+  margin: 18px 0 16px;
+}
+
+.epqa-grade-filter-v6 {
+  height: 50px;
+  border: 1px solid #d5e1ee;
+  border-radius: 13px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 14px;
+  color: #61738a;
+  min-width: 0;
+}
+
+.epqa-grades-table-wrap-v6 {
+  border: 1px solid #dbe6f1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.epqa-grades-table-v6 {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.epqa-grades-table-v6 th {
+  background: #fbfdff;
+  color: #172b4d;
+  font-size: 14px;
+  font-weight: 950;
+  text-align: left;
+  padding: 16px 18px;
+  border-bottom: 1px solid #dbe6f1;
+}
+
+.epqa-grades-table-v6 td {
+  padding: 15px 18px;
+  border-bottom: 1px solid #e9eff6;
+  color: #213956;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.epqa-grades-table-v6 tr:hover td {
+  background: #fbfdff;
+}
+
+.epqa-grades-table-v6 td:nth-child(4) select {
+  display: none;
+}
+
+.epqa-grade-level-badge-v6 {
+  min-height: 32px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 950;
+  border: 1px solid transparent;
+}
+
+.epqa-grade-level-badge-v6--primary {
+  color: #16a34a;
+  background: #eaf8ee;
+  border-color: #bfe8cc;
+}
+
+.epqa-grade-level-badge-v6--secondary {
+  color: #7c3aed;
+  background: #f2eaff;
+  border-color: #d8c2ff;
+}
+
+.epqa-grade-row-actions-v6 {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.epqa-grade-icon-btn-v6 {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #bfd3ff;
+  color: #0f6bff;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.epqa-grade-icon-btn-v6--danger {
+  color: #dc2626;
+  border-color: #f4b6b6;
+  background: #fff1f1;
+}
+
+.epqa-grades-footer-v6 {
+  min-height: 72px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding-top: 18px;
+  color: #61738a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.epqa-grades-pagination-v6 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.epqa-grades-pagination-v6 button {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  border: 1px solid #d5e1ee;
+  background: #ffffff;
+  color: #0f2442;
+  font-weight: 900;
+}
+
+.epqa-grades-pagination-v6 button.active {
+  background: #0f6bff;
+  color: #ffffff;
+  border-color: #0f6bff;
+  box-shadow: 0 8px 18px rgba(15, 107, 255, 0.24);
+}
+
+.epqa-grades-pagination-v6 button:disabled {
+  opacity: 0.45;
+}
+
+.epqa-subjects-card-v7 {
+  background: #ffffff;
+  border: 1px solid #dbe6f1;
+  border-radius: 22px;
+  box-shadow: 0 18px 45px rgba(15, 35, 66, 0.08);
+  overflow: hidden;
+  margin-top: 22px;
+  padding: 0;
+}
+
+.epqa-subjects-header-v7 {
+  min-height: 112px;
+  padding: 28px 34px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e8eef5;
+}
+
+.epqa-subjects-title-v7 {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.epqa-subjects-title-icon-v7 {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #0f6bff;
+  display: grid;
+  place-items: center;
+}
+
+.epqa-subjects-title-icon-v7 .epqa-svg-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.epqa-subjects-title-v7 h1 {
+  margin: 0;
+  font-size: 31px;
+  line-height: 1.1;
+  font-weight: 950;
+  color: #0f2442;
+  letter-spacing: 0;
+}
+
+.epqa-subjects-title-v7 p {
+  margin: 8px 0 0;
+  font-size: 17px;
+  color: #61738a;
+  font-weight: 500;
+}
+
+.epqa-subjects-body-v7 {
+  padding: 26px 28px 30px;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.epqa-subject-form-card-v7,
+.epqa-subjects-table-card-v7 {
+  background: #ffffff;
+  border: 1px solid #dbe6f1;
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgba(15, 35, 66, 0.06);
+  padding: 22px;
+}
+
+.epqa-subject-form-card-v7 h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 950;
+  color: #0f2442;
+}
+
+.epqa-subject-form-card-v7 p {
+  margin: 10px 0 24px;
+  color: #61738a;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.epqa-subject-form-v7 {
+  display: grid;
+  gap: 20px;
+}
+
+.epqa-subject-picker-label-v7 {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  color: #183050;
+}
+
+.epqa-subject-icon-picker-v7 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.epqa-subject-icon-picker-v7--row {
+  grid-template-columns: repeat(4, 36px);
+  gap: 6px;
+  margin-top: 0;
+}
+
+.epqa-subject-icon-option-v7 {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #d5e1ee;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  color: #0f2442;
+  cursor: pointer;
+}
+
+.epqa-subject-icon-picker-v7--row .epqa-subject-icon-option-v7 {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.epqa-subject-icon-option-v7.active {
+  border-color: #0f6bff;
+  background: #eaf2ff;
+  color: #0f6bff;
+  box-shadow: 0 0 0 4px rgba(15, 107, 255, 0.10);
+}
+
+.epqa-subject-icon-option-v7 .epqa-svg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.epqa-subject-color-picker-v7 {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.epqa-subject-color-option-v7 {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.epqa-subject-color-option-v7.active {
+  border-color: #0f2442;
+  box-shadow: 0 0 0 3px rgba(15, 35, 66, 0.10);
+}
+
+.epqa-subject-color-option-v7.color-blue { background: #0f6bff; }
+.epqa-subject-color-option-v7.color-green { background: #16a34a; }
+.epqa-subject-color-option-v7.color-purple { background: #7c3aed; }
+.epqa-subject-color-option-v7.color-orange { background: #f97316; }
+.epqa-subject-color-option-v7.color-cyan { background: #0891b2; }
+.epqa-subject-color-option-v7.color-pink { background: #db2777; }
+.epqa-subject-color-option-v7.color-yellow { background: #a16207; }
+.epqa-subject-color-option-v7.color-red { background: #dc2626; }
+.epqa-subject-color-option-v7.color-neutral { background: #475569; }
+
+.epqa-subject-preview-v7 {
+  min-height: 58px;
+  border-radius: 14px;
+  border: 1px solid #dbe6f1;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  color: #0f2442;
+  font-weight: 900;
+}
+
+.epqa-subject-preview-v7 > .epqa-svg-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.epqa-subject-table-icon-v7 {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.epqa-subject-table-icon-v7 .epqa-svg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.epqa-subject-use-badge-v7 {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #dbe6f1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.epqa-subject-use-badge-v7.is-used {
+  border-color: #bfe8cc;
+  background: #eaf8ee;
+  color: #16a34a;
+}
+
+.epqa-subjects-table-v7 {
+  min-width: 1040px;
+}
+
+.epqa-subjects-table-v7 td:nth-child(5) {
+  min-width: 190px;
+}
+
+.epqa-subjects-table-v7 td:nth-child(6) {
+  min-width: 150px;
+}
+
+.epqa-subject-preview-v7.color-blue,
+.epqa-subject-table-icon-v7.color-blue { background: #e4f3ff; color: #0f6bff; border-color: #aee0ff; }
+.epqa-subject-preview-v7.color-green,
+.epqa-subject-table-icon-v7.color-green { background: #dff8e7; color: #16a34a; border-color: #aee8bd; }
+.epqa-subject-preview-v7.color-purple,
+.epqa-subject-table-icon-v7.color-purple { background: #ede0ff; color: #7c3aed; border-color: #d8c2ff; }
+.epqa-subject-preview-v7.color-orange,
+.epqa-subject-table-icon-v7.color-orange { background: #ffead5; color: #f97316; border-color: #ffc38b; }
+.epqa-subject-preview-v7.color-cyan,
+.epqa-subject-table-icon-v7.color-cyan { background: #d8f7fb; color: #0891b2; border-color: #a9e5ef; }
+.epqa-subject-preview-v7.color-pink,
+.epqa-subject-table-icon-v7.color-pink { background: #fce0ef; color: #db2777; border-color: #f9b8d7; }
+.epqa-subject-preview-v7.color-yellow,
+.epqa-subject-table-icon-v7.color-yellow { background: #fff2bb; color: #a16207; border-color: #f6d56b; }
+.epqa-subject-preview-v7.color-red,
+.epqa-subject-table-icon-v7.color-red { background: #ffe3e3; color: #dc2626; border-color: #ffb9b9; }
+.epqa-subject-preview-v7.color-neutral,
+.epqa-subject-table-icon-v7.color-neutral { background: #f1f5f9; color: #475569; border-color: #dbe6f1; }
+
 @media (max-width: 1320px) {
+  .epqa-subjects-body-v7 {
+    grid-template-columns: 1fr;
+  }
+
+  .epqa-grades-body-v6 {
+    grid-template-columns: 1fr;
+  }
+
+  .epqa-grades-filters-v6 {
+    grid-template-columns: 1fr;
+  }
+
   .epqa-grade-subject-grid-v6 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -5101,6 +5752,33 @@ main > .schedule-switcher {
 }
 
 @media (max-width: 900px) {
+  .epqa-subjects-header-v7 {
+    align-items: flex-start;
+  }
+
+  .epqa-subjects-title-v7 {
+    align-items: flex-start;
+  }
+
+  .epqa-grades-header-v6,
+  .epqa-grades-footer-v6 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .epqa-grades-actions-v6 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .epqa-grades-btn-v6 {
+    justify-content: center;
+  }
+
+  .epqa-grades-table-wrap-v6 {
+    overflow-x: auto;
+  }
+
   .epqa-grade-hero-v6 {
     flex-direction: column;
     align-items: flex-start;
