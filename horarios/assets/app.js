@@ -129,6 +129,7 @@ function bindActions() {
   onAny("click", deleteActiveSchedule, "btnDeleteSchedule");
   byId("btnImportJson")?.addEventListener("click", importJson);
   byId("btnImportFile")?.addEventListener("click", importDataFile);
+  byId("dataFileInput")?.addEventListener("change", importDataFile);
   byId("btnExcel").addEventListener("click", exportExcel);
   byId("btnPdfTeachers").addEventListener("click", () => exportPdf("teacher"));
   byId("btnPdfGroups").addEventListener("click", () => exportPdf("group"));
@@ -1249,23 +1250,278 @@ function renderSiteRoomManager() {
 function renderTeacherManager() {
   const target = byId("teacherManager");
   if (!target) return;
-  const rows = (EPQA.data.teachers || []).map((teacher, index) => `
-    <tr data-teacher-index="${index}">
-      <td><input data-catalog-field="teacher-id" value="${escapeHtml(teacher.id || teacher.name || "")}"></td>
-      <td><input data-catalog-field="teacher-name" value="${escapeHtml(teacher.name || teacher.id || "")}"></td>
-      <td><select data-catalog-field="teacher-type">
-        ${["Primaria", "Secundaria"].map((type) => `<option value="${type}" ${type === (teacher.type || "Secundaria") ? "selected" : ""}>${type}</option>`).join("")}
-      </select></td>
-      <td><select data-catalog-field="teacher-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, teacher.siteId || teacher.site || "") ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
+  target.classList.add("epqa-table-wrap-v4");
+  const teachers = EPQA.data.teachers || [];
+  const rows = teachers.map((teacher, index) => {
+    const teacherType = teacher.type || teacher.level || "Otro";
+    const badgeClass = teacherTypeBadgeClass(teacherType);
+    const teacherId = teacher.id || teacher.name || "";
+    const teacherSiteId = teacher.siteId || teacher.site || "";
+    const rowLabel = `${teacherId} ${teacher.name || ""} ${teacherType} ${siteNameForId(teacherSiteId) || ""}`.trim();
+    return `
+    <tr data-teacher-index="${index}" data-teacher-label="${escapeHtml(rowLabel)}" data-teacher-type="${escapeHtml(teacherType)}" data-teacher-site="${escapeHtml(teacherSiteId)}">
+      <td><input data-catalog-field="teacher-id" value="${escapeHtml(teacherId)}"></td>
+      <td><input data-catalog-field="teacher-name" value="${escapeHtml(teacher.name || teacherId || "")}"></td>
+      <td>
+        <span class="epqa-type-badge-v4 ${badgeClass}">${escapeHtml(teacherTypeLabel(teacherType))}</span>
+      </td>
+      <td><select data-catalog-field="teacher-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, teacherSiteId) ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
       <td><input data-catalog-field="teacher-min" type="number" min="0" value="${Number(teacher.minWeeklyHours || teacher.min_secondary_hours || 0)}"></td>
       <td class="catalog-actions">
-        <button class="epqa-btn-sm epqa-btn-save" data-save-teacher="${index}" type="button">Guardar</button>
-        <button class="epqa-btn-sm epqa-btn-delete" data-delete-teacher="${index}" type="button">Borrar</button>
+        <button class="epqa-icon-action-v4" data-save-teacher="${index}" type="button" title="Guardar docente" aria-label="Guardar docente">💾</button>
+        <button class="epqa-icon-action-v4 epqa-icon-action-v4--danger" data-delete-teacher="${index}" type="button" title="Borrar docente" aria-label="Borrar docente">🗑️</button>
       </td>
-    </tr>`).join("") || `<tr><td colspan="6">Sin docentes.</td></tr>`;
-  target.innerHTML = `<div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Sede</th><th>Min</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    </tr>`;
+  }).join("");
+  const emptyRow = teachers.length
+    ? `<tr class="epqa-teacher-empty-row epqa-teacher-no-results-row" hidden><td colspan="6">Sin coincidencias para los filtros activos.</td></tr>`
+    : `<tr class="epqa-teacher-empty-row"><td colspan="6">Sin docentes.</td></tr>`;
+  target.innerHTML = `<table class="epqa-table-v3 epqa-table-v4"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Sede</th><th>Min</th><th>Acciones</th></tr></thead><tbody>${rows || ""}${emptyRow}</tbody></table>`;
   setTextAny((EPQA.data.teachers || []).length, "teacherCountLabel");
+  ensureTeacherV4Chrome();
+  populateTeacherFilterSites();
+  bindTeacherV4Actions();
+  applyTeacherFilters();
   bindCatalogManagerActions(target);
+}
+
+function teacherTypeLabel(value) {
+  const normalized = normalizeLevel(value || "");
+  if (normalized === "primary") return "Primaria";
+  if (normalized === "secondary") return "Secundaria";
+  return value || "Otro";
+}
+
+function teacherTypeBadgeClass(value) {
+  const normalized = normalizeLevel(value || "");
+  if (normalized === "primary") return "epqa-type-badge-v4--primaria";
+  if (normalized === "secondary") return "epqa-type-badge-v4--secundaria";
+  return "epqa-type-badge-v4--otro";
+}
+
+function ensureTeacherV4Chrome() {
+  const mainCard = document.querySelector(".epqa-docentes-main-card-v3");
+  if (!mainCard) return;
+
+  const headerTitle = mainCard.querySelector(".epqa-docentes-header-v3 h1");
+  if (headerTitle) headerTitle.textContent = "Gestión de docentes";
+  const headerCopy = mainCard.querySelector(".epqa-docentes-header-v3 p");
+  if (headerCopy) headerCopy.textContent = "Gestiona los docentes y su disponibilidad mínima.";
+  const formTitle = mainCard.querySelector(".epqa-docentes-form-panel-v3 h2");
+  if (formTitle) formTitle.textContent = "Nuevo docente";
+  const formCopy = mainCard.querySelector(".epqa-docentes-form-panel-v3 p");
+  if (formCopy) formCopy.textContent = "Completa la información base para agregar un docente al sistema.";
+  const tableTitle = mainCard.querySelector(".epqa-docentes-table-panel-v3 h2");
+  if (tableTitle) tableTitle.textContent = "Docentes creados";
+  const tableCopy = mainCard.querySelector(".epqa-docentes-table-panel-v3 .epqa-table-header-v3 p");
+  if (tableCopy) tableCopy.textContent = "Listado editable de docentes registrados en el horario.";
+  const addTeacherButton = byId("btnAddTeacher");
+  if (addTeacherButton) addTeacherButton.innerHTML = "<span>＋</span><span>Agregar docente</span>";
+  const footerIcon = mainCard.querySelector(".epqa-footer-icon-v3");
+  if (footerIcon) footerIcon.textContent = "♙";
+
+  const layout = mainCard.querySelector(".epqa-docentes-layout-v3");
+  if (layout) layout.classList.add("epqa-docentes-layout-v3--compact");
+
+  if (!document.getElementById("teacherFormModal")) {
+    const formPanel = mainCard.querySelector(".epqa-docentes-form-panel-v3");
+    if (!formPanel) return;
+    const teacherForm = formPanel.querySelector(".epqa-docente-form-v3");
+    const modal = document.createElement("div");
+    modal.id = "teacherFormModal";
+    modal.className = "modal-backdrop epqa-teacher-modal";
+    modal.hidden = true;
+    modal.innerHTML = `
+      <div class="modal-card epqa-teacher-modal-card" role="dialog" aria-modal="true" aria-labelledby="teacherModalTitle">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Docentes</p>
+            <h2 id="teacherModalTitle">Nuevo docente</h2>
+            <p class="modal-subcopy">Completa la información base para agregar un docente al sistema.</p>
+          </div>
+          <button type="button" class="modal-close" data-teacher-modal-close aria-label="Cerrar">×</button>
+        </div>
+        <div class="epqa-teacher-modal-body"></div>
+      </div>`;
+    if (teacherForm) modal.querySelector(".epqa-teacher-modal-body")?.appendChild(teacherForm);
+    formPanel.remove();
+    document.body.appendChild(modal);
+  }
+
+  if (!mainCard.querySelector(".epqa-docentes-actions-v4")) {
+    const actions = document.createElement("section");
+    actions.className = "epqa-docentes-actions-v4";
+    actions.setAttribute("aria-label", "Acciones de docentes");
+    actions.innerHTML = `
+      <button class="epqa-docente-action-card-v4 epqa-docente-action-card-v4--blue" id="btnTeacherQuickCreate" type="button">
+        <span class="epqa-docente-action-icon-v4">➕</span>
+        <span class="epqa-docente-action-copy-v4">
+          <strong>Nuevo docente</strong>
+          <small>Agrega un docente rápidamente</small>
+        </span>
+        <span class="epqa-docente-action-arrow-v4">›</span>
+      </button>
+
+      <article class="epqa-docente-action-card-v4 epqa-docente-action-card-v4--green">
+        <span class="epqa-docente-action-icon-v4">⬆️</span>
+        <span class="epqa-docente-action-copy-v4">
+          <strong>Importar docentes</strong>
+          <small>Importa desde un archivo Excel</small>
+          <span class="epqa-import-actions-v4">
+            <button type="button" class="epqa-mini-action-v4" id="btnTeacherTemplate">Descargar plantilla</button>
+            <button type="button" class="epqa-mini-action-v4 epqa-mini-action-v4--primary" id="btnTeacherImportExcel">⬆️ Importar Excel</button>
+          </span>
+        </span>
+        <span class="epqa-docente-action-arrow-v4">›</span>
+      </article>`;
+    mainCard.insertBefore(actions, layout);
+  }
+
+  const tablePanel = mainCard.querySelector(".epqa-docentes-table-panel-v3");
+  if (!tablePanel) return;
+  let toolbar = tablePanel.querySelector(".epqa-docentes-toolbar-v4");
+  if (!toolbar) {
+    const header = tablePanel.querySelector(".epqa-table-header-v3");
+    toolbar = document.createElement("section");
+    toolbar.className = "epqa-docentes-toolbar-v4";
+    toolbar.innerHTML = `
+      <div class="epqa-search-shell-v4">
+        <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
+        <input id="teacherSearchInput" type="text" placeholder="Buscar por nombre o ID...">
+      </div>
+
+      <select id="teacherTypeFilter">
+        <option value="__ALL__">Todos los tipos</option>
+        <option value="Primaria">Primaria</option>
+        <option value="Secundaria">Secundaria</option>
+      </select>
+
+      <select id="teacherSiteFilter"></select>
+
+      <button type="button" class="epqa-filter-btn-v4" id="btnTeacherFilters">Filtros</button>`;
+    if (header) {
+      header.insertAdjacentElement("afterend", toolbar);
+    } else {
+      tablePanel.insertBefore(toolbar, tablePanel.firstChild);
+    }
+  }
+}
+
+function populateTeacherFilterSites() {
+  const select = byId("teacherSiteFilter");
+  if (!select) return;
+  const currentValue = select.value || "__ALL__";
+  const options = [{ id: "__ALL__", name: "Todas las sedes" }, ...siteOptionsWithEmpty().filter((site) => site.id)];
+  select.innerHTML = options.map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
+  select.value = options.some((site) => site.id === currentValue) ? currentValue : "__ALL__";
+}
+
+function applyTeacherFilters() {
+  const target = byId("teacherManager");
+  if (!target) return;
+  const search = normalizeKey(byId("teacherSearchInput")?.value || "");
+  const typeFilter = byId("teacherTypeFilter")?.value || "__ALL__";
+  const siteFilter = byId("teacherSiteFilter")?.value || "__ALL__";
+  const rows = target.querySelectorAll("tbody tr[data-teacher-index]");
+  const noResultsRow = target.querySelector(".epqa-teacher-no-results-row");
+  let visible = 0;
+  rows.forEach((row) => {
+    const label = normalizeKey(row.dataset.teacherLabel || row.textContent || "");
+    const type = normalizeKey(row.dataset.teacherType || "");
+    const site = row.dataset.teacherSite || "";
+    const matchesSearch = !search || label.includes(search);
+    const matchesType = typeFilter === "__ALL__" || normalizeKey(typeFilter) === type;
+    const matchesSite = siteFilter === "__ALL__" || sameSite(site, siteFilter) || normalizeKey(site) === normalizeKey(siteFilter);
+    const show = matchesSearch && matchesType && matchesSite;
+    row.hidden = !show;
+    if (show) visible += 1;
+  });
+  if (noResultsRow) noResultsRow.hidden = visible > 0;
+}
+
+function bindTeacherV4Actions() {
+  const quickCreate = byId("btnTeacherQuickCreate");
+  if (quickCreate && !quickCreate.dataset.bound) {
+    quickCreate.dataset.bound = "1";
+    quickCreate.addEventListener("click", openTeacherModal);
+  }
+
+  const templateButton = byId("btnTeacherTemplate");
+  if (templateButton && !templateButton.dataset.bound) {
+    templateButton.dataset.bound = "1";
+    templateButton.addEventListener("click", downloadTeacherTemplate);
+  }
+
+  const importButton = byId("btnTeacherImportExcel");
+  if (importButton && !importButton.dataset.bound) {
+    importButton.dataset.bound = "1";
+    importButton.addEventListener("click", () => byId("dataFileInput")?.click());
+  }
+
+  const searchInput = byId("teacherSearchInput");
+  if (searchInput) searchInput.oninput = applyTeacherFilters;
+
+  const typeFilter = byId("teacherTypeFilter");
+  if (typeFilter) typeFilter.onchange = applyTeacherFilters;
+
+  const siteFilter = byId("teacherSiteFilter");
+  if (siteFilter) siteFilter.onchange = applyTeacherFilters;
+
+  const filterButton = byId("btnTeacherFilters");
+  if (filterButton && !filterButton.dataset.bound) {
+    filterButton.dataset.bound = "1";
+    filterButton.addEventListener("click", () => {
+      if (searchInput) searchInput.value = "";
+      if (typeFilter) typeFilter.value = "__ALL__";
+      if (siteFilter) siteFilter.value = "__ALL__";
+      applyTeacherFilters();
+      searchInput?.focus();
+      });
+  }
+
+  const modal = byId("teacherFormModal");
+  if (modal && !modal.dataset.bound) {
+    modal.dataset.bound = "1";
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal || event.target.closest("[data-teacher-modal-close]")) closeTeacherModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeTeacherModal();
+    });
+  }
+}
+
+function openTeacherModal() {
+  const modal = byId("teacherFormModal");
+  if (!modal) return;
+  modal.hidden = false;
+  const input = byId("teacherName");
+  setTimeout(() => input?.focus(), 0);
+}
+
+function closeTeacherModal() {
+  const modal = byId("teacherFormModal");
+  if (!modal) return;
+  modal.hidden = true;
+}
+
+function downloadTeacherTemplate() {
+  if (!window.XLSX) {
+    downloadJson({
+      teachers: [
+        { id: "", name: "", type: "Primaria", siteId: "", minWeeklyHours: 0 }
+      ]
+    }, "plantilla_docentes_epqa.json");
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["ID", "Nombre", "Tipo", "Sede", "Min horas"],
+    ["", "", "Primaria", "", 0]
+  ]);
+  ws["!cols"] = [{ wch: 24 }, { wch: 30 }, { wch: 16 }, { wch: 24 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws, "Docentes");
+  XLSX.writeFile(wb, "plantilla_docentes_epqa.xlsx");
 }
 
 function renderGroupManager() {
@@ -1518,6 +1774,7 @@ function addTeacher() {
     ensureTeacherDefaultAvailabilitySite(EPQA.data.teachers[EPQA.data.teachers.length - 1], siteId);
   }
   renderDataViews();
+  closeTeacherModal();
 }
 
 function addGroup() {
@@ -4174,6 +4431,9 @@ async function importDataFile() {
     notify("Archivo importado", "Los datos quedaron cargados en el gestor.", "success");
   } catch (error) {
     notify("No fue posible importar", "Revise que tenga JSON valido o hojas Excel compatibles.", "error", true);
+  } finally {
+    const input = byId("dataFileInput");
+    if (input) input.value = "";
   }
 }
 
