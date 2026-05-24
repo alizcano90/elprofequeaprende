@@ -1259,11 +1259,12 @@ function renderTeacherManager() {
       <td><select data-catalog-field="teacher-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, teacher.siteId || teacher.site || "") ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
       <td><input data-catalog-field="teacher-min" type="number" min="0" value="${Number(teacher.minWeeklyHours || teacher.min_secondary_hours || 0)}"></td>
       <td class="catalog-actions">
-        <button class="ghost" data-save-teacher="${index}" type="button">Guardar</button>
-        <button class="ghost danger" data-delete-teacher="${index}" type="button">Borrar</button>
+        <button class="epqa-btn-sm epqa-btn-save" data-save-teacher="${index}" type="button">Guardar</button>
+        <button class="epqa-btn-sm epqa-btn-delete" data-delete-teacher="${index}" type="button">Borrar</button>
       </td>
     </tr>`).join("") || `<tr><td colspan="6">Sin docentes.</td></tr>`;
-  target.innerHTML = `<section><h3>Docentes creados</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Sede</th><th>Min</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  target.innerHTML = `<div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Sede</th><th>Min</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  setTextAny((EPQA.data.teachers || []).length, "teacherCountLabel");
   bindCatalogManagerActions(target);
 }
 

@@ -530,21 +530,80 @@ $assetVersion = static function (string $path): string {
                             </div>
                         </section>
                     </article>
-                    <article class="catalog-card">
-                        <h2>Edición de docentes</h2>
-                        <div class="compact-form">
-                            <label>Docente <input id="teacherName" type="text" placeholder="NOMBRE"></label>
-                            <label>Tipo
-                                <select id="teacherType">
-                                    <option value="Primaria">Primaria</option>
-                                    <option value="Secundaria">Secundaria</option>
-                                </select>
-                            </label>
-                            <label>Sede por defecto <select id="teacherDefaultSite"></select></label>
-                            <label>Min horas <input id="teacherMinHours" type="number" min="0" value="22"></label>
-                            <button id="btnAddTeacher" class="primary" type="button">Agregar docente</button>
-                        </div>
-                        <div id="teacherManager" class="catalog-manager"></div>
+                    <article class="catalog-card wide epqa-docentes-view-v3">
+                        <section class="epqa-docentes-main-card-v3">
+                            <header class="epqa-docentes-header-v3">
+                                <div class="epqa-docentes-header-icon-v3"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+                                <div>
+                                    <h1>Gestión de docentes</h1>
+                                    <p>Registra, edita y administra los docentes junto con su sede base, nivel y carga mínima semanal.</p>
+                                </div>
+                            </header>
+
+                            <div class="epqa-docentes-layout-v3">
+                                <section class="epqa-panel-v3 epqa-docentes-form-panel-v3">
+                                    <h2>Nuevo docente</h2>
+                                    <p>Completa la información base para agregar un docente al sistema.</p>
+
+                                    <form class="epqa-docente-form-v3" onsubmit="return false;">
+                                        <div class="epqa-form-group-v3">
+                                            <label for="teacherName">Docente</label>
+                                            <div class="epqa-input-icon-v3">
+                                                <span><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+                                                <input id="teacherName" class="epqa-input-v3 with-icon" type="text" placeholder="NOMBRE">
+                                            </div>
+                                        </div>
+
+                                        <div class="epqa-form-group-v3">
+                                            <label for="teacherType">Tipo</label>
+                                            <div class="epqa-input-icon-v3">
+                                                <span><i class="fa-solid fa-user-graduate" aria-hidden="true"></i></span>
+                                                <select id="teacherType" class="epqa-select-v3 with-icon">
+                                                    <option value="Primaria">Primaria</option>
+                                                    <option value="Secundaria">Secundaria</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="epqa-form-group-v3">
+                                            <label for="teacherDefaultSite">Sede por defecto</label>
+                                            <div class="epqa-input-icon-v3">
+                                                <span><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+                                                <select id="teacherDefaultSite" class="epqa-select-v3 with-icon"></select>
+                                            </div>
+                                        </div>
+
+                                        <div class="epqa-form-group-v3">
+                                            <label for="teacherMinHours">Min horas</label>
+                                            <input id="teacherMinHours" class="epqa-number-v3" type="number" min="0" value="22">
+                                        </div>
+
+                                        <button id="btnAddTeacher" class="primary epqa-submit-btn-v3" type="button">
+                                            <span>＋</span>
+                                            <span>Agregar docente</span>
+                                        </button>
+                                    </form>
+                                </section>
+
+                                <section class="epqa-panel-v3 epqa-docentes-table-panel-v3">
+                                    <div class="epqa-table-header-v3">
+                                        <div>
+                                            <h2>Docentes creados</h2>
+                                            <p>Listado editable de docentes registrados en el horario.</p>
+                                        </div>
+
+                                        <input class="epqa-table-search-v3" type="search" placeholder="Buscar docente, sede o tipo...">
+                                    </div>
+
+                                    <div id="teacherManager" class="epqa-table-wrap-v3"></div>
+
+                                    <div class="epqa-panel-footer-v3">
+                                        <span class="epqa-footer-icon-v3">♙</span>
+                                        <span><span id="teacherCountLabel" class="accent">0</span> docentes registrados</span>
+                                    </div>
+                                </section>
+                            </div>
+                        </section>
                     </article>
                     <article class="catalog-card wide teacher-summary-card">
                         <h2>Resumen dinámico por docente</h2>
