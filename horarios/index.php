@@ -426,14 +426,39 @@ $assetVersion = static function (string $path): string {
 
             <section class="panel" id="panel-data">
                 <div class="catalog-grid">
-                    <article class="catalog-card">
-                        <h2>Edición de institución</h2>
+                    <article class="catalog-card wide epqa-institution-card-v3">
+                        <header class="epqa-institution-header-v3">
+                            <div class="epqa-institution-icon-v3"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></div>
+                            <div class="epqa-institution-copy-v3">
+                                <h1>Información de la institución</h1>
+                                <p>Edita los datos generales de tu institución educativa.</p>
+                            </div>
+                        </header>
+
                         <div id="dataLoadAlert" class="panel-inline-alert" hidden></div>
-                        <div class="compact-form">
-                            <label>Nombre del colegio <input id="schoolName" type="text"></label>
-                            <label>Responsable <input id="schoolOwner" type="text"></label>
-                            <button id="btnSaveSchool" class="primary" type="button">Actualizar colegio</button>
-                        </div>
+
+                        <form class="epqa-institution-form-v3" onsubmit="return false;">
+                            <div class="epqa-field-v3">
+                                <label for="schoolName">Nombre del colegio</label>
+                                <div class="epqa-input-shell-v3">
+                                    <span class="epqa-input-icon-v3"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+                                    <input id="schoolName" type="text">
+                                </div>
+                            </div>
+
+                            <div class="epqa-field-v3">
+                                <label for="schoolOwner">Responsable</label>
+                                <div class="epqa-input-shell-v3">
+                                    <span class="epqa-input-icon-v3"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+                                    <input id="schoolOwner" type="text">
+                                </div>
+                            </div>
+
+                            <button id="btnSaveSchool" class="primary epqa-primary-action-v3" type="button">
+                                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                                <span>Actualizar colegio</span>
+                            </button>
+                        </form>
                     </article>
                     <article class="catalog-card">
                         <h2>Sedes y espacios</h2>
