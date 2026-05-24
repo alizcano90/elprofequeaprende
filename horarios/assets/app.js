@@ -282,6 +282,7 @@ function renderScheduleSwitcher(active) {
   const canCreate = EPQA.limit?.allowed !== false;
   byId("btnNewSchedule").disabled = !canCreate;
   byId("btnNewSchedule").title = canCreate ? "" : "Disponible en plan Pro";
+  renderDashboardOverview(active);
 }
 
 function statusLabel(status) {
@@ -483,6 +484,159 @@ function renderMetrics() {
   byId("metricTeachers").textContent = (EPQA.data.teachers || []).length;
   byId("metricLoads").textContent = (EPQA.data.loads || []).length;
   byId("metricSlots").textContent = (EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0);
+  renderDashboardOverview();
+}
+
+function renderDashboardOverview(active = null) {
+  const heroTitle = byId("workspaceHeroTitle");
+  const diagnostic = byId("workspaceDiagnostic");
+  const statusBadge = byId("workspaceStatusBadge");
+  const availabilityBadge = byId("workspaceAvailabilityBadge");
+  const nextActionBadge = byId("workspaceNextActionBadge");
+  const nextAction = byId("workspaceNextAction");
+  const nextActionHelp = byId("workspaceNextActionHelp");
+  const stepper = byId("workflowStepper");
+  const metrics = byId("executiveMetrics");
+  const alerts = byId("dashboardAlerts");
+
+  const project = EPQA.data?.project || {};
+  const teachers = EPQA.data?.teachers || [];
+  const groups = Array.isArray(EPQA.data?.groups)
+    ? EPQA.data.groups
+    : [...(EPQA.data?.groups?.primary || []), ...(EPQA.data?.groups?.secondary || [])];
+  const subjects = EPQA.data?.subjects || [];
+  const loads = EPQA.data?.loads || [];
+  const slots = EPQA.slots || [];
+  const sites = EPQA.data?.sites || [];
+  const rooms = EPQA.data?.rooms || [];
+  const rules = EPQA.data?.rules || {};
+  const audit = EPQA.audit || { counts: { P0: 0, P1: 0, P2: 0 }, score: 100 };
+  const loadHours = loads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
+  const placedHours = slots.reduce((sum, slot) => sum + slotDuration(slot), 0);
+  const pendingHours = Math.max(0, loadHours - placedHours);
+  const critical = Number(audit.counts?.P0 || 0);
+  const strong = Number(audit.counts?.P1 || 0);
+  const preference = Number(audit.counts?.P2 || 0);
+  const hasBasics = Boolean((project.institution || project.name) && teachers.length && groups.length && subjects.length);
+  const hasLoads = loads.length > 0;
+  const hasAvailability = teachers.some((teacher) => teacherAvailabilityTotals(teacher).total > 0);
+  const hasRules = Boolean(
+    (rules.general && Object.keys(rules.general).length) ||
+    (rules.critical && rules.critical.length) ||
+    (rules.teacherSite && rules.teacherSite.length) ||
+    (rules.room && rules.room.length) ||
+    (rules.block && rules.block.length)
+  );
+  const hasProposal = slots.length > 0;
+  const activeSchedule = active?.schedule || active || null;
+  const scheduleName = activeSchedule?.name || project.institution || project.name || "Horario activo";
+  const scheduleStatus = statusLabel(activeSchedule?.status || "draft");
+  const updatedAt = activeSchedule?.updated_at || activeSchedule?.updatedAt || activeSchedule?.modified_at || activeSchedule?.modifiedAt || null;
+
+  if (heroTitle) heroTitle.textContent = scheduleName;
+  if (diagnostic) {
+    diagnostic.textContent = hasBasics
+      ? `Tu horario tiene ${loadHours} horas configuradas, ${teachers.length} docentes, ${groups.length} grupos y ${pendingHours} horas pendientes de ubicar.`
+      : "Empieza por registrar la informacion base para construir un horario claro y publicable.";
+  }
+  if (statusBadge) statusBadge.textContent = "Horario activo";
+  if (availabilityBadge) {
+    const state = critical > 0
+      ? "Requiere correccion obligatoria"
+      : strong > 0
+        ? "Publicable con observaciones"
+        : hasProposal
+          ? "Listo para exportar"
+          : "En construccion";
+    availabilityBadge.textContent = `${state}${updatedAt ? ` · ${formatShortDate(updatedAt)}` : ""}`;
+  }
+  if (nextActionBadge) nextActionBadge.textContent = critical > 0 ? "Correccion obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar";
+  if (nextAction) nextAction.textContent = chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
+  if (nextActionHelp) nextActionHelp.textContent = chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
+
+  if (stepper) {
+    const steps = [
+      dashboardStep("Institucion", Boolean(project.institution || project.name), !project.institution && !project.name),
+      dashboardStep("Sedes y espacios", sites.length > 0 && rooms.length > 0, sites.length === 0 || rooms.length === 0),
+      dashboardStep("Docentes", teachers.length > 0, teachers.length === 0),
+      dashboardStep("Grados", groups.length > 0, groups.length === 0),
+      dashboardStep("Materias", subjects.length > 0, subjects.length === 0),
+      dashboardStep("Cargas academicas", hasLoads, !hasLoads),
+      dashboardStep("Disponibilidad", hasAvailability, !hasAvailability),
+      dashboardStep("Reglas", hasRules, !hasRules),
+      dashboardStep("Generacion", hasProposal, !hasProposal),
+      dashboardStep("Revision", critical === 0, critical > 0),
+      dashboardStep("Exportacion", critical === 0 && hasProposal, critical > 0 || !hasProposal)
+    ];
+    stepper.innerHTML = steps.map((step, index) => `
+      <div class="workflow-step ${step.state}">
+        <span class="workflow-index">${index + 1}</span>
+        <div>
+          <strong>${escapeHtml(step.label)}</strong>
+          <small>${escapeHtml(step.copy)}</small>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  if (metrics) {
+    metrics.innerHTML = [
+      dashboardMetric("Grupos", groups.length),
+      dashboardMetric("Docentes", teachers.length),
+      dashboardMetric("Materias", subjects.length),
+      dashboardMetric("Cargas academicas", loads.length),
+      dashboardMetric("Horas configuradas", `${loadHours}h`),
+      dashboardMetric("Horas ubicadas", `${placedHours}h`),
+      dashboardMetric("Horas pendientes", `${pendingHours}h`, pendingHours > 0 ? "warning" : "success"),
+      dashboardMetric("Espacios", rooms.length),
+      dashboardMetric("Sedes", sites.length),
+      dashboardMetric("Problemas obligatorios", critical, critical > 0 ? "danger" : "success"),
+      dashboardMetric("Reglas importantes", strong, strong > 0 ? "warning" : "info"),
+      dashboardMetric("Cumplimiento", `${audit.score || 0}%`, audit.score >= 90 ? "success" : "warning")
+    ].join("");
+  }
+
+  if (alerts) {
+    const rows = [];
+    if (critical > 0) rows.push(dashboardAlert("critical", `Hay ${critical} problemas obligatorios`, "Corrige estas situaciones antes de publicar."));
+    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse segun el criterio institucional."));
+    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revision o exportacion."));
+    alerts.innerHTML = rows.join("");
+  }
+}
+
+function dashboardStep(label, complete, warning) {
+  if (complete && !warning) return { label, copy: "Completo", state: "is-complete" };
+  if (warning && !complete) return { label, copy: "Pendiente", state: "is-pending" };
+  return { label, copy: "En curso", state: "is-warning" };
+}
+
+function dashboardMetric(label, value, tone = "info") {
+  return `<article class="metric-card metric-${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`;
+}
+
+function dashboardAlert(tone, title, copy) {
+  return `<div class="dashboard-alert ${tone}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(copy)}</span></div>`;
+}
+
+function chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
+  if (!hasBasics) return "Continuar construccion";
+  if (!hasLoads) return "Asignar materias";
+  if (!hasProposal) return "Generar horario";
+  if (critical > 0) return "Revisar problemas";
+  if (strong > 0) return "Revisar reglas importantes";
+  if (pendingHours > 0) return "Completar pendientes";
+  return "Ver horario generado";
+}
+
+function chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
+  if (!hasBasics) return "Registra institucion, docentes, grupos y materias para empezar.";
+  if (!hasLoads) return "Define la carga academica para que el sistema pueda proponer un horario.";
+  if (!hasProposal) return "Con la carga lista, el sistema puede generar una propuesta completa.";
+  if (critical > 0) return "Hay problemas obligatorios que conviene revisar antes de publicar.";
+  if (strong > 0) return "Hay reglas importantes que pueden requerir ajuste o excepcion.";
+  if (pendingHours > 0) return "Aun quedan horas por ubicar. Puedes acomodarlas manualmente.";
+  return "La propuesta esta lista para revisar o exportar.";
 }
 
 function renderLoads() {
@@ -3341,6 +3495,7 @@ function renderAudit() {
   `).join("");
 
   renderChart(counts);
+  renderDashboardOverview();
 }
 
 function auditRuleLabel(code) {

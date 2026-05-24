@@ -62,87 +62,150 @@ $assetVersion = static function (string $path): string {
         </aside>
 
         <main class="workspace">
-            <header class="topbar">
-                <div>
-                    <p class="eyebrow">Institucion rural/offline</p>
+                        <header class="topbar">
+                <div class="topbar-copy">
+                    <p class="eyebrow">PLATAFORMA EDUCATIVA PARA CONSTRUIR HORARIOS</p>
                     <h1>EPQA Horarios Inteligentes</h1>
-                </div>
-                <div class="top-actions">
-                    <button id="btnGenerate" class="ghost">Generar propuesta de cero</button>
-                    <button id="btnGenerateMissing" class="ghost">Generar desde lo actual</button>
-                    <button id="btnRepair" class="ghost">Reparar conflictos</button>
-                    <button id="btnSaveProgress" class="ghost">Guardar avance</button>
-                    <button id="btnLoadProgress" class="ghost">Cargar avance</button>
-                    <button id="btnBackupProgress" class="ghost">Descargar backup</button>
-                    <label class="backup-upload">
-                        Subir backup
-                        <input id="backupInput" type="file" accept=".json,application/json">
-                    </label>
-                    <button id="btnSave" class="primary">Guardar version</button>
+                    <p class="plain topbar-lead">Construye, revisa, ajusta y exporta horarios escolares con una interfaz guiada para coordinadores y docentes.</p>
                 </div>
             </header>
 
-            <section class="schedule-switcher" aria-label="Horarios del usuario">
-                <div>
+            <section class="schedule-switcher epqa-active-schedule-card" aria-label="Horarios del usuario">
+                <div class="schedule-summary">
                     <span id="planBadge" class="plan-badge">Plan gratuito</span>
                     <strong id="activeScheduleName">Horario activo</strong>
                     <small id="activeScheduleStatus">Borrador</small>
+                    <p class="plain schedule-copy">Selecciona un horario o crea uno nuevo para continuar desde su estado actual.</p>
                 </div>
-                <label>Cambiar horario
-                    <select id="scheduleSelect"></select>
-                </label>
+                <div class="schedule-select-wrap">
+                    <label>Cambiar horario
+                        <select id="scheduleSelect"></select>
+                    </label>
+                </div>
                 <div class="schedule-actions">
                     <button id="btnNewSchedule" class="primary" type="button">Crear nuevo</button>
-                    <button id="btnDuplicateSchedule" class="ghost" type="button">Duplicar</button>
-                    <button id="btnExportJson" class="ghost" type="button">Exportar JSON</button>
-                    <button id="btnDeleteSchedule" class="ghost danger" type="button">Eliminar</button>
                 </div>
-            </section>
-
-            <section class="status-grid" aria-label="Estado de auditoria">
-                <article class="status-card p0">
-                    <span>P0</span>
-                    <strong id="p0Count">0</strong>
-                    <small>Criticas</small>
-                </article>
-                <article class="status-card p1">
-                    <span>P1</span>
-                    <strong id="p1Count">0</strong>
-                    <small>Fuertes</small>
-                </article>
-                <article class="status-card p2">
-                    <span>P2</span>
-                    <strong id="p2Count">0</strong>
-                    <small>Deseables</small>
-                </article>
-                <article class="status-card score">
-                    <span>Score</span>
-                    <strong id="scoreCount">100</strong>
-                    <small>Cumplimiento</small>
-                </article>
             </section>
 
             <section class="panel active" id="panel-dashboard">
-                <div class="dashboard-grid">
-                    <article class="wide-block">
-                        <h2>Datos generales y consolidado</h2>
-                        <p class="plain">Vista de lectura para revisar el estado general antes de editar, auditar o exportar.</p>
-                        <div class="metrics-row">
-                            <div><strong id="metricGroups">0</strong><span>Grupos</span></div>
-                            <div><strong id="metricTeachers">0</strong><span>Docentes</span></div>
-                            <div><strong id="metricLoads">0</strong><span>Cargas</span></div>
-                            <div><strong id="metricSlots">0</strong><span>Horas ubicadas</span></div>
+                <article class="epqa-hero">
+                    <div class="epqa-hero-copy">
+                        <p class="eyebrow">PLATAFORMA EDUCATIVA PARA CONSTRUIR HORARIOS</p>
+                        <h2 id="workspaceHeroTitle">EPQA Horarios Inteligentes</h2>
+                        <p id="workspaceDiagnostic" class="plain">Construye, revisa, ajusta y exporta horarios escolares con una interfaz guiada para coordinadores y docentes.</p>
+                        <div class="epqa-hero-badges">
+                            <span class="product-pill" id="workspaceStatusBadge">Horario activo</span>
+                            <span class="product-pill" id="workspaceAvailabilityBadge">Estado: cargando</span>
                         </div>
+                    </div>
+                    <div class="epqa-hero-actions">
+                        <button id="btnGenerate" class="primary action-main" type="button">Generar horario</button>
+                        <details class="more-actions">
+                            <summary>Más acciones</summary>
+                            <div class="more-actions-menu">
+                                <button id="btnGenerateMissing" class="ghost" type="button">Generar desde lo actual</button>
+                                <button id="btnRepair" class="ghost" type="button">Revisar problemas</button>
+                                <button id="btnSaveProgress" class="ghost" type="button">Guardar avance</button>
+                                <button id="btnLoadProgress" class="ghost" type="button">Cargar avance</button>
+                                <button id="btnBackupProgress" class="ghost" type="button">Descargar copia de seguridad</button>
+                                <label class="backup-upload">
+                                    Subir copia de seguridad
+                                    <input id="backupInput" type="file" accept=".json,application/json">
+                                </label>
+                                <button id="btnSave" class="primary" type="button">Guardar versión</button>
+                                <button id="btnDuplicateSchedule" class="ghost" type="button">Duplicar horario</button>
+                                <button id="btnExportJson" class="ghost" type="button">Exportar datos técnicos</button>
+                                <button id="btnDeleteSchedule" class="ghost danger" type="button">Eliminar horario</button>
+                            </div>
+                        </details>
+                    </div>
+                </article>
+
+                <section class="epqa-rule-summary" aria-label="Estado de auditoria">
+                    <article class="status-card p0">
+                        <span>Problemas obligatorios</span>
+                        <strong id="p0Count">0</strong>
+                        <small>P0 críticas</small>
                     </article>
-                    <article>
-                        <h2>Auditoria</h2>
-                        <canvas id="auditChart" height="190"></canvas>
+                    <article class="status-card p1">
+                        <span>Reglas importantes</span>
+                        <strong id="p1Count">0</strong>
+                        <small>P1 fuertes</small>
                     </article>
-                    <article>
-                        <h2>Principio critico</h2>
-                        <p class="plain">El optimizador solo mueve dia, hora y espacio. Docente, materia, grupo y horas pertenecen a la carga original.</p>
+                    <article class="status-card p2">
+                        <span>Preferencias</span>
+                        <strong id="p2Count">0</strong>
+                        <small>P2 deseables</small>
                     </article>
-                </div>
+                    <article class="status-card score">
+                        <span>Cumplimiento</span>
+                        <strong id="scoreCount">100%</strong>
+                        <small>Estado general</small>
+                    </article>
+                </section>
+
+                <section class="epqa-home-grid">
+                    <div class="epqa-home-main">
+                        <article class="epqa-diagnosis-card">
+                            <h2>Diagnóstico del horario</h2>
+                            <div id="workspaceNextActionBadge" class="product-pill">Listo para revisar</div>
+                            <p id="workspaceNextActionHelp" class="plain">Revisa el estado del horario para saber qué completar, qué corregir y qué exportar.</p>
+                        </article>
+
+                        <article class="epqa-executive-summary">
+                            <div class="section-head">
+                                <div>
+                                    <h2>Resumen ejecutivo</h2>
+                                    <p class="plain">Lectura rápida de la información cargada en el horario.</p>
+                                </div>
+                            </div>
+                            <div id="executiveMetrics" class="epqa-metric-grid"></div>
+                        </article>
+
+                        <article class="epqa-quick-actions">
+                            <div class="section-head">
+                                <div>
+                                    <h2>Accesos rápidos</h2>
+                                    <p class="plain">Saltos directos a las tareas más frecuentes del módulo.</p>
+                                </div>
+                            </div>
+                            <div class="quick-actions-grid">
+                                <button class="nav-item quick-action" data-panel="data" type="button"><i class="fa-solid fa-user-group" aria-hidden="true"></i><span>Registrar docentes</span></button>
+                                <button class="nav-item quick-action" data-panel="data" type="button"><i class="fa-solid fa-school" aria-hidden="true"></i><span>Crear grados</span></button>
+                                <button class="nav-item quick-action" data-panel="data" type="button"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span>Asignar materias</span></button>
+                                <button class="nav-item quick-action" data-panel="data" type="button"><i class="fa-solid fa-clock" aria-hidden="true"></i><span>Definir disponibilidad</span></button>
+                                <button class="nav-item quick-action" data-panel="audit" type="button"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>Revisar problemas</span></button>
+                                <button class="nav-item quick-action" data-panel="exports" type="button"><i class="fa-solid fa-file-export" aria-hidden="true"></i><span>Ver exportación</span></button>
+                            </div>
+                        </article>
+                    </div>
+                    <aside class="epqa-home-side">
+                        <article class="epqa-next-step-card">
+                            <p class="eyebrow">Siguiente paso recomendado</p>
+                            <h3 id="workspaceNextAction">Continuar construcción</h3>
+                            <p class="plain">Completa la información base para poder generar un horario claro y publicable.</p>
+                        </article>
+                        <article class="epqa-progress-card">
+                            <div class="section-head">
+                                <div>
+                                    <h2>Progreso de construcción</h2>
+                                    <p class="plain">Guía visual del flujo real del módulo.</p>
+                                </div>
+                            </div>
+                            <div id="workflowStepper" class="workflow-stepper"></div>
+                        </article>
+                        <article class="epqa-alerts-card">
+                            <div class="section-head">
+                                <div>
+                                    <h2>Alertas importantes</h2>
+                                    <p class="plain">Situaciones que conviene revisar antes de publicar.</p>
+                                </div>
+                            </div>
+                            <div id="dashboardAlerts" class="dashboard-alerts"></div>
+                            <button class="ghost dashboard-alert-action nav-item" data-panel="audit" type="button">Ver revisión de problemas</button>
+                        </article>
+                    </aside>
+                </section>
             </section>
 
             <section class="panel" id="panel-data">
