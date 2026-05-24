@@ -1,5 +1,6 @@
 (function () {
-  if (!document.body || !document.body.classList.contains("page-home")) return;
+  if (!document.body || !document.body.classList.contains("stem-playground")) return;
+  if (document.querySelector(".animated-bg-canvas")) return;
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
   var canvas = document.createElement("canvas");
@@ -68,7 +69,30 @@
     }
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "rgba(248, 251, 255, 0.98)";
+    var base = ctx.createLinearGradient(0, 0, width, height);
+    base.addColorStop(0, "rgba(249, 252, 255, 0.98)");
+    base.addColorStop(0.42, "rgba(240, 246, 255, 0.98)");
+    base.addColorStop(0.72, "rgba(244, 252, 248, 0.98)");
+    base.addColorStop(1, "rgba(250, 246, 255, 0.98)");
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, width, height);
+
+    var glowA = ctx.createRadialGradient(width * 0.18, height * 0.22, 0, width * 0.18, height * 0.22, Math.max(width, height) * 0.45);
+    glowA.addColorStop(0, "rgba(23, 116, 255, 0.08)");
+    glowA.addColorStop(1, "rgba(23, 116, 255, 0)");
+    ctx.fillStyle = glowA;
+    ctx.fillRect(0, 0, width, height);
+
+    var glowB = ctx.createRadialGradient(width * 0.82, height * 0.18, 0, width * 0.82, height * 0.18, Math.max(width, height) * 0.38);
+    glowB.addColorStop(0, "rgba(123, 97, 255, 0.07)");
+    glowB.addColorStop(1, "rgba(123, 97, 255, 0)");
+    ctx.fillStyle = glowB;
+    ctx.fillRect(0, 0, width, height);
+
+    var glowC = ctx.createRadialGradient(width * 0.52, height * 0.92, 0, width * 0.52, height * 0.92, Math.max(width, height) * 0.32);
+    glowC.addColorStop(0, "rgba(0, 184, 148, 0.06)");
+    glowC.addColorStop(1, "rgba(0, 184, 148, 0)");
+    ctx.fillStyle = glowC;
     ctx.fillRect(0, 0, width, height);
 
     for (var aIndex = 0; aIndex < nodes.length; aIndex += 1) {

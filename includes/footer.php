@@ -32,9 +32,7 @@ declare(strict_types=1);
     </div>
   </footer>
 
-  <?php if (($currentPage ?? '') === 'home'): ?>
-    <script defer src="<?= e(asset('js/interactive-background.js')) ?>"></script>
-  <?php endif; ?>
+  <script defer src="<?= e(asset('js/interactive-background.js')) ?>"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="<?= e(asset('js/scripts.js')) ?>"></script>
 </body>

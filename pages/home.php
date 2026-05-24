@@ -173,21 +173,4 @@ if ($role === 'superadmin') {
     <?php endif; ?>
   </section>
 
-  <section class="home-summary-grid">
-    <article class="home-summary-card reveal-up">
-      <p class="home-kicker">Producto destacado</p>
-      <h2>Guias Interactivas con IA para Docentes</h2>
-      <p>Convierte tus clases en guias digitales interactivas con salida HTML y posibilidad de uso offline en el aula.</p>
-      <a href="<?= e(url('capacitaciones')) ?>"><i class="bi bi-arrow-right-circle"></i> Ver capacitacion</a>
-    </article>
-    <article class="home-summary-card reveal-up">
-      <p class="home-kicker">Planes y crecimiento</p>
-      <h2>Contenido gratuito, recursos premium y licencias institucionales</h2>
-      <ol class="home-summary-steps">
-        <li><strong>1</strong><span>Explora recursos gratuitos y soluciones rapidas.</span></li>
-        <li><strong>2</strong><span>Usa herramientas y capacitaciones para crear materiales propios.</span></li>
-        <li><strong>3</strong><span>Activa planes Pro o institucionales cuando necesites escalar.</span></li>
-      </ol>
-    </article>
-  </section>
 </section>
