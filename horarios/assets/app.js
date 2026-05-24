@@ -157,7 +157,7 @@ function bindActions() {
   byId("btnAddSite")?.addEventListener("click", addSite);
   byId("btnAddRoom")?.addEventListener("click", addRoom);
   byId("btnAddTeacher")?.addEventListener("click", addTeacher);
-  byId("teacherDetailSelect")?.addEventListener("change", renderTeacherDetailPanel);
+  byAnyId("teacherSummarySelect", "teacherDetailSelect")?.addEventListener("change", renderTeacherDetailPanel);
   byId("groupDetailSelect")?.addEventListener("change", renderGroupDetailPanel);
   byId("loadTeacher")?.addEventListener("change", () => refreshLoadGroupOptions());
   byId("loadRoom")?.addEventListener("change", () => refreshLoadGroupOptions());
@@ -998,8 +998,9 @@ function renderCatalogEditor() {
   fillSelect("groupSite", siteOptions(), "id", "name");
   fillSelect("roomSite", siteOptions(), "id", "name");
   fillSelect("teacherDefaultSite", siteOptionsWithEmpty(), "id", "name");
+  ensureTeacherSummaryV5Chrome();
   fillSelect("loadTeacher", teacherOptions(), "id", "name");
-  fillSelect("teacherDetailSelect", teacherOptions(), "id", "name");
+  fillSelect("teacherSummarySelect", teacherOptions(), "id", "name");
   fillSelect("groupDetailSelect", groupOptions(), "id", "name");
   fillSelect("loadSubject", subjectOptions(), "id", "name");
   fillSelect("loadRoom", roomOptionsWithFlexible(), "id", "name");
@@ -1551,11 +1552,35 @@ function ensureTeacherV4Chrome() {
   }
 }
 
-function ensureTeacherSummaryV4Chrome() {
+function ensureTeacherSummaryV5Chrome() {
   const card = document.querySelector(".teacher-summary-card");
   if (!card) return;
-  const title = card.querySelector(":scope > h2");
-  if (title) title.textContent = "Resumen docente";
+  if (card.querySelector(".epqa-teacher-summary-v5")) return;
+  card.innerHTML = `
+    <section class="epqa-teacher-summary-v5">
+      <header class="epqa-teacher-summary-header-v5">
+        <div class="epqa-teacher-title-v5">
+          <span class="epqa-teacher-title-icon-v5" aria-hidden="true">📊</span>
+          <div>
+            <h1>Resumen docente</h1>
+            <p>Visualiza la carga, disponibilidad y distribución horaria de cada docente.</p>
+          </div>
+        </div>
+
+        <div class="epqa-teacher-selector-v5">
+          <label for="teacherSummarySelect">Elegir docente</label>
+          <select id="teacherSummarySelect"></select>
+        </div>
+      </header>
+
+      <div id="teacherDetailPanel" class="teacher-detail-panel epqa-teacher-detail-panel-v5"></div>
+    </section>`;
+  const select = byId("teacherSummarySelect");
+  if (select) select.onchange = renderTeacherDetailPanel;
+}
+
+function ensureTeacherSummaryV4Chrome() {
+  ensureTeacherSummaryV5Chrome();
 }
 function bindTeacherV4Actions() {
   const quickCreate = byId("btnTeacherQuickCreate");
@@ -2475,7 +2500,7 @@ function renderAvailabilityModal(teacherId = null) {
   const stats = byId("availabilityModalStats");
   const baseSite = byId("availabilityModalBaseSite");
   if (!modal || !grid || !teacherLabel || !stats || !baseSite) return;
-  const currentTeacherId = teacherId || modal.dataset.teacher || byId("teacherDetailSelect")?.value || teacherOptions()[0]?.id || "";
+  const currentTeacherId = teacherId || modal.dataset.teacher || byAnyId("teacherSummarySelect", "teacherDetailSelect")?.value || teacherOptions()[0]?.id || "";
   const teacher = findTeacher(currentTeacherId);
   if (!teacher) {
     grid.innerHTML = `<div class="teacher-empty">No hay docente seleccionado.</div>`;
@@ -2615,7 +2640,7 @@ function onAvailabilityModalGridChange(event) {
   teacher.availability[day].site = event.target.value || "";
 }
 
-function renderTeacherDetailPanel() {
+function renderTeacherDetailPanelV4Legacy() {
   const panel = byId("teacherDetailPanel");
   const select = byId("teacherDetailSelect");
   if (!panel || !select) return;
@@ -2691,6 +2716,151 @@ function renderTeacherDetailPanel() {
         </div>
       `).join("") : `<div class="teacher-empty teacher-empty-v4">Este docente todavía no tiene cargas asignadas.</div>`}
     </div>
+  `;
+  panel.querySelectorAll("[data-open-availability]").forEach((button) => {
+    button.addEventListener("click", () => openAvailabilityModal(button.dataset.openAvailability));
+  });
+}
+
+function teacherSummarySubjectIcon(subject) {
+  const key = normalizeKey(subject);
+  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return "💻";
+  if (key.includes("DPC")) return "🧭";
+  if (key.includes("EMP") || key.includes("EMPREND")) return "💼";
+  if (key.includes("MATEMATIC") || key.includes("ARITMET")) return "🔢";
+  if (key.includes("CASTELL") || key.includes("LENGUA") || key.includes("ESPAN")) return "📚";
+  if (key.includes("INGLES") || key.includes("ENGLISH")) return "🌐";
+  if (key.includes("FISICA") || key.includes("DEPORTE")) return "🏃";
+  if (key.includes("BIOLOG")) return "🧬";
+  if (key.includes("ARTIST")) return "🎨";
+  if (key.includes("ETICA")) return "⚖️";
+  if (key.includes("RELIG")) return "✝️";
+  if (key.includes("SOCIAL")) return "🗺️";
+  return "📘";
+}
+
+function teacherSummaryColorClass(subject, index = 0) {
+  const key = normalizeKey(subject);
+  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return "color-blue";
+  if (key.includes("BIOLOG") || key.includes("NATURAL")) return "color-green";
+  if (key.includes("DPC") || key.includes("INGLES") || key.includes("SOCIAL")) return "color-cyan";
+  if (key.includes("EMP") || key.includes("MATEMATIC") || key.includes("ARITMET")) return "color-purple";
+  if (key.includes("CASTELL") || key.includes("RELIG")) return "color-orange";
+  if (key.includes("ETICA")) return "color-red";
+  const rotation = ["color-blue", "color-green", "color-purple", "color-red", "color-orange", "color-cyan", "color-neutral"];
+  return rotation[index % rotation.length];
+}
+
+function teacherSummarySegmentColor(index = 0) {
+  return ["#BFE8FF", "#D8D2FF", "#E7F8EA", "#BFF3CE", "#E5CFFF", "#DFF7EB", "#E8E8E8", "#C8F6F1", "#FFC9CE", "#BFF0CE", "#FFD7A3", "#BFF4F7", "#D9C4FF"][index % 13];
+}
+
+function safeHourValue(value) {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function renderTeacherDetailPanel() {
+  ensureTeacherSummaryV5Chrome();
+  const panel = byId("teacherDetailPanel");
+  const select = byAnyId("teacherSummarySelect", "teacherDetailSelect");
+  if (!panel || !select) return;
+  const teacherId = select.value || teacherOptions()[0]?.id || "";
+  if (!select.value && teacherId) select.value = teacherId;
+  const teacher = findTeacher(teacherId);
+  if (!teacher) {
+    panel.innerHTML = `<div class="teacher-empty teacher-empty-v4">No hay docente disponible para mostrar.</div>`;
+    return;
+  }
+
+  const teacherIdForData = teacherKey(teacher);
+  const loads = (EPQA.data.loads || []).filter((load) => sameTeacher(load.teacher, teacherIdForData));
+  const slots = (EPQA.slots || []).filter((slot) => sameTeacher(slot.teacher, teacherIdForData));
+  const loadHours = loads.reduce((sum, load) => sum + safeHourValue(load.hours), 0);
+  const assignedHours = slots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const availabilityStats = teacherAvailabilityTotals(teacher);
+  const availableHours = safeHourValue(availabilityStats.available);
+  const usagePct = Math.min(100, availabilityStats.total ? Math.round((assignedHours / availabilityStats.total) * 100) : 0);
+  const minHours = safeHourValue(teacher.minWeeklyHours || teacher.min_secondary_hours || teacher.minPrimaryHours || teacher.minimumHours);
+  const teacherType = teacherTypeLabel(teacher.type || teacher.level || "") || "Sin asignar";
+  const orderedLoads = unique(loads.map((load) => `${load.subject}|${load.group}`))
+    .map((key, index) => {
+      const [subject, group] = key.split("|");
+      const itemLoads = loads.filter((load) => load.subject === subject && load.group === group);
+      const itemSlots = slots.filter((slot) => slot.subject === subject && slot.group === group);
+      const total = itemLoads.reduce((sum, load) => sum + safeHourValue(load.hours), 0);
+      const assigned = itemSlots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
+      return {
+        subject: subject || "Sin asignar",
+        group: group || "Sin asignar",
+        total,
+        assigned,
+        pending: Math.max(0, total - assigned),
+        icon: teacherSummarySubjectIcon(subject),
+        colorClass: teacherSummaryColorClass(subject, index)
+      };
+    });
+  const barSegments = orderedLoads.length
+    ? orderedLoads.map((item, index) => {
+        const width = loadHours ? Math.max(6, Math.round((item.total / loadHours) * 100)) : 0;
+        return `<span style="--w:${width}%; --c:${teacherSummarySegmentColor(index)};" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} · ${item.total}h"></span>`;
+      }).join("")
+    : `<span style="--w:100%; --c:#E8E8E8;"></span>`;
+
+  panel.innerHTML = `
+    <section class="epqa-teacher-hero-v5">
+      <div class="epqa-teacher-hero-info-v5">
+        <span class="epqa-teacher-label-v5">DOCENTE SELECCIONADO</span>
+        <h2 id="teacherSummaryName">${escapeHtml(teacher.name || teacher.id || "Sin asignar")}</h2>
+        <p id="teacherSummaryMeta">${escapeHtml(teacherType)} · mínimo ${minHours}h</p>
+        <button type="button" class="epqa-teacher-availability-btn-v5" data-open-availability="${escapeHtml(teacherIdForData)}">
+          <span aria-hidden="true">🕒</span>
+          <span>Definir horas disponibles</span>
+        </button>
+      </div>
+      <div class="epqa-teacher-hours-box-v5">
+        <strong id="teacherAssignedHours">${assignedHours}h</strong>
+        <span>asignadas</span>
+      </div>
+    </section>
+
+    <section class="epqa-teacher-kpis-v5">
+      <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--blue">
+        <span class="epqa-kpi-icon-v5" aria-hidden="true">📚</span>
+        <div><strong id="teacherDefinedLoads">${loadHours}h</strong><span>cargas definidas</span></div>
+      </article>
+      <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--purple">
+        <span class="epqa-kpi-icon-v5" aria-hidden="true">📌</span>
+        <div><strong id="teacherProposalHours">${assignedHours}h</strong><span>en propuesta</span></div>
+      </article>
+      <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--clock">
+        <span class="epqa-kpi-icon-v5" aria-hidden="true">⏳</span>
+        <div><strong id="teacherPendingHours">${pendingHours}h</strong><span>pendientes</span></div>
+      </article>
+      <article class="epqa-teacher-kpi-v5 epqa-teacher-kpi-v5--green">
+        <span class="epqa-kpi-icon-v5" aria-hidden="true">✅</span>
+        <div><strong id="teacherAvailableHours">${availableHours}h</strong><span>disponibles</span></div>
+      </article>
+    </section>
+
+    <section class="epqa-teacher-matrix-v5">
+      <div class="epqa-teacher-matrix-bar-v5">${barSegments}</div>
+      <p id="teacherMatrixUsageText">${usagePct}% de la matriz usada · ${safeHourValue(availabilityStats.flexible)} flexibles · ${safeHourValue(availabilityStats.unavailable)} no disponibles</p>
+    </section>
+
+    <section class="epqa-teacher-load-grid-v5" id="teacherLoadGrid">
+      ${orderedLoads.length ? orderedLoads.map((item) => `
+        <article class="epqa-teacher-load-card-v5 ${item.colorClass}">
+          <span class="epqa-load-icon-v5" aria-hidden="true">${item.icon}</span>
+          <div>
+            <strong>${escapeHtml(item.subject)}</strong>
+            <span>${escapeHtml(item.group)}</span>
+            <small>${item.total} h/sem</small>
+          </div>
+        </article>
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este docente todavÃ­a no tiene cargas asignadas.</div>`}
+    </section>
   `;
   panel.querySelectorAll("[data-open-availability]").forEach((button) => {
     button.addEventListener("click", () => openAvailabilityModal(button.dataset.openAvailability));
