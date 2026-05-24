@@ -609,6 +609,7 @@ function epqaIcon(name, className = "epqa-svg-icon") {
     book: `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5Z"/>`,
     scale: `<path d="M12 3v18"/><path d="M5 7h14"/><path d="m6 7-3 6h6L6 7Z"/><path d="m18 7-3 6h6l-3-6Z"/>`,
     calendar: `<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>`,
+    "calendar-check": `<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>`,
     code: `<path d="m8 18-6-6 6-6"/><path d="m16 6 6 6-6 6"/>`,
     layers: `<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>`,
     download: `<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>`,
@@ -616,6 +617,7 @@ function epqaIcon(name, className = "epqa-svg-icon") {
     pencil: `<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>`,
     trash: `<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/>`,
     plus: `<path d="M12 5v14"/><path d="M5 12h14"/>`,
+    star: `<path d="m12 2 3 6 6.5.9-4.7 4.6 1.1 6.5L12 17l-5.9 3 1.1-6.5-4.7-4.6L9 8l3-6Z"/>`,
     search: `<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,
     save: `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>`,
     clock: `<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
@@ -932,22 +934,26 @@ function chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, s
 function renderLoads() {
   renderLoadFilters();
   const rows = filteredLoads();
-  byId("loadsTable").innerHTML = rows.map((load) => `
+  const isV6 = Boolean(document.querySelector(".epqa-assignments-card-v6"));
+  byId("loadsTable").innerHTML = rows.map((load) => {
+    const priority = loadRulePriority(load);
+    return `
     <tr data-load-id="${escapeHtml(load.id)}">
-      <td>${escapeHtml(load.teacher)}</td>
-      <td>${escapeHtml(load.group)}</td>
-      <td>${escapeHtml(load.subject)}</td>
+      <td>${escapeHtml(load.teacher || "Sin asignar")}</td>
+      <td>${escapeHtml(load.group || "Sin asignar")}</td>
+      <td>${escapeHtml(load.subject || "Sin asignar")}</td>
       <td>${Number(load.hours || 0)}h</td>
       <td>${blockHours(load) > 1 ? `${blockHours(load)}h` : "No"}</td>
-      <td><span class="badge ${loadRulePriority(load)}">${loadRulePriority(load)}</span></td>
+      <td><span class="${isV6 ? `epqa-assignment-priority-badge-v6 epqa-assignment-priority-badge-v6--${priority.toLowerCase()}` : `badge ${priority}`}">${priority}</span></td>
       <td>${escapeHtml(preferredDaysLabel(load))}</td>
       <td>${escapeHtml(load.room || load.roomId || "Aula disponible")}</td>
-      <td class="load-row-actions">
-        <button class="ghost edit-load" type="button" data-load-id="${escapeHtml(load.id)}">Editar</button>
-        <button class="ghost danger delete-load" type="button" data-load-id="${escapeHtml(load.id)}">Quitar</button>
+      <td class="${isV6 ? "epqa-assignment-row-actions-v6" : "load-row-actions"}">
+        <button class="${isV6 ? "epqa-assignment-icon-btn-v6" : "ghost"} edit-load" type="button" data-load-id="${escapeHtml(load.id)}" title="Editar asignacion" aria-label="Editar asignacion">${isV6 ? epqaIcon("pencil") : "Editar"}</button>
+        <button class="${isV6 ? "epqa-assignment-icon-btn-v6 epqa-assignment-icon-btn-v6--danger" : "ghost danger"} delete-load" type="button" data-load-id="${escapeHtml(load.id)}" title="Eliminar asignacion" aria-label="Eliminar asignacion">${isV6 ? epqaIcon("trash") : "Quitar"}</button>
       </td>
     </tr>
-  `).join("") || `<tr><td colspan="9" class="teacher-empty">No hay cargas con esos filtros.</td></tr>`;
+  `;
+  }).join("") || `<tr><td colspan="9" class="teacher-empty">No hay cargas con esos filtros.</td></tr>`;
   const totalHours = rows.reduce((sum, load) => sum + Number(load.hours || 0), 0);
   byId("loadsTableSummary").textContent = `${rows.length} carga(s) filtrada(s) | ${totalHours} hora(s)`;
   document.querySelectorAll(".edit-load").forEach((button) => {
@@ -1114,9 +1120,11 @@ function renderCatalogEditor() {
   hideDataLoadAlert();
   if (byId("schoolName")) byId("schoolName").value = EPQA.data.project?.institution || EPQA.data.project?.name || "";
   if (byId("schoolOwner")) byId("schoolOwner").value = EPQA.data.project?.owner || "";
-  if (byId("maxTeacherHoursPerDay")) byId("maxTeacherHoursPerDay").value = maxTeacherHoursPerDay();
   ensureGradeEditorV6Chrome();
   ensureSubjectEditorV7Chrome();
+  ensureRulesEditorV6Chrome();
+  ensureAssignmentEditorV6Chrome();
+  if (byId("maxTeacherHoursPerDay")) byId("maxTeacherHoursPerDay").value = maxTeacherHoursPerDay();
   fillSelect("dailyRuleTeacher", teacherOptions(), "id", "name");
   fillSelect("dailyRuleSite", siteOptions(), "id", "name");
   fillSelect("dailyRuleDay", dayOptions(), "id", "name");
@@ -1158,7 +1166,7 @@ function syncSearchableSelect(select, force = false) {
     updateSearchableSelect(select);
     return;
   }
-  if (select.closest(".epqa-grades-card-v6")) return;
+  if (select.closest(".epqa-grades-card-v6, .epqa-rules-card-v6, .epqa-assignments-card-v6")) return;
   if (!force && !select.closest(".load-builder, .compact-form, .modal-card, .teacher-summary-toolbar, .loads-filter-bar, .catalog-manager")) return;
   select.dataset.searchReady = "1";
   select.classList.add("native-search-select");
@@ -1377,13 +1385,19 @@ function addDailyRuleException() {
     notify("Faltan datos", "Selecciona docente y dia para crear la excepcion.", "warning", true);
     return;
   }
+  const addButton = byId("btnAddDailyRule");
+  const editingRuleId = addButton?.dataset.editingDailyRule || "";
+  if (editingRuleId) {
+    EPQA.data.rules.general.dailyExceptions = dailyRuleExceptions().filter((rule) => rule.id !== editingRuleId);
+    delete addButton.dataset.editingDailyRule;
+  }
   days.forEach((day) => upsertDailyRuleException({
     ...baseRule,
     id: `daily-rule-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
     day
   }));
   saveGeneralRules();
-  notify("Excepcion agregada", selectedDay === "__ALL_DAYS__" ? "La regla quedo aplicada a todos los dias." : "La regla por docente, sede y dia quedo registrada.", "success");
+  notify(editingRuleId ? "Excepcion actualizada" : "Excepcion agregada", selectedDay === "__ALL_DAYS__" ? "La regla quedo aplicada a todos los dias." : "La regla por docente, sede y dia quedo registrada.", "success");
 }
 
 function dailyRuleKey(rule) {
@@ -1735,6 +1749,324 @@ function ensureGradeSummaryV6Chrome() {
     </section>`;
   const select = byId("gradeSummarySelect");
   if (select) select.onchange = renderGroupDetailPanel;
+}
+
+function rulesMinimumTeacherHoursLabel() {
+  const values = (EPQA.data?.teachers || [])
+    .map((teacher) => Number(teacher?.minWeeklyHours || teacher?.min_secondary_hours || teacher?.minPrimaryHours || teacher?.minimumHours || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const value = values.length ? Math.max(...values) : 27;
+  return `${value}h`;
+}
+
+function bindRulesEditorV6Events() {
+  const saveButton = byId("btnSaveGeneralRules");
+  if (saveButton) saveButton.onclick = saveGeneralRules;
+  const addButton = byId("btnAddDailyRule");
+  if (addButton) addButton.onclick = addDailyRuleException;
+}
+
+function ensureRulesEditorV6Chrome() {
+  const anchor = byId("dailyRulesManager") || byId("maxTeacherHoursPerDay") || byId("dailyRuleTeacher");
+  const card = anchor?.closest(".catalog-card");
+  if (!card) return;
+  if (card.classList.contains("epqa-rules-card-v6")) {
+    bindRulesEditorV6Events();
+    return;
+  }
+  card.className = "catalog-card epqa-rules-card-v6";
+  card.innerHTML = `
+    <header class="epqa-rules-header-v6">
+      <div class="epqa-rules-title-icon-v6">${epqaIcon("scale")}</div>
+      <div>
+        <h1>Reglas</h1>
+        <p>Define las reglas de asignacion y excepciones del horario.</p>
+      </div>
+    </header>
+
+    <div class="epqa-rules-body-v6">
+      <section class="epqa-rules-kpis-v6">
+        <article class="epqa-rule-kpi-v6">
+          <span class="epqa-rule-kpi-icon-v6">${epqaIcon("clock")}</span>
+          <div>
+            <small>Horas minimas</small>
+            <strong>${escapeHtml(rulesMinimumTeacherHoursLabel())}</strong>
+            <span>Minimo por docente</span>
+          </div>
+        </article>
+
+        <article class="epqa-rule-kpi-v6">
+          <span class="epqa-rule-kpi-icon-v6">${epqaIcon("calendar-check")}</span>
+          <div>
+            <small>Bloques obligatorios</small>
+            <strong>Obligatoria</strong>
+            <span>Prioridad P0</span>
+          </div>
+        </article>
+
+        <article class="epqa-rule-kpi-v6">
+          <span class="epqa-rule-kpi-icon-v6">${epqaIcon("star")}</span>
+          <div>
+            <small>Preferencia de dias</small>
+            <strong>Prioridad media</strong>
+            <span>P2 deseable</span>
+          </div>
+        </article>
+
+        <article class="epqa-rule-kpi-v6 epqa-rule-kpi-v6--editable">
+          <span class="epqa-rule-kpi-icon-v6">${epqaIcon("calendar")}</span>
+          <div>
+            <small>Limite diario</small>
+            <label class="epqa-rule-kpi-input-v6" for="maxTeacherHoursPerDay">
+              <input id="maxTeacherHoursPerDay" name="maxTeacherHoursPerDay" type="number" min="1" max="12" value="${maxTeacherHoursPerDay()}">
+              <span>h</span>
+            </label>
+            <span>Max. por dia</span>
+          </div>
+          <button id="btnSaveGeneralRules" class="epqa-rule-save-btn-v6" type="button" title="Guardar reglas" aria-label="Guardar reglas">${epqaIcon("save")}</button>
+        </article>
+      </section>
+
+      <section class="epqa-priority-summary-grid-v6" aria-label="Prioridades de reglas">
+        <article class="epqa-priority-summary-card-v6 epqa-priority-summary-card-v6--p0">
+          <div class="epqa-priority-summary-icon-v6">${epqaIcon("alert")}</div>
+          <div>
+            <small>Regla critica</small>
+            <strong>P0</strong>
+            <span>No debe romperse</span>
+          </div>
+        </article>
+        <article class="epqa-priority-summary-card-v6 epqa-priority-summary-card-v6--p1">
+          <div class="epqa-priority-summary-icon-v6">${epqaIcon("star")}</div>
+          <div>
+            <small>Regla fuerte</small>
+            <strong>P1</strong>
+            <span>Solo se flexibiliza con revision</span>
+          </div>
+        </article>
+        <article class="epqa-priority-summary-card-v6 epqa-priority-summary-card-v6--p2">
+          <div class="epqa-priority-summary-icon-v6">${epqaIcon("sparkle")}</div>
+          <div>
+            <small>Regla deseable</small>
+            <strong>P2</strong>
+            <span>Preferencia ajustable</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="epqa-exception-form-card-v6">
+        <h2>Agregar excepcion</h2>
+        <div class="epqa-exception-grid-v6">
+          <label class="epqa-rule-field-v6">Docente
+            <span class="epqa-rule-control-v6"><select id="dailyRuleTeacher" name="dailyRuleTeacher"></select></span>
+          </label>
+          <label class="epqa-rule-field-v6">Sede
+            <span class="epqa-rule-control-v6"><select id="dailyRuleSite" name="dailyRuleSite"></select></span>
+          </label>
+          <label class="epqa-rule-field-v6">Dia
+            <span class="epqa-rule-control-v6"><select id="dailyRuleDay" name="dailyRuleDay"></select></span>
+          </label>
+          <label class="epqa-rule-field-v6">Tipo
+            <span class="epqa-rule-control-v6">
+              <select id="dailyRuleType" name="dailyRuleType">
+                <option value="allow">Permitir hasta</option>
+                <option value="require">Exigir exactamente</option>
+              </select>
+            </span>
+          </label>
+          <label class="epqa-rule-field-v6">Horas
+            <span class="epqa-rule-control-v6"><input id="dailyRuleHours" name="dailyRuleHours" type="number" min="1" max="99" value="6" inputmode="numeric"></span>
+          </label>
+          <label class="epqa-rule-field-v6">Prioridad
+            <span class="epqa-rule-control-v6">
+              <select id="dailyRulePriority" name="dailyRulePriority">
+                <option value="P0">P0 critica</option>
+                <option value="P1">P1 fuerte</option>
+                <option value="P2">P2 deseable</option>
+              </select>
+            </span>
+          </label>
+          <button id="btnAddDailyRule" class="epqa-add-exception-btn-v6" type="button">
+            ${epqaIcon("plus")}
+            <span>Agregar</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="epqa-exceptions-table-card-v6">
+        <h2>Excepciones registradas</h2>
+        <div id="dailyRulesManager" class="catalog-manager epqa-daily-rules-manager-v6"></div>
+      </section>
+    </div>`;
+  bindRulesEditorV6Events();
+}
+
+function bindAssignmentEditorV6Events() {
+  const addButton = byId("btnAddLoad");
+  if (addButton) addButton.onclick = addLoad;
+  const bulkButton = byId("btnOpenBulkLoad");
+  if (bulkButton) bulkButton.onclick = openBulkLoadModal;
+  const bulkInlineButton = byId("btnOpenBulkLoadInline");
+  if (bulkInlineButton) bulkInlineButton.onclick = openBulkLoadModal;
+  const templateButton = byId("btnDownloadLoadsTemplate");
+  if (templateButton) templateButton.onclick = downloadLoadsTemplate;
+  const clearButton = byId("btnClearLoadFilters");
+  if (clearButton) clearButton.onclick = clearLoadFilters;
+  if (byId("loadTeacher")) byId("loadTeacher").onchange = refreshLoadGroupOptions;
+  if (byId("loadRoom")) byId("loadRoom").onchange = refreshLoadGroupOptions;
+  ["loadsFilterText", "loadsFilterTeacher", "loadsFilterGroup", "loadsFilterSubject", "loadsFilterPriority"].forEach((id) => {
+    const element = byId(id);
+    if (!element) return;
+    element.oninput = id === "loadsFilterText" ? renderLoads : element.oninput;
+    element.onchange = id === "loadsFilterText" ? element.onchange : renderLoads;
+  });
+}
+
+function ensureAssignmentEditorV6Chrome() {
+  const anchor = byId("loadsTable") || byId("loadTeacher") || byId("btnAddLoad");
+  const card = anchor?.closest(".catalog-card");
+  if (!card) return;
+  if (card.classList.contains("epqa-assignments-card-v6")) {
+    bindAssignmentEditorV6Events();
+    return;
+  }
+  card.className = "catalog-card wide epqa-assignments-card-v6";
+  card.innerHTML = `
+    <header class="epqa-assignments-header-v6">
+      <div class="epqa-assignments-title-v6">
+        <span class="epqa-assignments-title-icon-v6">${epqaIcon("calendar")}</span>
+        <div>
+          <h1>Asignaciones</h1>
+          <p>Gestiona las materias asignadas por docente, grado, bloque e importancia.</p>
+        </div>
+      </div>
+
+      <div class="epqa-assignments-actions-v6">
+        <button id="btnDownloadLoadsTemplate" class="epqa-assignments-btn-v6" type="button">
+          ${epqaIcon("download")}
+          <span>Descargar plantilla</span>
+        </button>
+        <button id="btnOpenBulkLoad" class="epqa-assignments-btn-v6 epqa-assignments-btn-v6--primary" type="button">
+          ${epqaIcon("layers")}
+          <span>Asignacion masiva</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="epqa-assignments-body-v6">
+      <section class="epqa-assignment-form-card-v6">
+        <h2>Nueva asignacion</h2>
+
+        <div class="load-builder epqa-assignment-form-grid-v6">
+          <label class="epqa-assignment-field-v6">Docente
+            <span class="epqa-assignment-control-v6">${epqaIcon("users")}<select id="loadTeacher" name="loadTeacher"></select></span>
+          </label>
+          <label class="epqa-assignment-field-v6">Grado
+            <span class="epqa-assignment-control-v6">${epqaIcon("school")}<select id="loadGroup" name="loadGroup"></select></span>
+          </label>
+          <label class="epqa-assignment-field-v6">Materia
+            <span class="epqa-assignment-control-v6">${epqaIcon("book")}<select id="loadSubject" name="loadSubject"></select></span>
+          </label>
+          <label class="epqa-assignment-field-v6">Espacio
+            <span class="epqa-assignment-control-v6">${epqaIcon("map")}<select id="loadRoom" name="loadRoom"></select></span>
+          </label>
+          <label class="epqa-assignment-field-v6">Horas
+            <span class="epqa-assignment-control-v6">${epqaIcon("clock")}<input id="loadHours" name="loadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></span>
+          </label>
+        </div>
+
+        <div class="epqa-assignment-form-grid-v6 epqa-assignment-form-grid-v6--second">
+          <label class="epqa-assignment-field-v6">Bloque
+            <span class="epqa-assignment-control-v6">
+              ${epqaIcon("layers")}
+              <select id="loadBlockHours" name="loadBlockHours">
+                <option value="1">No, horas sueltas</option>
+                <option value="2">Bloque indivisible 2h</option>
+                <option value="3">Bloque indivisible 3h</option>
+              </select>
+            </span>
+          </label>
+          <label class="epqa-assignment-field-v6">Importancia
+            <span class="epqa-assignment-control-v6">
+              ${epqaIcon("alert")}
+              <select id="loadRulePriority" name="loadRulePriority">
+                <option value="P0">P0 obligatoria</option>
+                <option value="P1">P1 fuerte</option>
+                <option value="P2">P2 deseable</option>
+              </select>
+            </span>
+          </label>
+          <label class="epqa-assignment-field-v6">Preferencia de dias
+            <span class="epqa-assignment-control-v6">
+              ${epqaIcon("star")}
+              <select id="loadPreferredDaysPriority" name="loadPreferredDaysPriority">
+                <option value="P2">P2 deseable</option>
+                <option value="P1">P1 fuerte</option>
+                <option value="P0">P0 obligatoria</option>
+              </select>
+            </span>
+          </label>
+          <div class="epqa-assignment-field-v6 epqa-assignment-days-v6">
+            <span>Dias sugeridos</span>
+            <div class="day-checks" id="loadPreferredDays"></div>
+          </div>
+          <button id="btnAddLoad" class="epqa-assignments-btn-v6 epqa-assignments-btn-v6--primary epqa-assignment-submit-v6" type="button">
+            ${epqaIcon("plus")}
+            <span>Agregar asignacion</span>
+          </button>
+          <button id="btnOpenBulkLoadInline" class="epqa-assignments-btn-v6 epqa-assignments-btn-v6--soft-green" type="button">
+            ${epqaIcon("layers")}
+            <span>Asignar varias asignaturas</span>
+          </button>
+        </div>
+
+        <p class="plain block-help epqa-assignment-hint-v6">${epqaIcon("clock")}<span>Ejemplo: 3h con bloque 2h crea un bloque de 2h consecutivas y 1h suelta; 4h con bloque 2h crea dos bloques de 2h.</span></p>
+      </section>
+
+      <section class="epqa-assignment-filters-card-v6">
+        <h2>Filtros y busqueda</h2>
+        <div class="loads-filter-bar epqa-assignment-filters-grid-v6">
+          <label class="epqa-assignment-search-v6">
+            ${epqaIcon("search")}
+            <input id="loadsFilterText" type="search" placeholder="Buscar por docente, grupo o materia...">
+          </label>
+          <label class="epqa-assignment-control-v6">${epqaIcon("users")}<select id="loadsFilterTeacher"></select></label>
+          <label class="epqa-assignment-control-v6">${epqaIcon("school")}<select id="loadsFilterGroup"></select></label>
+          <label class="epqa-assignment-control-v6">${epqaIcon("book")}<select id="loadsFilterSubject"></select></label>
+          <label class="epqa-assignment-control-v6">${epqaIcon("alert")}<select id="loadsFilterPriority"></select></label>
+          <button id="btnClearLoadFilters" class="epqa-assignments-btn-v6" type="button">${epqaIcon("search")}<span>Limpiar filtros</span></button>
+        </div>
+      </section>
+
+      <section class="epqa-assignments-table-card-v6">
+        <h2>Asignaciones registradas</h2>
+        <div class="epqa-assignments-table-wrap-v6">
+          <table class="epqa-assignments-table-v6">
+            <thead><tr><th>Docente</th><th>Grupo</th><th>Materia</th><th>Horas</th><th>Bloque</th><th>Importancia</th><th>Dias pref.</th><th>Espacio</th><th>Acciones</th></tr></thead>
+            <tbody id="loadsTable"></tbody>
+            <tfoot><tr><td colspan="9" id="loadsTableSummary">0 cargas | 0 horas</td></tr></tfoot>
+          </table>
+        </div>
+      </section>
+    </div>`;
+  bindAssignmentEditorV6Events();
+}
+
+function downloadLoadsTemplate() {
+  const rows = [
+    ["Docente", "Grado", "Materia", "Espacio", "Horas", "Bloque", "Importancia", "PreferenciaDias"],
+    ["DOCENTE EJEMPLO", "6F", "TI", "Sala TI", "2", "2", "P0", "Lunes, Miercoles"]
+  ];
+  const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "plantilla_asignaciones_epqa.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function bindTeacherV4Actions() {
@@ -2173,24 +2505,63 @@ function renderSubjectManager() {
 function renderDailyRulesManager() {
   const target = byId("dailyRulesManager");
   if (!target) return;
-  const rows = dailyRuleExceptions().map((rule) => `
+  const rules = dailyRuleExceptions();
+  const rows = rules.map((rule) => {
+    const priority = normalizeRulePriority(rule.priority || "P0");
+    return `
     <tr>
-      <td>${escapeHtml(teacherName(rule.teacher))}</td>
+      <td>${escapeHtml(teacherName(rule.teacher) || "Sin asignar")}</td>
       <td>${escapeHtml(siteNameForId(rule.site) || "Cualquier sede")}</td>
-      <td>${escapeHtml(rule.day)}</td>
+      <td>${escapeHtml(rule.day || "Sin asignar")}</td>
       <td>${rule.type === "require" ? "Exigir exactamente" : "Permitir hasta"}</td>
-      <td>${Number(rule.hours || 0)}h</td>
-      <td><span class="badge ${escapeHtml(rule.priority || "P0")}">${escapeHtml(rule.priority || "P0")}</span></td>
-      <td><button class="ghost danger" type="button" data-delete-daily-rule="${escapeHtml(rule.id)}">Borrar</button></td>
+      <td>${Number(rule.hours || 0) > 0 ? `${Number(rule.hours || 0)}h` : "—"}</td>
+      <td><span class="epqa-priority-badge-v6 epqa-priority-badge-v6--${escapeHtml(priority.toLowerCase())}">${escapeHtml(priority || "Sin prioridad")}</span></td>
+      <td>
+        <div class="epqa-rule-row-actions-v6">
+          <button class="epqa-rule-icon-btn-v6" type="button" data-edit-daily-rule="${escapeHtml(rule.id)}" title="Editar excepcion" aria-label="Editar excepcion">${epqaIcon("pencil")}</button>
+          <button class="epqa-rule-icon-btn-v6 epqa-rule-icon-btn-v6--danger" type="button" data-delete-daily-rule="${escapeHtml(rule.id)}" title="Eliminar excepcion" aria-label="Eliminar excepcion">${epqaIcon("trash")}</button>
+        </div>
+      </td>
     </tr>
-  `).join("") || `<tr><td colspan="7">Sin excepciones.</td></tr>`;
-  target.innerHTML = `<section><h3>Excepciones creadas</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>Docente</th><th>Sede</th><th>Dia</th><th>Tipo</th><th>Horas</th><th>Prioridad</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  `;
+  }).join("") || `<tr><td colspan="7">Sin excepciones.</td></tr>`;
+  target.innerHTML = `
+    <div class="epqa-exceptions-table-wrap-v6">
+      <table class="epqa-exceptions-table-v6">
+        <thead><tr><th>Docente</th><th>Sede</th><th>Dia</th><th>Tipo</th><th>Horas</th><th>Prioridad</th><th>Acciones</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <footer class="epqa-rules-footer-v6">
+      <span>Mostrando ${rules.length ? 1 : 0} a ${rules.length} de ${rules.length} excepciones</span>
+      <div class="epqa-rules-pagination-v6">
+        <button type="button" disabled>‹</button>
+        <button type="button" class="active">1</button>
+        <button type="button" disabled>›</button>
+      </div>
+    </footer>`;
+  target.querySelectorAll("[data-edit-daily-rule]").forEach((button) => {
+    button.addEventListener("click", () => loadDailyRuleExceptionForEdit(button.dataset.editDailyRule));
+  });
   target.querySelectorAll("[data-delete-daily-rule]").forEach((button) => {
     button.addEventListener("click", () => {
       EPQA.data.rules.general.dailyExceptions = dailyRuleExceptions().filter((rule) => rule.id !== button.dataset.deleteDailyRule);
       saveGeneralRules();
     });
   });
+}
+
+function loadDailyRuleExceptionForEdit(ruleId) {
+  const rule = dailyRuleExceptions().find((item) => item.id === ruleId);
+  if (!rule) return;
+  if (byId("dailyRuleTeacher")) byId("dailyRuleTeacher").value = rule.teacher || "";
+  if (byId("dailyRuleSite")) byId("dailyRuleSite").value = rule.site || "";
+  if (byId("dailyRuleDay")) byId("dailyRuleDay").value = normalizeDay(rule.day);
+  if (byId("dailyRuleType")) byId("dailyRuleType").value = rule.type || "allow";
+  if (byId("dailyRuleHours")) byId("dailyRuleHours").value = Math.max(1, Number(rule.hours || 1));
+  if (byId("dailyRulePriority")) byId("dailyRulePriority").value = normalizeRulePriority(rule.priority || "P0");
+  if (byId("btnAddDailyRule")) byId("btnAddDailyRule").dataset.editingDailyRule = rule.id;
+  notify("Excepcion cargada", "Ajusta los campos y pulsa Agregar para actualizarla.", "info");
 }
 
 function snapshotProgress() {
