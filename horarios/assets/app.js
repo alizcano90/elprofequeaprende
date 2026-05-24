@@ -591,6 +591,7 @@ function downloadJson(data, filename) {
 function epqaIcon(name, className = "epqa-svg-icon") {
   const icons = {
     school: `<path d="M3 21h18"/><path d="M6 21V10"/><path d="M18 21V10"/><path d="M12 3 4 8h16l-8-5Z"/><path d="M9 21v-6h6v6"/>`,
+    x: `<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`,
     pin: `<path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>`,
     users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
     file: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/>`,
@@ -617,6 +618,8 @@ function epqaIcon(name, className = "epqa-svg-icon") {
     pencil: `<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>`,
     trash: `<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/>`,
     plus: `<path d="M12 5v14"/><path d="M5 12h14"/>`,
+    copy: `<rect x="9" y="9" width="13" height="13" rx="2"/><rect x="2" y="2" width="13" height="13" rx="2"/>`,
+    box: `<path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>`,
     star: `<path d="m12 2 3 6 6.5.9-4.7 4.6 1.1 6.5L12 17l-5.9 3 1.1-6.5-4.7-4.6L9 8l3-6Z"/>`,
     search: `<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,
     save: `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>`,
@@ -3029,6 +3032,7 @@ function buildLoad({ teacher, group, subject, roomId, hours, blockHours, rulePri
 function openBulkLoadModal() {
   const modal = byId("bulkLoadModal");
   if (!modal) return;
+  ensureBulkLoadModalV8Chrome();
   EPQA.ui.bulkLoadDraft = [];
   fillSelect("bulkLoadTeacher", teacherOptions(), "id", "name");
   fillSelect("bulkLoadSubject", subjectOptions(), "id", "name");
@@ -3039,11 +3043,214 @@ function openBulkLoadModal() {
   byId("bulkLoadHours").value = byId("loadHours")?.value || 1;
   byId("bulkLoadBlockHours").value = byId("loadBlockHours")?.value || 1;
   byId("bulkLoadRulePriority").value = byId("loadRulePriority")?.value || "P0";
+  byId("bulkLoadPreferredDaysPriority").value = byId("loadPreferredDaysPriority")?.value || "P2";
+  renderDayPreferenceChecks("bulkLoadPreferredDays", selectedDaysFrom("loadPreferredDays"));
+  populateBulkLoadFiltersV8();
+  bindBulkLoadModalV8Events();
   renderBulkLoadGroups();
   renderBulkLoadDrafts();
   modal.hidden = false;
   modal.removeAttribute("hidden");
   document.body.classList.add("modal-open");
+  setTimeout(() => byId("bulkLoadTeacher")?.focus(), 0);
+}
+
+function ensureBulkLoadModalV8Chrome() {
+  const modal = byId("bulkLoadModal");
+  if (!modal || modal.dataset.v9Ready === "1") return;
+  modal.classList.remove("epqa-mass-modal-overlay-v8");
+  modal.classList.add("epqa-mass-modal-overlay-v9");
+  modal.innerHTML = `
+    <section class="epqa-mass-modal-v9" role="dialog" aria-modal="true" aria-labelledby="bulkLoadModalTitle">
+      <header class="epqa-mass-header-v9">
+        <div class="epqa-mass-header-copy-v9">
+          <div class="epqa-mass-kicker-v9">ASIGNACION MASIVA</div>
+          <h1 id="bulkLoadModalTitle" class="epqa-mass-title-v9">Materias por docente</h1>
+          <p class="epqa-mass-subtitle-v9">Prepara varias asignaciones y revísalas antes de guardarlas.</p>
+        </div>
+        <button type="button" class="epqa-mass-close-v9" id="bulkLoadModalClose" aria-label="Cerrar modal" title="Cerrar modal">${epqaIcon("x")}</button>
+      </header>
+
+      <div class="epqa-mass-body-v9">
+        <main class="epqa-mass-left-v9">
+          <section class="epqa-mass-card-v9 epqa-mass-base-card-v9">
+            <div class="epqa-mass-card-head-v9">
+              <div>
+                <h2>1. Define la asignación base</h2>
+                <p>Configura una vez y aplica a varios grados.</p>
+              </div>
+              <span class="epqa-mass-chip-v9 epqa-mass-chip-primary-v9">${epqaIcon("copy")}<span>Modo rápido</span></span>
+            </div>
+
+            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-top-v9">
+              <label class="epqa-mass-field-v9">Docente
+                <span class="epqa-control-v9">${epqaIcon("users")}<select id="bulkLoadTeacher" name="bulkLoadTeacher"></select></span>
+              </label>
+              <label class="epqa-mass-field-v9">Materia
+                <span class="epqa-control-v9">${epqaIcon("book-open")}<select id="bulkLoadSubject" name="bulkLoadSubject"></select></span>
+              </label>
+              <label class="epqa-mass-field-v9">Espacio
+                <span class="epqa-control-v9">${epqaIcon("map")}<select id="bulkLoadRoom" name="bulkLoadRoom"></select></span>
+              </label>
+            </div>
+
+            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-bottom-v9">
+              <label class="epqa-mass-field-v9">Horas por grado
+                <span class="epqa-control-v9">${epqaIcon("clock")}<input id="bulkLoadHours" name="bulkLoadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></span>
+              </label>
+              <label class="epqa-mass-field-v9">Bloque
+                <span class="epqa-control-v9">${epqaIcon("calendar")}
+                  <select id="bulkLoadBlockHours" name="bulkLoadBlockHours">
+                    <option value="1">No, horas sueltas</option>
+                    <option value="2">Bloque indivisible 2h</option>
+                    <option value="3">Bloque indivisible 3h</option>
+                  </select>
+                </span>
+              </label>
+              <label class="epqa-mass-field-v9">Importancia
+                <span class="epqa-control-v9">${epqaIcon("alert")}
+                  <select id="bulkLoadRulePriority" name="bulkLoadRulePriority">
+                    <option value="P0">P0 obligatoria</option>
+                    <option value="P1">P1 fuerte</option>
+                    <option value="P2">P2 deseable</option>
+                  </select>
+                </span>
+              </label>
+              <label class="epqa-mass-field-v9">Preferencia de días
+                <span class="epqa-control-v9">${epqaIcon("star")}
+                  <select id="bulkLoadPreferredDaysPriority" name="bulkLoadPreferredDaysPriority">
+                    <option value="P2">P2 deseable</option>
+                    <option value="P1">P1 fuerte</option>
+                    <option value="P0">P0 obligatoria</option>
+                  </select>
+                </span>
+              </label>
+            </div>
+
+            <div class="epqa-mass-quick-row-v9">
+              <div class="epqa-mass-days-box-v9">
+                <label>Días sugeridos</label>
+                <div class="day-checks epqa-mass-day-buttons-v9" id="bulkLoadPreferredDays"></div>
+              </div>
+              <div class="epqa-mass-chips-row-v9">
+                <button class="epqa-mass-chip-v9" type="button" data-bulk-level="primary">Primaria</button>
+                <button class="epqa-mass-chip-v9" type="button" data-bulk-level="secondary">Secundaria</button>
+                <button class="epqa-mass-chip-v9" type="button" data-bulk-site-current>Solo sede actual</button>
+                <button class="epqa-mass-chip-v9 active" type="button" data-bulk-exclude-existing>Excluir ya asignados</button>
+                <button class="epqa-mass-chip-v9 active" type="button" data-bulk-compatible>Mostrar compatibles</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="epqa-mass-card-v9 epqa-mass-grades-card-v9">
+            <div class="epqa-mass-card-head-v9">
+              <div>
+                <h2>2. Selecciona los grados compatibles</h2>
+                <p>Marca varios grados para crear asignaciones en bloque.</p>
+              </div>
+            </div>
+            <div class="epqa-mass-toolbar-v9">
+              <label class="epqa-control-v9">${epqaIcon("search")}<input id="bulkGroupSearch" type="search" placeholder="Buscar grado..."></label>
+              <span class="epqa-control-v9">
+                <select id="bulkGroupSiteFilter"></select>
+              </span>
+              <span class="epqa-control-v9">
+                <select id="bulkGroupLevelFilter">
+                <option value="">Todos los niveles</option>
+                <option value="primary">Primaria</option>
+                <option value="secondary">Secundaria</option>
+                </select>
+              </span>
+              <button class="epqa-outline-btn-v9" type="button" id="bulkLoadToggleGroups">${epqaIcon("check")}<span>Marcar todos</span></button>
+            </div>
+            <div class="epqa-mass-grade-grid-v9" id="bulkLoadGroups"></div>
+            <div class="epqa-mass-grade-action-v9">
+              <button class="epqa-primary-btn-v9 epqa-primary-btn-full-v9" type="button" id="bulkLoadAddDraft">${epqaIcon("plus")}<span>Agregar a la lista</span></button>
+            </div>
+          </section>
+        </main>
+
+        <aside class="epqa-mass-right-v9">
+          <section class="epqa-mass-card-v9 epqa-mass-summary-card-v9">
+            <div class="epqa-summary-top-v9">
+              <div class="epqa-summary-icon-v9">${epqaIcon("copy")}</div>
+              <div class="epqa-summary-copy-v9"><span>Total preparado</span><strong id="bulkLoadPreparedCount">0 asignaciones preparadas</strong></div>
+              <div class="epqa-summary-hours-v9" id="bulkLoadTotalHours">0h</div>
+            </div>
+            <div class="epqa-summary-load-v9" id="bulkLoadTeacherHours"></div>
+          </section>
+
+          <section class="epqa-mass-card-v9 epqa-mass-prepared-card-v9">
+            <h2>3. Revisa antes de guardar</h2>
+            <div id="bulkLoadDraftList"></div>
+          </section>
+
+          <section class="epqa-warning-box-v9" id="bulkLoadValidationBox">${epqaIcon("alert")}<span>Selecciona docente, materia y grados para preparar asignaciones.</span></section>
+        </aside>
+      </div>
+
+      <footer class="epqa-mass-footer-v9">
+        <div class="epqa-footer-status-v9">${epqaIcon("check")}<span id="bulkLoadFooterStatus">0 grados seleccionados · 0 asignaciones preparadas · 0h listas</span></div>
+        <div class="epqa-footer-actions-v9">
+          <button type="button" class="epqa-secondary-btn-v9" id="bulkLoadModalCancel">${epqaIcon("x")}<span>Cancelar</span></button>
+          <button type="button" class="epqa-primary-btn-v9" id="bulkLoadAssign" disabled>${epqaIcon("check")}<span>Asignar todas</span></button>
+        </div>
+      </footer>
+    </section>`;
+  modal.dataset.v9Ready = "1";
+}
+
+function bindBulkLoadModalV8Events() {
+  if (byId("bulkLoadModalClose")) byId("bulkLoadModalClose").onclick = requestCloseBulkLoadModal;
+  if (byId("bulkLoadModalCancel")) byId("bulkLoadModalCancel").onclick = requestCloseBulkLoadModal;
+  if (byId("bulkLoadTeacher")) byId("bulkLoadTeacher").onchange = () => {
+    renderBulkLoadGroups();
+    renderBulkLoadDrafts();
+  };
+  if (byId("bulkLoadRoom")) byId("bulkLoadRoom").onchange = renderBulkLoadGroups;
+  if (byId("bulkLoadSubject")) byId("bulkLoadSubject").onchange = renderBulkLoadGroups;
+  if (byId("bulkGroupSearch")) byId("bulkGroupSearch").oninput = renderBulkLoadGroups;
+  if (byId("bulkGroupSiteFilter")) byId("bulkGroupSiteFilter").onchange = renderBulkLoadGroups;
+  if (byId("bulkGroupLevelFilter")) byId("bulkGroupLevelFilter").onchange = renderBulkLoadGroups;
+  if (byId("bulkLoadToggleGroups")) byId("bulkLoadToggleGroups").onclick = toggleBulkLoadGroups;
+  if (byId("bulkLoadAddDraft")) byId("bulkLoadAddDraft").onclick = addBulkLoadDraft;
+  if (byId("bulkLoadAssign")) byId("bulkLoadAssign").onclick = assignBulkLoadDrafts;
+  if (byId("bulkClearSelection")) byId("bulkClearSelection").onclick = clearBulkLoadGroupSelection;
+  if (byId("bulkLoadModal")) byId("bulkLoadModal").onclick = (event) => {
+    if (event.target === byId("bulkLoadModal")) requestCloseBulkLoadModal();
+  };
+  document.querySelectorAll(".epqa-mass-chip-v9").forEach((button) => {
+    button.onclick = () => toggleBulkSmartChip(button);
+  });
+}
+
+function populateBulkLoadFiltersV8() {
+  const siteFilter = byId("bulkGroupSiteFilter");
+  if (!siteFilter) return;
+  const current = siteFilter.value;
+  siteFilter.innerHTML = `<option value="">Todas las sedes</option>` + siteOptions().map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
+  if ([...siteFilter.options].some((option) => option.value === current)) siteFilter.value = current;
+}
+
+function toggleBulkSmartChip(button) {
+  if (!button) return;
+  if (button.dataset.bulkLevel) {
+    const selected = button.classList.contains("active");
+    document.querySelectorAll("[data-bulk-level]").forEach((chip) => chip.classList.remove("active"));
+    byId("bulkGroupLevelFilter").value = selected ? "" : button.dataset.bulkLevel;
+    if (!selected) button.classList.add("active");
+  } else {
+    button.classList.toggle("active");
+  }
+  renderBulkLoadGroups();
+}
+
+function clearBulkLoadGroupSelection() {
+  document.querySelectorAll("#bulkLoadGroups input[type='checkbox']").forEach((input) => {
+    input.checked = false;
+    input.closest(".epqa-mass-grade-item-v9")?.classList.remove("selected");
+  });
+  updateBulkLoadFooterStatus();
 }
 
 function closeBulkLoadModal() {
@@ -3075,22 +3282,55 @@ function renderBulkLoadGroups() {
   if (!target) return;
   const teacherId = byId("bulkLoadTeacher")?.value || "";
   const roomId = byId("bulkLoadRoom")?.value || "";
+  const subject = byId("bulkLoadSubject")?.value || "";
   const roomSite = roomSiteById(roomId);
-  const groups = filterGroupsByRoomSite(groupsForTeacher(teacherId), roomId);
-  target.innerHTML = groups.map((group) => `
-    <label class="bulk-group-option">
+  const search = normalizeKey(byId("bulkGroupSearch")?.value || "");
+  const siteFilter = byId("bulkGroupSiteFilter")?.value || "";
+  const levelFilter = normalizeLevel(byId("bulkGroupLevelFilter")?.value || "");
+  const excludeExisting = document.querySelector("[data-bulk-exclude-existing]")?.classList.contains("active");
+  let groups = filterGroupsByRoomSite(groupsForTeacher(teacherId), roomId);
+  groups = groups.filter((group) => {
+    const level = normalizeLevel(group.level);
+    const hasExisting = bulkLoadHasExisting(teacherId, group.id, subject);
+    return (!search || normalizeKey(`${group.id} ${group.name}`).includes(search)) &&
+      (!siteFilter || sameSite(group.siteId || group.site || "", siteFilter)) &&
+      (!levelFilter || level === levelFilter) &&
+      (!excludeExisting || !hasExisting);
+  });
+  target.innerHTML = groups.map((group) => {
+    const level = normalizeLevel(group.level);
+    const hasExisting = bulkLoadHasExisting(teacherId, group.id, subject);
+    const stateLabel = hasExisting ? "Ya tiene materia" : group.needsLevelReview ? "Revisar" : "Libre";
+    const stateClass = hasExisting ? "exists" : group.needsLevelReview ? "review" : "free";
+    return `
+    <label class="bulk-group-option epqa-mass-grade-item-v9">
       <input type="checkbox" name="bulkLoadGroups" value="${escapeHtml(group.id)}">
-      <span>${escapeHtml(group.name)} <small>${normalizeLevel(group.level) === "primary" ? "Primaria" : "Secundaria"}${roomSite ? ` - sede ${escapeHtml(siteNameForId(roomSite))}` : ""}${group.needsLevelReview ? " - revisar ciclo" : ""}</small></span>
+      <strong>${escapeHtml(group.name || group.id)}</strong>
+      <span>${level === "primary" ? "Primaria" : "Secundaria"}${roomSite ? ` · ${escapeHtml(siteNameForId(roomSite))}` : ""}</span>
+      <small class="${stateClass}">${escapeHtml(stateLabel)}</small>
     </label>
-  `).join("") || `<div class="teacher-empty">No hay grados para la sede del espacio seleccionado. Revisa la sede del grado o cambia el espacio.</div>`;
+  `;
+  }).join("") || `<div class="epqa-mass-empty-card-v9"><div>${epqaIcon("box")}<strong>No hay grados disponibles</strong><span>Revisa docente, sede, nivel o la opción de excluir asignados.</span></div></div>`;
+  target.querySelectorAll("input[type='checkbox']").forEach((input) => {
+    input.onchange = () => {
+      input.closest(".epqa-mass-grade-item-v9")?.classList.toggle("selected", input.checked);
+      updateBulkLoadFooterStatus();
+    };
+  });
+  updateBulkLoadFooterStatus();
 }
 
 function toggleBulkLoadGroups() {
   const checks = [...document.querySelectorAll("#bulkLoadGroups input[type='checkbox']")];
   if (!checks.length) return;
   const shouldCheck = checks.some((input) => !input.checked);
-  checks.forEach((input) => { input.checked = shouldCheck; });
-  byId("bulkLoadToggleGroups").textContent = shouldCheck ? "Desmarcar todos" : "Marcar todos";
+  checks.forEach((input) => {
+    input.checked = shouldCheck;
+    input.closest(".epqa-mass-grade-item-v9")?.classList.toggle("selected", shouldCheck);
+  });
+  const label = byId("bulkLoadToggleGroups")?.querySelector("span") || byId("bulkLoadToggleGroups");
+  if (label) label.textContent = shouldCheck ? "Desmarcar todos" : "Marcar todos";
+  updateBulkLoadFooterStatus();
 }
 
 function addBulkLoadDraft() {
@@ -3105,12 +3345,24 @@ function addBulkLoadDraft() {
   const hours = Math.max(1, Number(byId("bulkLoadHours")?.value || 1));
   const blockHours = Math.max(1, Number(byId("bulkLoadBlockHours")?.value || 1));
   const rulePriority = normalizeRulePriority(byId("bulkLoadRulePriority")?.value || "P0");
+  const preferredDays = selectedDaysFrom("bulkLoadPreferredDays");
+  const preferredDaysPriority = normalizeRulePriority(byId("bulkLoadPreferredDaysPriority")?.value || "P2");
+  let added = 0;
+  let skipped = 0;
   groups.forEach((group) => {
-    EPQA.ui.bulkLoadDraft.push({ teacher, group, subject, roomId, hours, blockHours, rulePriority });
+    if (bulkLoadHasExisting(teacher, group, subject) || bulkLoadHasDraft(teacher, group, subject)) {
+      skipped += 1;
+      return;
+    }
+    EPQA.ui.bulkLoadDraft.push({ teacher, group, subject, roomId, hours, blockHours, rulePriority, preferredDays, preferredDaysPriority });
+    added += 1;
   });
-  document.querySelectorAll("#bulkLoadGroups input[type='checkbox']").forEach((input) => { input.checked = false; });
-  byId("bulkLoadToggleGroups").textContent = "Marcar todos";
+  clearBulkLoadGroupSelection();
+  const label = byId("bulkLoadToggleGroups")?.querySelector("span") || byId("bulkLoadToggleGroups");
+  if (label) label.textContent = "Marcar todos";
   renderBulkLoadDrafts();
+  if (added) notify("Asignaciones preparadas", `${added} carga(s) agregada(s) a la lista temporal.`, "success");
+  if (skipped) notify("Duplicados omitidos", `${skipped} asignacion(es) ya existian o estaban preparadas.`, "warning");
 }
 
 function renderBulkLoadDrafts() {
@@ -3118,14 +3370,49 @@ function renderBulkLoadDrafts() {
   const total = byId("bulkLoadTotalHours");
   const teacherHours = byId("bulkLoadTeacherHours");
   const drafts = EPQA.ui.bulkLoadDraft || [];
-  if (total) total.textContent = `${drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0)}h`;
+  const preparedHours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  if (total) total.textContent = `${preparedHours}h`;
+  if (byId("bulkLoadPreparedCount")) byId("bulkLoadPreparedCount").textContent = `${drafts.length} asignacion${drafts.length === 1 ? "" : "es"} preparad${drafts.length === 1 ? "a" : "as"}`;
   if (teacherHours) {
     const teacherId = byId("bulkLoadTeacher")?.value || "";
     const current = (EPQA.data.loads || []).filter((load) => sameTeacher(load.teacher, teacherId)).reduce((sum, load) => sum + Number(load.hours || 0), 0);
     const prepared = drafts.filter((load) => sameTeacher(load.teacher, teacherId)).reduce((sum, load) => sum + Number(load.hours || 0), 0);
-    teacherHours.innerHTML = `<span>Docente seleccionado</span><strong>${current}h actuales + ${prepared}h preparadas = ${current + prepared}h</strong>`;
+    teacherHours.innerHTML = teacherId
+      ? `<span>Docente seleccionado</span><strong>${current}h actuales + ${prepared}h preparadas = ${current + prepared}h</strong>`
+      : `<span>Docente seleccionado</span><strong>Selecciona un docente para calcular la carga.</strong>`;
   }
   if (!list) return;
+  if (!drafts.length) {
+    list.innerHTML = `<div class="epqa-mass-empty-card-v9"><div><div class="epqa-mass-empty-icon-v9">${epqaIcon("box")}</div><strong>Aquí se acumulan tus asignaciones</strong><span>Agrega materias y grados para revisar el resumen antes de confirmar.</span></div></div>`;
+    updateBulkLoadFooterStatus();
+    updateBulkLoadValidationBox();
+    return;
+  }
+  const visibleDrafts = drafts.slice(0, 5);
+  const hiddenDrafts = Math.max(0, drafts.length - visibleDrafts.length);
+  list.innerHTML = `<div class="epqa-mass-prepared-table-wrap-v9"><table class="epqa-mass-prepared-table-v9"><thead><tr><th>Grado</th><th>Materia</th><th>Espacio</th><th>Horas</th><th>Importancia</th><th></th></tr></thead><tbody>${visibleDrafts.map((item, index) => {
+    const group = groupOptions().find((option) => option.id === item.group);
+    const room = roomOptions().find((option) => option.id === item.roomId);
+    return `
+      <tr>
+        <td><span class="epqa-mass-grade-pill-v9">${escapeHtml(group?.name || item.group)}</span></td>
+        <td>${escapeHtml(item.subject || "Sin asignar")}</td>
+        <td>${escapeHtml(room?.name || item.roomId || "Aula disponible")}</td>
+        <td>${Number(item.hours || 0)}h</td>
+        <td><span class="epqa-mass-priority-badge-v9 epqa-mass-priority-badge-v9--${escapeHtml(normalizeRulePriority(item.rulePriority).toLowerCase())}">${escapeHtml(normalizeRulePriority(item.rulePriority))}</span></td>
+        <td><button type="button" class="epqa-mass-remove-btn-v9" data-remove-bulk-draft="${index}" title="Quitar asignación" aria-label="Quitar asignación">${epqaIcon("trash")}</button></td>
+      </tr>
+    `;
+  }).join("")}</tbody></table>${hiddenDrafts ? `<div class="epqa-mass-prepared-more-v9">+ ${hiddenDrafts} asignaciones más preparadas</div>` : ""}</div>`;
+  list.querySelectorAll("[data-remove-bulk-draft]").forEach((button) => {
+    button.addEventListener("click", () => {
+      EPQA.ui.bulkLoadDraft.splice(Number(button.dataset.removeBulkDraft), 1);
+      renderBulkLoadDrafts();
+    });
+  });
+  updateBulkLoadFooterStatus();
+  updateBulkLoadValidationBox();
+  return;
   list.innerHTML = drafts.map((item, index) => {
     const group = groupOptions().find((option) => option.id === item.group);
     return `
@@ -3146,6 +3433,47 @@ function renderBulkLoadDrafts() {
   });
 }
 
+function bulkLoadHasExisting(teacher, group, subject) {
+  if (!teacher || !group || !subject) return false;
+  return (EPQA.data.loads || []).some((load) =>
+    sameTeacher(load.teacher, teacher) &&
+    normalizeKey(load.group) === normalizeKey(group) &&
+    normalizeKey(load.subject) === normalizeKey(subject)
+  );
+}
+
+function bulkLoadHasDraft(teacher, group, subject) {
+  if (!teacher || !group || !subject) return false;
+  return (EPQA.ui.bulkLoadDraft || []).some((load) =>
+    sameTeacher(load.teacher, teacher) &&
+    normalizeKey(load.group) === normalizeKey(group) &&
+    normalizeKey(load.subject) === normalizeKey(subject)
+  );
+}
+
+function updateBulkLoadFooterStatus() {
+  const selectedCount = document.querySelectorAll("#bulkLoadGroups input[type='checkbox']:checked").length;
+  const drafts = EPQA.ui.bulkLoadDraft || [];
+  const preparedHours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  if (byId("bulkLoadFooterStatus")) byId("bulkLoadFooterStatus").textContent = `${selectedCount} grados seleccionados · ${drafts.length} asignaciones preparadas · ${preparedHours}h listas`;
+  if (byId("bulkLoadAssign")) byId("bulkLoadAssign").disabled = !drafts.length;
+}
+
+function updateBulkLoadValidationBox() {
+  const box = byId("bulkLoadValidationBox");
+  if (!box) return;
+  const drafts = EPQA.ui.bulkLoadDraft || [];
+  const teacher = byId("bulkLoadTeacher")?.value || "";
+  const subject = byId("bulkLoadSubject")?.value || "";
+  const selectedCount = document.querySelectorAll("#bulkLoadGroups input[type='checkbox']:checked").length;
+  const preparedHours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  let message = "Todo listo para preparar asignaciones.";
+  if (!teacher) message = "Selecciona un docente para calcular la carga.";
+  else if (!subject) message = "Selecciona una materia antes de preparar asignaciones.";
+  else if (!selectedCount && !drafts.length) message = "Selecciona uno o varios grados.";
+  box.innerHTML = `${epqaIcon("alert")}<span>${escapeHtml(message)}</span>`;
+}
+
 function assignBulkLoadDrafts() {
   const drafts = EPQA.ui.bulkLoadDraft || [];
   if (!drafts.length) {
@@ -3153,11 +3481,25 @@ function assignBulkLoadDrafts() {
     return;
   }
   EPQA.data.loads = EPQA.data.loads || [];
-  drafts.forEach((item) => {
+  const uniqueDrafts = drafts.filter((item, index, list) =>
+    list.findIndex((other) =>
+      sameTeacher(other.teacher, item.teacher) &&
+      normalizeKey(other.group) === normalizeKey(item.group) &&
+      normalizeKey(other.subject) === normalizeKey(item.subject)
+    ) === index && !bulkLoadHasExisting(item.teacher, item.group, item.subject)
+  );
+  if (!uniqueDrafts.length) {
+    notify("Sin asignaciones nuevas", "Todas las asignaciones preparadas ya existian.", "warning", true);
+    EPQA.ui.bulkLoadDraft = [];
+    renderBulkLoadDrafts();
+    renderBulkLoadGroups();
+    return;
+  }
+  uniqueDrafts.forEach((item) => {
     EPQA.data.loads.push(buildLoad(item));
   });
-  const count = drafts.length;
-  const hours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const count = uniqueDrafts.length;
+  const hours = uniqueDrafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
   closeBulkLoadModal();
   syncWorkspaceSnapshot();
   void persistWorkspaceDraft("Asignaciones masivas");
