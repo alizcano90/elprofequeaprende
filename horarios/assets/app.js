@@ -1207,15 +1207,16 @@ function dayOptions() {
 }
 
 function renderSiteRoomManager() {
-  const target = byId("siteRoomManager");
-  if (!target) return;
+  const siteTarget = byId("siteRoomSitesManager");
+  const roomTarget = byId("siteRoomRoomsManager");
+  const fallbackTarget = byId("siteRoomManager");
   const siteRows = (EPQA.data.sites || []).map((site, index) => `
     <tr data-site-index="${index}">
       <td><input data-catalog-field="site-id" value="${escapeHtml(site.id || site.code || site.name || "")}"></td>
       <td><input data-catalog-field="site-name" value="${escapeHtml(site.name || site.id || site.code || "")}"></td>
       <td class="catalog-actions">
-        <button class="ghost" data-save-site="${index}" type="button">Guardar</button>
-        <button class="ghost danger" data-delete-site="${index}" type="button">Borrar</button>
+        <button class="epqa-icon-btn" data-save-site="${index}" type="button" title="Guardar sede"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i></button>
+        <button class="epqa-icon-btn danger" data-delete-site="${index}" type="button" title="Borrar sede"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </td>
     </tr>`).join("") || `<tr><td colspan="3">Sin sedes.</td></tr>`;
   const roomRows = (EPQA.data.rooms || []).map((room, index) => `
@@ -1223,18 +1224,26 @@ function renderSiteRoomManager() {
       <td><input data-catalog-field="room-id" value="${escapeHtml(room.id || room.name || "")}"></td>
       <td><input data-catalog-field="room-name" value="${escapeHtml(room.name || room.id || "")}"></td>
       <td><select data-catalog-field="room-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, room.siteId || room.site || "") ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
-      <td><select data-catalog-field="room-type">
-        ${["AULA", "SALA_TI", "CANCHA", "EF_ALTERNO"].map((type) => `<option value="${type}" ${type === (room.room_type || room.roomType || "AULA") ? "selected" : ""}>${type}</option>`).join("")}
-      </select></td>
+      <td><span class="epqa-type-pill-v3 ${normalizeKey(room.room_type || room.roomType || "AULA") === "SALA_TI" ? "ti" : normalizeKey(room.room_type || room.roomType || "AULA") === "CANCHA" ? "cancha" : ""}">${escapeHtml(room.room_type || room.roomType || "AULA")}</span></td>
       <td class="catalog-actions">
-        <button class="ghost" data-save-room="${index}" type="button">Guardar</button>
-        <button class="ghost danger" data-delete-room="${index}" type="button">Borrar</button>
+        <button class="epqa-icon-btn" data-save-room="${index}" type="button" title="Guardar espacio"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i></button>
+        <button class="epqa-icon-btn danger" data-delete-room="${index}" type="button" title="Borrar espacio"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </td>
     </tr>`).join("") || `<tr><td colspan="5">Sin espacios.</td></tr>`;
-  target.innerHTML = `
-    <section><h3>Sedes creadas</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>ID</th><th>Nombre</th><th></th></tr></thead><tbody>${siteRows}</tbody></table></div></section>
-    <section><h3>Espacios / sitios creados</h3><div class="table-scroll"><table class="catalog-mini-table"><thead><tr><th>ID</th><th>Nombre</th><th>Sede</th><th>Tipo</th><th></th></tr></thead><tbody>${roomRows}</tbody></table></div></section>`;
-  bindCatalogManagerActions(target);
+  const siteMarkup = `<div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th style="width: 42%;">ID</th><th>Nombre</th><th style="width: 120px;">Acciones</th></tr></thead><tbody>${siteRows}</tbody></table></div>`;
+  const roomMarkup = `<div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th style="width: 23%;">ID</th><th style="width: 23%;">Nombre</th><th style="width: 22%;">Sede</th><th style="width: 16%;">Tipo</th><th style="width: 120px;">Acciones</th></tr></thead><tbody>${roomRows}</tbody></table></div>`;
+  if (siteTarget) siteTarget.innerHTML = siteMarkup;
+  if (roomTarget) roomTarget.innerHTML = roomMarkup;
+  if (fallbackTarget && !siteTarget && !roomTarget) {
+    fallbackTarget.innerHTML = `
+      <section class="epqa-panel-v3 epqa-panel-sedes-v3"><div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th>ID</th><th>Nombre</th><th></th></tr></thead><tbody>${siteRows}</tbody></table></div></section>
+      <section class="epqa-panel-v3 epqa-panel-espacios-v3"><div class="epqa-table-wrap-v3"><table class="epqa-table-v3"><thead><tr><th>ID</th><th>Nombre</th><th>Sede</th><th>Tipo</th><th></th></tr></thead><tbody>${roomRows}</tbody></table></div></section>`;
+  }
+  setTextAny((EPQA.data.sites || []).length, "siteCountLabel");
+  setTextAny((EPQA.data.rooms || []).length, "roomCountLabel");
+  if (siteTarget) bindCatalogManagerActions(siteTarget);
+  if (roomTarget) bindCatalogManagerActions(roomTarget);
+  if (fallbackTarget && !siteTarget && !roomTarget) bindCatalogManagerActions(fallbackTarget);
 }
 
 function renderTeacherManager() {

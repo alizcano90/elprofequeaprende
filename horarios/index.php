@@ -460,24 +460,75 @@ $assetVersion = static function (string $path): string {
                             </button>
                         </form>
                     </article>
-                    <article class="catalog-card">
-                        <h2>Sedes y espacios</h2>
-                        <div class="compact-form">
-                            <label>Nueva sede <input id="siteName" type="text" placeholder="FILO"></label>
-                            <button id="btnAddSite" class="primary" type="button">Agregar sede</button>
-                            <label>Sede del espacio <select id="roomSite"></select></label>
-                            <label>Espacio <input id="roomName" type="text" placeholder="Sala TI Filo"></label>
-                            <label>Tipo
-                                <select id="roomType">
-                                    <option value="AULA">Aula</option>
-                                    <option value="SALA_TI">Sala TI</option>
-                                    <option value="CANCHA">Cancha</option>
-                                    <option value="EF_ALTERNO">EF alterno</option>
-                                </select>
-                            </label>
-                            <button id="btnAddRoom" class="primary" type="button">Agregar espacio</button>
-                        </div>
-                        <div id="siteRoomManager" class="catalog-manager"></div>
+                    <article class="catalog-card wide epqa-sedes-view-v3">
+                        <section class="epqa-sedes-main-card-v3">
+                            <header class="epqa-sedes-header-v3">
+                                <div class="epqa-sedes-header-icon-v3"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></div>
+                                <div>
+                                    <h1>Sedes y espacios</h1>
+                                    <p>Administra las sedes de tu institución y los espacios disponibles.</p>
+                                </div>
+                            </header>
+
+                            <div class="epqa-sedes-grid-v3">
+                                <section class="epqa-panel-v3 epqa-panel-sedes-v3">
+                                    <div class="epqa-panel-header-v3">
+                                        <div>
+                                            <h2>Sedes</h2>
+                                            <p>Lista de sedes registradas</p>
+                                        </div>
+                                        <button id="btnAddSite" class="primary epqa-add-btn-v3" type="button">
+                                            <span>＋</span>
+                                            <span>Nueva sede</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="epqa-sede-create-v3">
+                                        <label>Nueva sede <input id="siteName" type="text" placeholder="FILO"></label>
+                                    </div>
+
+                                    <div id="siteRoomSitesManager" class="epqa-table-wrap-v3"></div>
+
+                                    <div class="epqa-panel-footer-v3">
+                                        <span class="epqa-footer-icon-v3">▣</span>
+                                        <span><span id="siteCountLabel" class="accent">0</span> sedes registradas</span>
+                                    </div>
+                                </section>
+
+                                <section class="epqa-panel-v3 epqa-panel-espacios-v3">
+                                    <div class="epqa-panel-header-v3">
+                                        <div>
+                                            <h2>Espacios / sitios</h2>
+                                            <p>Lista de espacios y su tipo</p>
+                                        </div>
+                                        <button id="btnAddRoom" class="primary epqa-add-btn-v3" type="button">
+                                            <span>＋</span>
+                                            <span>Nuevo espacio</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="epqa-room-create-v3">
+                                        <label>Sede del espacio <select id="roomSite"></select></label>
+                                        <label>Espacio <input id="roomName" type="text" placeholder="Sala TI Filo"></label>
+                                        <label>Tipo
+                                            <select id="roomType">
+                                                <option value="AULA">Aula</option>
+                                                <option value="SALA_TI">Sala TI</option>
+                                                <option value="CANCHA">Cancha</option>
+                                                <option value="EF_ALTERNO">EF alterno</option>
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <div id="siteRoomRoomsManager" class="epqa-table-wrap-v3"></div>
+
+                                    <div class="epqa-panel-footer-v3">
+                                        <span class="epqa-footer-icon-v3">⊞</span>
+                                        <span><span id="roomCountLabel" class="accent">0</span> espacios registrados</span>
+                                    </div>
+                                </section>
+                            </div>
+                        </section>
                     </article>
                     <article class="catalog-card">
                         <h2>Edición de docentes</h2>

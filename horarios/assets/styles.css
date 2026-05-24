@@ -1040,6 +1040,232 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   transform: translateY(-1px);
   box-shadow: 0 16px 32px rgba(15, 107, 255, 0.34);
 }
+.epqa-sedes-view-v3 {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.epqa-sedes-main-card-v3 {
+  background: #fff;
+  border: 1px solid #dbe6f1;
+  border-radius: 20px;
+  box-shadow: 0 18px 45px rgba(15, 35, 66, 0.08);
+  padding: 28px 28px 26px;
+}
+.epqa-sedes-header-v3 {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 10px 0 24px;
+  border-bottom: 1px solid #dbe6f1;
+  margin-bottom: 34px;
+}
+.epqa-sedes-header-icon-v3 {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #0f6bff;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  flex: 0 0 auto;
+}
+.epqa-sedes-header-v3 h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.15;
+  font-weight: 900;
+  color: #0f2442;
+  letter-spacing: -0.03em;
+}
+.epqa-sedes-header-v3 p {
+  margin: 10px 0 0;
+  font-size: 19px;
+  line-height: 1.45;
+  color: #52657d;
+  font-weight: 500;
+}
+.epqa-sedes-grid-v3 {
+  display: grid;
+  grid-template-columns: 0.92fr 1.38fr;
+  gap: 28px;
+  align-items: start;
+}
+.epqa-panel-v3 {
+  background: #fff;
+  border: 1px solid #dbe6f1;
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgba(15, 35, 66, 0.06);
+  padding: 18px 16px 18px;
+  display: grid;
+  gap: 18px;
+}
+.epqa-panel-header-v3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 4px 6px 0;
+}
+.epqa-panel-header-v3 h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #0f2442;
+}
+.epqa-panel-header-v3 p {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #52657d;
+  font-weight: 500;
+}
+.epqa-add-btn-v3 {
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0f6bff 0%, #0755dd 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 26px rgba(15, 107, 255, 0.28);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.epqa-sede-create-v3,
+.epqa-room-create-v3 {
+  display: grid;
+  gap: 12px;
+}
+.epqa-sede-create-v3 label,
+.epqa-room-create-v3 label {
+  display: grid;
+  gap: 8px;
+  color: #0f2442;
+  font-size: 15px;
+  font-weight: 800;
+}
+.epqa-sede-create-v3 input,
+.epqa-room-create-v3 input,
+.epqa-room-create-v3 select {
+  border: 1px solid #cfdcec;
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px 14px;
+  min-height: 52px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f2442;
+}
+.epqa-table-wrap-v3 {
+  border: 1px solid #d7e3ef;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.epqa-table-v3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  color: #203555;
+}
+.epqa-table-v3 thead th {
+  background: #fbfdff;
+  color: #203555;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid #d7e3ef;
+}
+.epqa-table-v3 tbody td {
+  padding: 16px;
+  border-bottom: 1px solid #eaf0f6;
+  vertical-align: middle;
+  font-size: 15px;
+  color: #203555;
+  font-weight: 500;
+}
+.epqa-table-v3 tbody tr:last-child td {
+  border-bottom: none;
+}
+.epqa-type-pill-v3 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+.epqa-type-pill-v3.ti {
+  color: #2d66f6;
+  background: #edf3ff;
+  border-color: #cfe0ff;
+}
+.epqa-type-pill-v3.cancha {
+  color: #1d8d4a;
+  background: #eaf8ee;
+  border-color: #c7ebd3;
+}
+.epqa-panel-footer-v3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 4px;
+  color: #4e6480;
+  font-size: 15px;
+  font-weight: 600;
+}
+.epqa-footer-icon-v3 {
+  color: #0f6bff;
+  font-size: 18px;
+}
+.epqa-panel-footer-v3 .accent {
+  color: #0f6bff;
+  font-weight: 900;
+}
+.epqa-icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #cfe0ff;
+  background: #fff;
+  color: #0f6bff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  cursor: pointer;
+}
+.epqa-icon-btn.danger {
+  color: #dc4a4a;
+  border-color: #f2c7c7;
+}
+.epqa-icon-btn i {
+  pointer-events: none;
+}
+.epqa-sedes-grid-v3 .catalog-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+.epqa-sedes-grid-v3 input,
+.epqa-sedes-grid-v3 select {
+  width: 100%;
+  min-width: 0;
+}
+.epqa-sedes-grid-v3 .table-scroll {
+  overflow: auto;
+}
 .catalog-manager {
   display: grid;
   gap: 12px;
@@ -2397,6 +2623,7 @@ td input, td select {
   .conflict-panel { max-height: 360px; overflow: auto; }
   .epqa-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .epqa-sedes-grid-v3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -2406,6 +2633,24 @@ td input, td select {
   .status-grid, .metrics-row { grid-template-columns: 1fr; }
   .config-tabs { overflow-x: auto; flex-wrap: nowrap; }
   .config-tab { flex: 0 0 auto; }
+  .epqa-sedes-header-v3 {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .epqa-sedes-header-v3 h1 {
+    font-size: 28px;
+  }
+  .epqa-panel-header-v3 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .epqa-add-btn-v3 {
+    width: 100%;
+    justify-content: center;
+  }
+  .epqa-table-wrap-v3 {
+    overflow-x: auto;
+  }
   .epqa-hero {
     padding: 20px;
   }
@@ -3034,6 +3279,24 @@ main > .schedule-switcher {
   .epqa-more-actions-v2 { grid-column: auto; }
   .epqa-summary-grid-v2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .epqa-bottom-v2 { grid-template-columns: 1fr; }
+  .epqa-sedes-header-v3 {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .epqa-sedes-header-v3 h1 {
+    font-size: 28px;
+  }
+  .epqa-panel-header-v3 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .epqa-add-btn-v3 {
+    width: 100%;
+    justify-content: center;
+  }
+  .epqa-table-wrap-v3 {
+    overflow-x: auto;
+  }
 }
 
 @media (max-width: 640px) {
