@@ -158,7 +158,7 @@ function bindActions() {
   byId("btnAddRoom")?.addEventListener("click", addRoom);
   byId("btnAddTeacher")?.addEventListener("click", addTeacher);
   byAnyId("teacherSummarySelect", "teacherDetailSelect")?.addEventListener("change", renderTeacherDetailPanel);
-  byId("groupDetailSelect")?.addEventListener("change", renderGroupDetailPanel);
+  byAnyId("gradeSummarySelect", "groupDetailSelect")?.addEventListener("change", renderGroupDetailPanel);
   byId("loadTeacher")?.addEventListener("change", () => refreshLoadGroupOptions());
   byId("loadRoom")?.addEventListener("change", () => refreshLoadGroupOptions());
   byId("btnAddGroup")?.addEventListener("click", addGroup);
@@ -999,9 +999,10 @@ function renderCatalogEditor() {
   fillSelect("roomSite", siteOptions(), "id", "name");
   fillSelect("teacherDefaultSite", siteOptionsWithEmpty(), "id", "name");
   ensureTeacherSummaryV5Chrome();
+  ensureGradeSummaryV6Chrome();
   fillSelect("loadTeacher", teacherOptions(), "id", "name");
   fillSelect("teacherSummarySelect", teacherOptions(), "id", "name");
-  fillSelect("groupDetailSelect", groupOptions(), "id", "name");
+  fillSelect("gradeSummarySelect", groupOptions(), "id", "name");
   fillSelect("loadSubject", subjectOptions(), "id", "name");
   fillSelect("loadRoom", roomOptionsWithFlexible(), "id", "name");
   refreshLoadGroupOptions();
@@ -1582,6 +1583,34 @@ function ensureTeacherSummaryV5Chrome() {
 function ensureTeacherSummaryV4Chrome() {
   ensureTeacherSummaryV5Chrome();
 }
+
+function ensureGradeSummaryV6Chrome() {
+  const card = document.querySelector(".group-summary-card");
+  if (!card) return;
+  if (card.querySelector(".epqa-grade-summary-v6")) return;
+  card.innerHTML = `
+    <section class="epqa-grade-summary-v6">
+      <header class="epqa-grade-summary-header-v6">
+        <div class="epqa-grade-title-v6">
+          <span class="epqa-grade-title-icon-v6" aria-hidden="true">🏫</span>
+          <div>
+            <h1>Resumen grados</h1>
+            <p>Visualiza el cumplimiento semanal y la distribución académica por grado.</p>
+          </div>
+        </div>
+
+        <div class="epqa-grade-selector-v6">
+          <label for="gradeSummarySelect">Elegir grado</label>
+          <select id="gradeSummarySelect"></select>
+        </div>
+      </header>
+
+      <div id="groupDetailPanel" class="teacher-detail-panel epqa-grade-detail-panel-v6"></div>
+    </section>`;
+  const select = byId("gradeSummarySelect");
+  if (select) select.onchange = renderGroupDetailPanel;
+}
+
 function bindTeacherV4Actions() {
   const quickCreate = byId("btnTeacherQuickCreate");
   if (quickCreate && !quickCreate.dataset.bound) {
@@ -2867,7 +2896,7 @@ function renderTeacherDetailPanel() {
   });
 }
 
-function renderGroupDetailPanel() {
+function renderGroupDetailPanelV4Legacy() {
   const panel = byId("groupDetailPanel");
   const select = byId("groupDetailSelect");
   if (!panel || !select) return;
@@ -2928,6 +2957,140 @@ function renderGroupDetailPanel() {
     </div>
   `;
 }
+
+function gradeSummarySubjectVisual(subject) {
+  const key = normalizeKey(subject);
+  if (key.includes("MATEMATIC") || key.includes("ARITMET")) return { icon: "🔢", colorClass: "color-blue" };
+  if (key.includes("ARTIST")) return { icon: "🎨", colorClass: "color-pink" };
+  if (key.includes("BIOLOG") || key.includes("NATURAL")) return { icon: "🧬", colorClass: "color-green" };
+  if (key.includes("CASTELL") || key.includes("LENGUA") || key.includes("ESPAN")) return { icon: "📚", colorClass: "color-orange" };
+  if (key.includes("FISICA") || key.includes("DEPORTE")) return { icon: "🏃", colorClass: "color-green" };
+  if (key.includes("ETICA")) return { icon: "⚖️", colorClass: "color-purple" };
+  if (key.includes("INGLES") || key.includes("ENGLISH")) return { icon: "🌐", colorClass: "color-blue" };
+  if (key.includes("RELIG")) return { icon: "✝️", colorClass: "color-pink" };
+  if (key.includes("SOCIAL")) return { icon: "🗺️", colorClass: "color-cyan" };
+  if (key.includes("TI") || key.includes("TECNOLOG") || key.includes("INFORMAT")) return { icon: "💻", colorClass: "color-purple" };
+  if (key.includes("DPC")) return { icon: "🧭", colorClass: "color-green" };
+  if (key.includes("EMP") || key.includes("EMPREND")) return { icon: "💼", colorClass: "color-orange" };
+  return { icon: "📘", colorClass: "color-neutral" };
+}
+
+function gradeWeeklyTarget(group) {
+  const ownTarget = safeHourValue(group?.weeklyTarget || group?.targetHours || group?.requiredHours || group?.weeklyHours || group?.hoursPerWeek);
+  if (ownTarget) return ownTarget;
+  const level = normalizeLevel(group?.level || inferGroupLevel(group?.id || group?.name));
+  const dataTarget = level === "primary"
+    ? safeHourValue(EPQA.data?.rules?.primaryWeeklyHours || EPQA.data?.primaryWeeklyHours)
+    : safeHourValue(EPQA.data?.rules?.secondaryWeeklyHours || EPQA.data?.secondaryWeeklyHours);
+  return dataTarget || (level === "primary" ? 25 : 30);
+}
+
+function gradeStatusMeta(assignedHours, requiredHours, pendingHours) {
+  const overTarget = Math.max(0, assignedHours - requiredHours);
+  if (overTarget > 0) return { key: "over", label: "Sobre meta", icon: "⚠️", className: "is-over" };
+  if (pendingHours > 0 || assignedHours < requiredHours) return { key: "pending", label: "Pendiente", icon: "⚠️", className: "is-pending" };
+  return { key: "ok", label: "Cumple", icon: "✓", className: "is-ok" };
+}
+
+function renderGroupDetailPanel() {
+  ensureGradeSummaryV6Chrome();
+  const panel = byId("groupDetailPanel");
+  const select = byAnyId("gradeSummarySelect", "groupDetailSelect");
+  if (!panel || !select) return;
+  const groupId = select.value || groupOptions()[0]?.id || "";
+  if (!select.value && groupId) select.value = groupId;
+  const groupOption = groupOptions().find((item) => String(item.id) === String(groupId)) || null;
+  const group = groupObjectById(groupId) || groupOption;
+  if (!group) {
+    panel.innerHTML = `<div class="teacher-empty teacher-empty-v4">No hay grado disponible para mostrar.</div>`;
+    return;
+  }
+  const groupKey = group.id || group.name || groupId;
+  const level = normalizeLevel(group.level || groupOption?.level || inferGroupLevel(groupKey));
+  const requiredHours = gradeWeeklyTarget({ ...group, level, id: groupKey });
+  const loads = (EPQA.data.loads || []).filter((load) => String(load.group) === String(groupKey));
+  const slots = (EPQA.slots || []).filter((slot) => String(slot.group) === String(groupKey));
+  const loadHours = loads.reduce((sum, load) => sum + safeHourValue(load.hours), 0);
+  const assignedHours = slots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
+  const pendingHours = Math.max(0, loadHours - assignedHours);
+  const overTarget = Math.max(0, assignedHours - requiredHours);
+  const status = gradeStatusMeta(assignedHours, requiredHours, pendingHours);
+  const rows = unique(loads.map((load) => `${load.subject}|${load.teacher || ""}`)).map((key) => {
+    const [subject, teacher] = key.split("|");
+    const itemLoads = loads.filter((load) => load.subject === subject && sameTeacherLoose(load.teacher || "", teacher || ""));
+    const itemSlots = slots.filter((slot) => slot.subject === subject && sameTeacherLoose(slot.teacher || "", teacher || ""));
+    const total = itemLoads.reduce((sum, load) => sum + safeHourValue(load.hours), 0);
+    const assigned = itemSlots.reduce((sum, slot) => sum + safeHourValue(slotDuration(slot)), 0);
+    const teachers = unique(itemLoads.map((load) => teacherName(load.teacher || "")).filter(Boolean));
+    const visual = gradeSummarySubjectVisual(subject);
+    return {
+      subject: subject || "Sin asignar",
+      teacher: teachers.length > 1 ? "Varios docentes" : (teachers[0] || teacherName(teacher) || "Sin asignar"),
+      total,
+      assigned,
+      pending: Math.max(0, total - assigned),
+      ...visual
+    };
+  }).sort((a, b) => normalizeKey(a.subject).localeCompare(normalizeKey(b.subject)));
+  const pct = Math.min(100, requiredHours ? Math.round((assignedHours / requiredHours) * 100) : 0);
+  const levelLabel = level === "primary" ? "Primaria" : "Secundaria";
+  panel.innerHTML = `
+    <section class="epqa-grade-hero-v6 ${status.className}">
+      <div class="epqa-grade-hero-info-v6">
+        <span class="epqa-grade-label-v6">GRADO SELECCIONADO</span>
+        <h2 id="gradeSummaryName">${escapeHtml(group.name || group.id || "Sin asignar")}</h2>
+        <p id="gradeSummaryMeta">${escapeHtml(levelLabel)} · meta ${requiredHours}h semanales</p>
+      </div>
+      <div class="epqa-grade-status-box-v6 ${status.className}">
+        <div>
+          <strong id="gradeAssignedTargetHours">${assignedHours}/${requiredHours}h</strong>
+          <span id="gradeComplianceStatus">${status.label}</span>
+        </div>
+        <span class="epqa-grade-status-icon-v6" aria-hidden="true">${status.icon}</span>
+      </div>
+    </section>
+
+    <section class="epqa-grade-kpis-v6">
+      <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--blue">
+        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">📚</span>
+        <div><strong id="gradeDefinedLoads">${loadHours}h</strong><span>cargas definidas</span></div>
+      </article>
+      <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--purple">
+        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">📌</span>
+        <div><strong id="gradeProposalHours">${assignedHours}h</strong><span>en propuesta</span></div>
+      </article>
+      <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--yellow">
+        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">⌛</span>
+        <div><strong id="gradePendingHours">${pendingHours}h</strong><span>pendientes</span></div>
+      </article>
+      <article class="epqa-grade-kpi-v6 epqa-grade-kpi-v6--red">
+        <span class="epqa-grade-kpi-icon-v6" aria-hidden="true">⚠️</span>
+        <div><strong id="gradeOverTargetHours">${overTarget}h</strong><span>sobre/meta</span></div>
+      </article>
+    </section>
+
+    <section class="epqa-grade-progress-v6 ${status.className}">
+      <div class="epqa-grade-progress-track-v6">
+        <div class="epqa-grade-progress-bar-v6" style="width:${pct}%;"></div>
+      </div>
+      <p>${pct}% de la meta semanal · <strong>${status.label}</strong></p>
+    </section>
+
+    <section class="epqa-grade-subject-grid-v6" id="gradeSubjectGrid">
+      ${rows.length ? rows.map((item) => `
+        <article class="epqa-grade-subject-card-v6 ${item.colorClass}">
+          <span class="epqa-grade-subject-icon-v6" aria-hidden="true">${item.icon}</span>
+          <div>
+            <strong>${escapeHtml(item.subject)}</strong>
+            <span>${escapeHtml(item.teacher)}</span>
+            <small>${item.total} h/sem</small>
+          </div>
+        </article>
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este grado todavÃ­a no tiene cargas asignadas.</div>`}
+    </section>
+  `;
+}
+
 function teacherAvailabilityTotals(teacher) {
   const availability = teacher?.availability || {};
   const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
