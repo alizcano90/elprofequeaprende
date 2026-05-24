@@ -88,6 +88,222 @@ $assetVersion = static function (string $path): string {
             </section>
 
             <section class="panel active" id="panel-dashboard">
+                <section class="epqa-dashboard-v2">
+                    <section class="epqa-topbar-v2">
+                        <div class="epqa-welcome-v2">
+                            <div class="epqa-eyebrow-v2">PLATAFORMA EDUCATIVA PARA CONSTRUIR HORARIOS</div>
+                            <h1>¡Hola, Andrés!</h1>
+                            <p>Construye horarios escolares de forma inteligente y sin complicaciones.</p>
+                            <div class="epqa-next-inline-v2">
+                                <strong id="dashNextActionTitle">Continuar construcción</strong>
+                                <span id="dashNextActionHelp">Empieza por completar la información base para poder generar una propuesta clara y publicable.</span>
+                            </div>
+                        </div>
+
+                        <div class="epqa-status-strip-v2">
+                            <article class="epqa-status-cell-v2 epqa-status-cell-v2--first">
+                                <div class="epqa-status-label-v2">Horario activo</div>
+                                <div class="epqa-status-value-v2" id="dashHorarioActivo">IE EL RECREO HORARIO</div>
+                                <div class="epqa-status-help-v2">Borrador</div>
+
+                                <div class="epqa-status-controls-v2">
+                                    <select id="dashHorarioSelect" class="epqa-status-select-v2" aria-label="Cambiar horario"></select>
+                                    <div class="epqa-status-buttons-v2">
+                                        <button type="button" class="epqa-btn-v2 epqa-btn-primary-v2" id="btnDashCrearNuevo">Crear nuevo</button>
+                                        <button type="button" class="epqa-btn-v2 epqa-btn-soft-v2" id="btnDashDuplicar">Duplicar</button>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="epqa-status-cell-v2">
+                                <div class="epqa-status-label-v2">Estado</div>
+                                <div class="epqa-status-value-v2 epqa-status-value-v2--warning">
+                                    <span class="epqa-dot-v2 epqa-dot-v2--warning"></span>
+                                    <span id="dashEstadoHorario">Publicable con observaciones</span>
+                                </div>
+                                <div class="epqa-status-help-v2">Horario en revisión</div>
+                            </article>
+
+                            <article class="epqa-status-cell-v2 epqa-status-cell-v2--last">
+                                <div class="epqa-status-label-v2">Última actualización</div>
+                                <div class="epqa-status-value-v2" id="dashUltimaActualizacion">23/05/2026 8:15 p.m.</div>
+                                <div class="epqa-status-help-v2">Se guarda cada avance para no perder el progreso.</div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="epqa-panel-v2 epqa-actions-v2">
+                        <div class="epqa-section-title-row-v2">
+                            <h2>Acciones principales</h2>
+                        </div>
+
+                        <div class="epqa-actions-grid-v2">
+                            <button type="button" class="epqa-action-card-v2 epqa-action-card-v2--blue" id="btnDashGenerarCero">
+                                <span class="epqa-action-icon-v2">✦</span>
+                                <span class="epqa-action-copy-v2">
+                                    <strong>Generar horario inteligente</strong>
+                                    <small>Crear propuesta desde cero respetando todas las reglas.</small>
+                                </span>
+                                <span class="epqa-action-arrow-v2">→</span>
+                            </button>
+
+                            <button type="button" class="epqa-action-card-v2 epqa-action-card-v2--green" id="btnDashGenerarActual">
+                                <span class="epqa-action-icon-v2">↻</span>
+                                <span class="epqa-action-copy-v2">
+                                    <strong>Generar desde lo actual</strong>
+                                    <small>Usar la configuración registrada para generar una nueva propuesta.</small>
+                                </span>
+                                <span class="epqa-action-arrow-v2">→</span>
+                            </button>
+
+                            <button type="button" class="epqa-action-card-v2 epqa-action-card-v2--orange" id="btnDashRevisarProblemas">
+                                <span class="epqa-action-icon-v2">!</span>
+                                <span class="epqa-action-copy-v2">
+                                    <strong>Revisar y reparar conflictos</strong>
+                                    <small>Detecta problemas y sugiere soluciones.</small>
+                                </span>
+                                <span class="epqa-action-arrow-v2">→</span>
+                            </button>
+
+                            <aside class="epqa-more-actions-v2">
+                                <button type="button" class="epqa-more-trigger-v2" id="btnDashMasAcciones">
+                                    Más acciones
+                                    <span>⌄</span>
+                                </button>
+
+                                <div class="epqa-more-menu-v2" id="dashMasAccionesMenu">
+                                    <button type="button" id="btnDashGuardarAvance">Guardar avance</button>
+                                    <button type="button" id="btnDashCargarAvance">Cargar avance</button>
+                                    <button type="button" id="btnDashDescargarBackup">Descargar backup</button>
+                                    <button type="button" id="btnDashSubirBackup">Subir backup</button>
+                                    <button type="button" id="btnDashGuardarVersion">Guardar versión</button>
+                                    <button type="button" id="btnDashExportarJson">Exportar JSON</button>
+                                </div>
+                            </aside>
+                        </div>
+                    </section>
+
+                    <section class="epqa-panel-v2 epqa-summary-v2">
+                        <div class="epqa-section-title-row-v2">
+                            <h2>Resumen ejecutivo</h2>
+                        </div>
+
+                        <div class="epqa-summary-grid-v2">
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--blue"><i class="fa-solid fa-user-group" aria-hidden="true"></i></span><span>Docentes</span></div>
+                                <strong id="metricDocentes">24</strong>
+                                <a href="#" data-target-tab="docentes">Ver detalle</a>
+                            </article>
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--green"><i class="fa-solid fa-school" aria-hidden="true"></i></span><span>Grados</span></div>
+                                <strong id="metricGrados">12</strong>
+                                <a href="#" data-target-tab="grados">Ver detalle</a>
+                            </article>
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--blue"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span><span>Materias</span></div>
+                                <strong id="metricMaterias">28</strong>
+                                <a href="#" data-target-tab="materias">Ver detalle</a>
+                            </article>
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--green"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><span>Cargas académicas</span></div>
+                                <strong id="metricCargas">188</strong>
+                                <a href="#" data-target-tab="asignaciones">Ver detalle</a>
+                            </article>
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--yellow"><i class="fa-regular fa-clock" aria-hidden="true"></i></span><span>Horas asignadas</span></div>
+                                <strong id="metricHorasAsignadas">1.532</strong>
+                                <a href="#" data-target-tab="propuesta">Ver detalle</a>
+                            </article>
+                            <article class="epqa-metric-card-v2">
+                                <div class="epqa-metric-top-v2"><span class="epqa-metric-icon-v2 epqa-metric-icon-v2--red"><i class="fa-regular fa-hourglass-half" aria-hidden="true"></i></span><span>Horas pendientes</span></div>
+                                <strong id="metricHorasPendientes">156</strong>
+                                <a href="#" data-target-tab="propuesta">Ver detalle</a>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="epqa-middle-v2">
+                        <article class="epqa-panel-v2 epqa-rules-card-v2">
+                            <div class="epqa-section-title-row-v2">
+                                <h2>Cumplimiento de reglas</h2>
+                            </div>
+
+                            <div class="epqa-rules-grid-v2">
+                                <div class="epqa-rule-mini-v2 epqa-rule-mini-v2--danger">
+                                    <strong id="metricP0">0</strong>
+                                    <span>Críticas (P0)</span>
+                                </div>
+                                <div class="epqa-rule-mini-v2 epqa-rule-mini-v2--warning">
+                                    <strong id="metricP1">17</strong>
+                                    <span>Fuertes (P1)</span>
+                                </div>
+                                <div class="epqa-rule-mini-v2 epqa-rule-mini-v2--preference">
+                                    <strong id="metricP2">32</strong>
+                                    <span>Deseables (P2)</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="epqa-panel-v2 epqa-compliance-card-v2">
+                            <div class="epqa-section-title-row-v2">
+                                <h2>Cumplimiento general</h2>
+                            </div>
+
+                            <div class="epqa-compliance-content-v2">
+                                <div class="epqa-donut-v2" style="--percent:87;">
+                                    <span id="metricCumplimiento">87%</span>
+                                </div>
+
+                                <div class="epqa-compliance-copy-v2">
+                                    <strong>Excelente</strong>
+                                    <p>Tu horario tiene buen nivel de cumplimiento. Revisa las advertencias para mejorar aún más.</p>
+                                    <button type="button" class="epqa-btn-v2 epqa-btn-soft-v2" id="btnDashVerAuditoria">Ver auditoría</button>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="epqa-panel-v2 epqa-flow-card-v2">
+                            <div class="epqa-section-title-row-v2">
+                                <h2>Flujo de construcción</h2>
+                            </div>
+
+                            <div class="epqa-flow-v2">
+                                <div class="epqa-flow-line-v2"></div>
+
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Institución</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Sedes y espacios</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Docentes</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Grados</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Materias</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Cargas</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Disponibilidad</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--done"><span>✓</span><small>Reglas</small></div>
+                                <div class="epqa-flow-step-v2 epqa-flow-step-v2--active"><span>9</span><small>Generación</small></div>
+                                <div class="epqa-flow-step-v2"><span>10</span><small>Auditoría</small></div>
+                                <div class="epqa-flow-step-v2"><span>11</span><small>Consolidado</small></div>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="epqa-bottom-v2">
+                        <article class="epqa-bottom-card-v2">
+                            <div>
+                                <h2>Pendientes por ubicar</h2>
+                                <strong id="metricPendientesTexto">156 horas pendientes</strong>
+                            </div>
+                            <button type="button" class="epqa-btn-v2 epqa-btn-outline-v2" id="btnDashIrPropuesta">Ir a propuesta</button>
+                        </article>
+
+                        <article class="epqa-bottom-card-v2">
+                            <div>
+                                <h2>Alertas importantes</h2>
+                                <strong id="metricAlertasTexto">17 reglas fuertes necesitan revisión</strong>
+                            </div>
+                            <button type="button" class="epqa-btn-v2 epqa-btn-outline-v2" id="btnDashIrAuditoria">Ver auditoría</button>
+                        </article>
+                    </section>
+                </section>
+
                 <article class="epqa-hero">
                     <div class="epqa-hero-copy">
                         <p class="eyebrow">PLATAFORMA EDUCATIVA PARA CONSTRUIR HORARIOS</p>
@@ -212,6 +428,7 @@ $assetVersion = static function (string $path): string {
                 <div class="catalog-grid">
                     <article class="catalog-card">
                         <h2>Edición de institución</h2>
+                        <div id="dataLoadAlert" class="panel-inline-alert" hidden></div>
                         <div class="compact-form">
                             <label>Nombre del colegio <input id="schoolName" type="text"></label>
                             <label>Responsable <input id="schoolOwner" type="text"></label>

@@ -105,7 +105,7 @@ function bindActions() {
   byId("btnCollapseSidebar")?.addEventListener("click", () => {
     document.querySelector(".app-shell")?.classList.toggle("sidebar-collapsed");
   });
-  byId("viewMode").addEventListener("change", () => {
+  byId("viewMode")?.addEventListener("change", () => {
     fillFilters();
     renderAvailableTray();
     renderBoard();
@@ -116,26 +116,40 @@ function bindActions() {
   });
   byId("auditMode").addEventListener("change", renderBoard);
   byId("breakMode").addEventListener("change", renderBoard);
-  byId("btnGenerate").addEventListener("click", () => generateOptimizedSchedule(false));
-  byId("btnGenerateMissing")?.addEventListener("click", () => generateOptimizedSchedule(true));
-  byId("btnRepair").addEventListener("click", repairConflicts);
-  byId("btnSave").addEventListener("click", () => saveVersion(false));
-  byId("btnFinalPdf").addEventListener("click", () => saveVersion(true));
-  byId("scheduleSelect")?.addEventListener("change", () => loadScheduleById(byId("scheduleSelect").value));
-  byId("btnNewSchedule")?.addEventListener("click", createScheduleFromCurrent);
-  byId("btnDuplicateSchedule")?.addEventListener("click", duplicateActiveSchedule);
-  byId("btnExportJson")?.addEventListener("click", exportActiveScheduleJson);
-  byId("btnDeleteSchedule")?.addEventListener("click", deleteActiveSchedule);
-  byId("btnImportJson").addEventListener("click", importJson);
+  onAny("click", () => generateOptimizedSchedule(false), "btnDashGenerarCero", "btnGenerate");
+  onAny("click", () => generateOptimizedSchedule(true), "btnDashGenerarActual", "btnGenerateMissing");
+  onAny("click", repairConflicts, "btnDashRevisarProblemas", "btnRepair");
+  onAny("click", () => saveVersion(false), "btnDashGuardarVersion", "btnSave");
+  onAny("click", () => saveVersion(true), "btnFinalPdf");
+  const scheduleSelect = byAnyId("dashHorarioSelect", "scheduleSelect");
+  scheduleSelect?.addEventListener("change", () => loadScheduleById(scheduleSelect.value));
+  onAny("click", createScheduleFromCurrent, "btnDashCrearNuevo", "btnNewSchedule");
+  onAny("click", duplicateActiveSchedule, "btnDashDuplicar", "btnDuplicateSchedule");
+  onAny("click", exportActiveScheduleJson, "btnDashExportarJson", "btnExportJson");
+  onAny("click", deleteActiveSchedule, "btnDeleteSchedule");
+  byId("btnImportJson")?.addEventListener("click", importJson);
   byId("btnImportFile")?.addEventListener("click", importDataFile);
   byId("btnExcel").addEventListener("click", exportExcel);
   byId("btnPdfTeachers").addEventListener("click", () => exportPdf("teacher"));
   byId("btnPdfGroups").addEventListener("click", () => exportPdf("group"));
   byId("btnPdfRooms").addEventListener("click", () => exportPdf("room"));
-  byId("btnSaveProgress")?.addEventListener("click", saveProgress);
-  byId("btnLoadProgress")?.addEventListener("click", loadProgress);
-  byId("btnBackupProgress")?.addEventListener("click", downloadProgressBackup);
+  onAny("click", saveProgress, "btnDashGuardarAvance", "btnSaveProgress");
+  onAny("click", loadProgress, "btnDashCargarAvance", "btnLoadProgress");
+  onAny("click", downloadProgressBackup, "btnDashDescargarBackup", "btnBackupProgress");
+  onAny("click", () => byId("backupInput")?.click(), "btnDashSubirBackup");
   byId("backupInput")?.addEventListener("change", importProgressBackup);
+  onAny("click", () => {
+    const menu = byAnyId("dashMasAccionesMenu");
+    if (menu) menu.hidden = !menu.hidden;
+  }, "btnDashMasAcciones");
+  onAny("click", () => openPanel("editor"), "btnDashIrPropuesta");
+  onAny("click", () => openPanel("audit"), "btnDashIrAuditoria", "btnDashVerAuditoria");
+  document.querySelectorAll(".epqa-dashboard-v2 a[data-target-tab]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openConfigSection(link.dataset.targetTab);
+    });
+  });
   byId("btnSaveSchool")?.addEventListener("click", saveSchoolData);
   byId("btnSaveGeneralRules")?.addEventListener("click", saveGeneralRules);
   byId("btnAddDailyRule")?.addEventListener("click", addDailyRuleException);
@@ -248,40 +262,92 @@ async function loadScheduleWorkspace(scheduleId = null) {
     EPQA.plan = payload.plan || EPQA.plan;
     EPQA.limit = payload.limit || null;
     renderScheduleSwitcher(payload.active || null);
-    if (payload.active?.data) {
+    const fallbackScheduleId = chooseLoadedScheduleId(payload.schedules || [], scheduleId);
+    if (!payload.active?.data && fallbackScheduleId && String(fallbackScheduleId) !== String(scheduleId || "")) {
+      return loadScheduleWorkspace(fallbackScheduleId);
+    }
+    if (payload.active) {
       EPQA.activeScheduleId = payload.active.id;
-      EPQA.data = normalizeImportedData(payload.active.data);
+      const snapshotData = canonicalScheduleInput(payload.active.data || {});
+      const currentData = canonicalScheduleInput(EPQA.data && typeof EPQA.data === "object" ? EPQA.data : {});
+      EPQA.data = normalizeImportedData(hasCanonicalScheduleData(snapshotData) ? snapshotData : currentData);
       EPQA.slots = Array.isArray(payload.active.slots) ? payload.active.slots : (EPQA.data.slots || []);
       EPQA.audit = payload.active.audit || EPQA.audit;
-      byId("jsonInput").value = JSON.stringify(EPQA.data, null, 2);
-      renderDataViews();
+      if (byId("jsonInput")) byId("jsonInput").value = JSON.stringify(EPQA.data, null, 2);
+      updateDataLoadAlert({ data: EPQA.data, slots: EPQA.slots, audit: EPQA.audit });
+      try {
+        renderDataViews();
+      } catch (renderError) {
+        console.error("EPQA render error after loading schedule", renderError);
+        showDataLoadAlert("El horario activo cargo con advertencias visuales. Revisa si faltan datos en Institución, Docentes, Grados, Materias o Cargas.");
+      }
       return true;
     }
     return false;
   } catch (error) {
+    console.error("EPQA load schedule error", error);
     return false;
   }
 }
 
+function chooseLoadedScheduleId(schedules, currentId = null) {
+  const current = currentId ? String(currentId) : "";
+  const preferred = (schedules || []).find((schedule) => schedule && schedule.active_version_id && String(schedule.id) !== current);
+  if (preferred) return preferred.id;
+  const first = (schedules || []).find((schedule) => schedule && String(schedule.id) !== current);
+  return first?.id || null;
+}
+
+function showDataLoadAlert(message, tone = "warning") {
+  const alert = byId("dataLoadAlert");
+  if (!alert) return;
+  alert.hidden = false;
+  alert.className = `panel-inline-alert ${tone}`;
+  alert.textContent = message;
+}
+
+function hideDataLoadAlert() {
+  const alert = byId("dataLoadAlert");
+  if (!alert) return;
+  alert.hidden = true;
+  alert.textContent = "";
+  alert.className = "panel-inline-alert";
+}
+
+function updateDataLoadAlert(active) {
+  const data = active?.data || {};
+  const missing = [];
+  if (!Object.keys(data).length) missing.push("el snapshot activo no trae datos base");
+  if (!Array.isArray(data.teachers) || !data.teachers.length) missing.push("no hay docentes cargados");
+  if (!Array.isArray(data.groups) || (!data.groups.length && !data.groups?.primary?.length && !data.groups?.secondary?.length)) missing.push("no hay grados cargados");
+  if (!Array.isArray(data.subjects) || !data.subjects.length) missing.push("no hay materias cargadas");
+  if (!Array.isArray(EPQA.slots) || !EPQA.slots.length) missing.push("no hay propuesta de horario cargada");
+  if (!EPQA.audit || !Array.isArray(EPQA.audit.results)) missing.push("no hay auditoría cargada");
+  if (missing.length) {
+    showDataLoadAlert(`El horario llegó con faltantes: ${missing.join(", ")}.`);
+  } else {
+    hideDataLoadAlert();
+  }
+}
+
 function renderScheduleSwitcher(active) {
-  const select = byId("scheduleSelect");
+  EPQA.activeScheduleId = active?.id || null;
+  const activeSchedule = active?.schedule || (EPQA.schedules || []).find((item) => String(item.id) === String(active?.id));
+  const select = byAnyId("dashHorarioSelect", "scheduleSelect");
   if (select) {
     select.innerHTML = (EPQA.schedules || []).map((schedule) =>
       `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)} (${statusLabel(schedule.status)})</option>`
     ).join("");
     if (active?.id) select.value = String(active.id);
   }
-  EPQA.activeScheduleId = active?.id || null;
-  const activeSchedule = active?.schedule || (EPQA.schedules || []).find((item) => String(item.id) === String(active?.id));
-  byId("activeScheduleName").textContent = activeSchedule?.name || "Sin horario activo";
-  byId("activeScheduleStatus").textContent = activeSchedule ? statusLabel(activeSchedule.status) : "Crea o importa un horario";
-  const planCode = EPQA.plan?.plan_code || "free";
-  const badge = byId("planBadge");
-  badge.textContent = planCode === "pro" ? "Plan Pro" : planCode === "institutional" ? "Plan institucional" : "Plan gratuito";
-  badge.className = `plan-badge ${planCode}`;
+  setTextAny(activeSchedule?.name || "Sin horario activo", "dashHorarioActivo", "activeScheduleName");
+  setTextAny(activeSchedule ? statusLabel(activeSchedule.status) : "Crea o importa un horario", "dashEstadoHorario", "activeScheduleStatus");
   const canCreate = EPQA.limit?.allowed !== false;
-  byId("btnNewSchedule").disabled = !canCreate;
-  byId("btnNewSchedule").title = canCreate ? "" : "Disponible en plan Pro";
+  const createButton = byAnyId("btnDashCrearNuevo", "btnNewSchedule");
+  if (createButton) {
+    createButton.disabled = !canCreate;
+    createButton.title = canCreate ? "" : "Disponible en plan Pro";
+  }
   renderDashboardOverview(active);
 }
 
@@ -477,28 +543,17 @@ function fillFilters() {
 }
 
 function renderMetrics() {
-  const groups = Array.isArray(EPQA.data.groups)
+  const groups = Array.isArray(EPQA.data?.groups)
     ? EPQA.data.groups.map((group) => group.id || group.name)
-    : [...(EPQA.data.groups?.primary || []), ...(EPQA.data.groups?.secondary || [])];
-  byId("metricGroups").textContent = groups.length;
-  byId("metricTeachers").textContent = (EPQA.data.teachers || []).length;
-  byId("metricLoads").textContent = (EPQA.data.loads || []).length;
-  byId("metricSlots").textContent = (EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0);
+    : [...(EPQA.data?.groups?.primary || []), ...(EPQA.data?.groups?.secondary || [])];
+  setTextAny(groups.length, "metricGroups", "metricGrados");
+  setTextAny((EPQA.data?.teachers || []).length, "metricTeachers", "metricDocentes");
+  setTextAny((EPQA.data?.loads || []).length, "metricLoads", "metricCargas");
+  setTextAny((EPQA.slots || []).reduce((sum, slot) => sum + slotDuration(slot), 0), "metricSlots", "metricHorasAsignadas");
   renderDashboardOverview();
 }
 
 function renderDashboardOverview(active = null) {
-  const heroTitle = byId("workspaceHeroTitle");
-  const diagnostic = byId("workspaceDiagnostic");
-  const statusBadge = byId("workspaceStatusBadge");
-  const availabilityBadge = byId("workspaceAvailabilityBadge");
-  const nextActionBadge = byId("workspaceNextActionBadge");
-  const nextAction = byId("workspaceNextAction");
-  const nextActionHelp = byId("workspaceNextActionHelp");
-  const stepper = byId("workflowStepper");
-  const metrics = byId("executiveMetrics");
-  const alerts = byId("dashboardAlerts");
-
   const project = EPQA.data?.project || {};
   const teachers = EPQA.data?.teachers || [];
   const groups = Array.isArray(EPQA.data?.groups)
@@ -532,75 +587,78 @@ function renderDashboardOverview(active = null) {
   const scheduleName = activeSchedule?.name || project.institution || project.name || "Horario activo";
   const scheduleStatus = statusLabel(activeSchedule?.status || "draft");
   const updatedAt = activeSchedule?.updated_at || activeSchedule?.updatedAt || activeSchedule?.modified_at || activeSchedule?.modifiedAt || null;
+  const statusState = critical > 0
+    ? "Requiere corrección obligatoria"
+    : strong > 0
+      ? "Publicable con observaciones"
+      : hasProposal
+        ? "Listo para exportar"
+        : "En construcción";
+  const nextTitle = chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
+  const nextHelp = chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
+  const executiveSummary = hasBasics
+    ? `Tu horario tiene ${teachers.length} docentes, ${groups.length} grados y ${loads.length} cargas académicas. Hay ${critical} problemas obligatorios y ${strong} reglas importantes por revisar.`
+    : "Empieza por registrar la información base para construir un horario claro y publicable.";
 
-  if (heroTitle) heroTitle.textContent = scheduleName;
-  if (diagnostic) {
-    diagnostic.textContent = hasBasics
-      ? `Tu horario tiene ${loadHours} horas configuradas, ${teachers.length} docentes, ${groups.length} grupos y ${pendingHours} horas pendientes de ubicar.`
-      : "Empieza por registrar la informacion base para construir un horario claro y publicable.";
-  }
-  if (statusBadge) statusBadge.textContent = "Horario activo";
-  if (availabilityBadge) {
-    const state = critical > 0
-      ? "Requiere correccion obligatoria"
-      : strong > 0
-        ? "Publicable con observaciones"
-        : hasProposal
-          ? "Listo para exportar"
-          : "En construccion";
-    availabilityBadge.textContent = `${state}${updatedAt ? ` · ${formatShortDate(updatedAt)}` : ""}`;
-  }
-  if (nextActionBadge) nextActionBadge.textContent = critical > 0 ? "Correccion obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar";
-  if (nextAction) nextAction.textContent = chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
-  if (nextActionHelp) nextActionHelp.textContent = chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
+  setTextAny(scheduleName, "dashHorarioActivo", "activeScheduleName", "workspaceHeroTitle");
+  setTextAny(scheduleStatus, "activeScheduleStatus");
+  setTextAny(updatedAt ? formatShortDate(updatedAt) : "Sin fecha aún", "dashUltimaActualizacion");
+  setTextAny(statusState, "dashEstadoHorario", "workspaceAvailabilityBadge");
+  setTextAny(nextTitle, "dashNextActionTitle", "workspaceNextAction");
+  setTextAny(nextHelp, "dashNextActionHelp", "workspaceNextActionHelp");
+  setTextAny(executiveSummary, "workspaceDiagnostic");
+  setTextAny(critical > 0 ? "Corrección obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar", "workspaceNextActionBadge");
 
+  const dashboardSelect = byAnyId("dashHorarioSelect", "scheduleSelect");
+  if (dashboardSelect) {
+    dashboardSelect.innerHTML = (EPQA.schedules || []).map((schedule) =>
+      `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)} (${statusLabel(schedule.status)})</option>`
+    ).join("");
+    if (activeSchedule?.id) dashboardSelect.value = String(activeSchedule.id);
+  }
+
+  const stepper = byAnyId("workflowStepper");
   if (stepper) {
     const steps = [
-      dashboardStep("Institucion", Boolean(project.institution || project.name), !project.institution && !project.name),
+      dashboardStep("Institución", Boolean(project.institution || project.name), !project.institution && !project.name),
       dashboardStep("Sedes y espacios", sites.length > 0 && rooms.length > 0, sites.length === 0 || rooms.length === 0),
       dashboardStep("Docentes", teachers.length > 0, teachers.length === 0),
       dashboardStep("Grados", groups.length > 0, groups.length === 0),
       dashboardStep("Materias", subjects.length > 0, subjects.length === 0),
-      dashboardStep("Cargas academicas", hasLoads, !hasLoads),
+      dashboardStep("Cargas", hasLoads, !hasLoads),
       dashboardStep("Disponibilidad", hasAvailability, !hasAvailability),
       dashboardStep("Reglas", hasRules, !hasRules),
-      dashboardStep("Generacion", hasProposal, !hasProposal),
-      dashboardStep("Revision", critical === 0, critical > 0),
-      dashboardStep("Exportacion", critical === 0 && hasProposal, critical > 0 || !hasProposal)
+      dashboardStep("Generación", hasProposal, !hasProposal),
+      dashboardStep("Auditoría", critical === 0, critical > 0),
+      dashboardStep("Consolidado", critical === 0 && hasProposal, critical > 0 || !hasProposal)
     ];
     stepper.innerHTML = steps.map((step, index) => `
-      <div class="workflow-step ${step.state}">
-        <span class="workflow-index">${index + 1}</span>
-        <div>
-          <strong>${escapeHtml(step.label)}</strong>
-          <small>${escapeHtml(step.copy)}</small>
-        </div>
+      <div class="epqa-flow-step-v2 ${step.state === "is-complete" ? "epqa-flow-step-v2--done" : step.label === "Generación" && step.state !== "is-complete" ? "epqa-flow-step-v2--active" : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "epqa-flow-step-v2--warning" : step.state === "is-pending" ? "epqa-flow-step-v2--pending" : "epqa-flow-step-v2--warning"}">
+        <span>${step.state === "is-complete" ? "✓" : step.label === "Generación" && step.state !== "is-complete" ? index + 1 : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "!" : step.state === "is-pending" ? index + 1 : "!"}</span>
+        <small>${escapeHtml(step.label)}</small>
       </div>
     `).join("");
   }
 
-  if (metrics) {
-    metrics.innerHTML = [
-      dashboardMetric("Grupos", groups.length),
-      dashboardMetric("Docentes", teachers.length),
-      dashboardMetric("Materias", subjects.length),
-      dashboardMetric("Cargas academicas", loads.length),
-      dashboardMetric("Horas configuradas", `${loadHours}h`),
-      dashboardMetric("Horas ubicadas", `${placedHours}h`),
-      dashboardMetric("Horas pendientes", `${pendingHours}h`, pendingHours > 0 ? "warning" : "success"),
-      dashboardMetric("Espacios", rooms.length),
-      dashboardMetric("Sedes", sites.length),
-      dashboardMetric("Problemas obligatorios", critical, critical > 0 ? "danger" : "success"),
-      dashboardMetric("Reglas importantes", strong, strong > 0 ? "warning" : "info"),
-      dashboardMetric("Cumplimiento", `${audit.score || 0}%`, audit.score >= 90 ? "success" : "warning")
-    ].join("");
-  }
+  setTextAny(groups.length, "metricGrados");
+  setTextAny(teachers.length, "metricDocentes");
+  setTextAny(subjects.length, "metricMaterias");
+  setTextAny(loads.length, "metricCargas");
+  setTextAny(`${loadHours}h`, "metricHorasAsignadas");
+  setTextAny(`${pendingHours}h`, "metricHorasPendientes");
+  setTextAny(critical, "metricP0");
+  setTextAny(strong, "metricP1");
+  setTextAny(preference, "metricP2");
+  setTextAny(`${Math.max(0, Math.min(100, Math.round(audit.score || 0)))}%`, "metricCumplimiento");
+  setTextAny(`${pendingHours} horas pendientes`, "metricPendientesTexto");
+  setTextAny(critical > 0 ? `${critical} problemas obligatorios impiden publicar el horario` : strong > 0 ? `${strong} reglas fuertes necesitan revisión` : "No hay problemas obligatorios", "metricAlertasTexto");
 
+  const alerts = byAnyId("dashboardAlerts");
   if (alerts) {
     const rows = [];
     if (critical > 0) rows.push(dashboardAlert("critical", `Hay ${critical} problemas obligatorios`, "Corrige estas situaciones antes de publicar."));
-    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse segun el criterio institucional."));
-    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revision o exportacion."));
+    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse según el criterio institucional."));
+    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revisión o exportación."));
     alerts.innerHTML = rows.join("");
   }
 }
@@ -795,20 +853,35 @@ function saveEditLoadModal() {
 }
 
 function renderDataViews() {
-  fillFilters();
-  renderMetrics();
-  renderLoads();
-  renderCatalogEditor();
-  renderTeacherDetailPanel();
-  renderAvailableTray();
-  renderBoard();
+  const steps = [
+    ["fillFilters", () => fillFilters()],
+    ["renderMetrics", () => renderMetrics()],
+    ["renderLoads", () => renderLoads()],
+    ["renderCatalogEditor", () => renderCatalogEditor()],
+    ["renderTeacherDetailPanel", () => renderTeacherDetailPanel()],
+    ["renderAvailableTray", () => renderAvailableTray()],
+    ["renderBoard", () => renderBoard()]
+  ];
+  for (const [name, step] of steps) {
+    try {
+      step();
+    } catch (error) {
+      console.error(`EPQA ${name} error`, error);
+      showDataLoadAlert(`La vista de edición tuvo un problema al dibujar ${name}. Revisa la consola para el detalle.`);
+      return;
+    }
+  }
   auditNow();
 }
 
 function renderCatalogEditor() {
-  if (!EPQA.data) return;
-  byId("schoolName").value = EPQA.data.project?.institution || EPQA.data.project?.name || "";
-  byId("schoolOwner").value = EPQA.data.project?.owner || "";
+  if (!EPQA.data) {
+    showDataLoadAlert("Aún no se cargó un horario activo. Puedes crear uno nuevo o cargar uno existente.");
+    return;
+  }
+  hideDataLoadAlert();
+  if (byId("schoolName")) byId("schoolName").value = EPQA.data.project?.institution || EPQA.data.project?.name || "";
+  if (byId("schoolOwner")) byId("schoolOwner").value = EPQA.data.project?.owner || "";
   if (byId("maxTeacherHoursPerDay")) byId("maxTeacherHoursPerDay").value = maxTeacherHoursPerDay();
   fillSelect("dailyRuleTeacher", teacherOptions(), "id", "name");
   fillSelect("dailyRuleSite", siteOptions(), "id", "name");
@@ -1259,13 +1332,19 @@ function snapshotProgress() {
   };
 }
 
-function saveProgress() {
+async function saveProgress() {
   try {
+    syncWorkspaceSnapshot();
     localStorage.setItem(EPQA.storageKey, JSON.stringify(snapshotProgress()));
-    notify("Avance guardado", "Tu horario quedo guardado en este navegador.", "success");
   } catch (error) {
-    notify("No se pudo guardar", "Use Descargar backup para conservar una copia del avance.", "error", true);
+    // El guardado local no debe impedir el remoto.
   }
+  const persisted = await persistWorkspaceDraft("Guardado de avance", true);
+  if (!persisted) {
+    notify("No se pudo guardar en la base de datos", "El avance quedo en este navegador, pero falta confirmar el guardado remoto.", "error", true);
+    return;
+  }
+  notify("Avance guardado", "El horario quedo guardado en la base de datos y en este navegador.", "success");
 }
 
 function readProgress() {
@@ -4220,6 +4299,7 @@ async function saveVersion(final) {
     notify("Sin horario activo", "Crea o importa un horario antes de guardar una version.", "warning", true);
     return;
   }
+  syncWorkspaceSnapshot();
   const response = await fetch("/horarios/api/versions.php", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4838,7 +4918,7 @@ function boardPeriodCount(mode, filter, group = null) {
 }
 
 function normalizeImportedData(input) {
-  const data = { ...input };
+  const data = canonicalScheduleInput(input);
   data.days = normalizeDays(data.days);
   data.groups = normalizeGroups(data.groups);
   data.teachers = normalizeTeachers(data.teachers);
@@ -4887,6 +4967,91 @@ function normalizeImportedData(input) {
   })).map((load) => ({ ...load, loadKey: loadSignature(load) }));
   data.slots = data.slots || [];
   return data;
+}
+
+function canonicalScheduleInput(input) {
+  const source = input && typeof input === "object" ? { ...input } : {};
+  const wrapped = source.data && typeof source.data === "object" ? { ...source.data } : null;
+  const sourceHasData = hasDirectScheduleData(source);
+  const wrappedHasData = wrapped ? hasDirectScheduleData(wrapped) : false;
+  const base = wrapped && (!sourceHasData || wrappedHasData) ? wrapped : source;
+  const data = { ...base };
+  const project = data.project && typeof data.project === "object" ? { ...data.project } : {};
+
+  data.project = {
+    institution: project.institution || project.name || data.institution_name || data.institution || data.schoolName || data.school || "",
+    name: project.name || data.projectName || data.name || data.scheduleName || "",
+    owner: project.owner || data.owner || data.responsible || "",
+    year: project.year || data.year || data.academicYear || "",
+    jornada: project.jornada || data.jornada || data.shift || ""
+  };
+
+  data.sites = data.sites || data.sedes || data.campus || [];
+  data.rooms = data.rooms || data.espacios || data.spaces || [];
+  data.teachers = data.teachers || data.docentes || data.profesores || [];
+  data.groups = data.groups || data.grados || data.courses || [];
+  data.subjects = data.subjects || data.materias || data.asignaturas || data.subjectList || [];
+  data.loads = data.loads || data.cargas || data.asignaciones || data.assignments || data.academicLoads || [];
+  data.slots = data.slots || data.matriz || data.schedule || data.grid || [];
+  data.rules = data.rules || data.reglas || data.constraints || {};
+
+  if (Array.isArray(data.groups)) {
+    data.groups = data.groups.map((group) => {
+      if (typeof group === "string") return { id: group, name: group };
+      return { ...group };
+    });
+  }
+  if (Array.isArray(data.subjects)) {
+    data.subjects = data.subjects.map((subject) => typeof subject === "string" ? subject : (subject.name || subject.id || subject.subject || subject));
+  }
+  if (Array.isArray(data.sites)) {
+    data.sites = data.sites.map((site) => typeof site === "string" ? { id: site, name: site } : { ...site });
+  }
+  if (Array.isArray(data.rooms)) {
+    data.rooms = data.rooms.map((room) => typeof room === "string" ? { id: room, name: room } : { ...room });
+  }
+
+  return data;
+}
+
+function hasCanonicalScheduleData(input) {
+  if (!input || typeof input !== "object") return false;
+  const teachers = Array.isArray(input.teachers) ? input.teachers.length : 0;
+  const groups = Array.isArray(input.groups)
+    ? input.groups.length
+    : (Array.isArray(input.groups?.primary) ? input.groups.primary.length : 0) + (Array.isArray(input.groups?.secondary) ? input.groups.secondary.length : 0);
+  const subjects = Array.isArray(input.subjects) ? input.subjects.length : 0;
+  const loads = Array.isArray(input.loads) ? input.loads.length : 0;
+  const sites = Array.isArray(input.sites) ? input.sites.length : 0;
+  const rooms = Array.isArray(input.rooms) ? input.rooms.length : 0;
+  return Boolean(teachers || groups || subjects || loads || sites || rooms || projectShapeScore(input.project) || rulesShapeScore(input.rules));
+}
+
+function hasDirectScheduleData(input) {
+  if (!input || typeof input !== "object") return false;
+  return hasCanonicalScheduleData({
+    teachers: input.teachers,
+    groups: input.groups,
+    subjects: input.subjects,
+    loads: input.loads,
+    sites: input.sites,
+    rooms: input.rooms,
+    project: input.project,
+    rules: input.rules
+  });
+}
+
+function projectShapeScore(project) {
+  if (!project || typeof project !== "object") return 0;
+  return Object.keys(project).filter((key) => String(project[key] ?? "").trim() !== "").length;
+}
+
+function rulesShapeScore(rules) {
+  if (!rules || typeof rules !== "object") return 0;
+  return Object.keys(rules).filter((key) => {
+    const value = rules[key];
+    return Array.isArray(value) ? value.length > 0 : (value && typeof value === "object" ? Object.keys(value).length > 0 : Boolean(value));
+  }).length;
 }
 
 function normalizeCellAssignments(assignments, data) {
@@ -5546,6 +5711,48 @@ function naturalSort(a, b) {
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function byAnyId(...ids) {
+  for (const id of ids) {
+    const node = byId(id);
+    if (node) return node;
+  }
+  return null;
+}
+
+function setTextAny(value, ...ids) {
+  const node = byAnyId(...ids);
+  if (node) node.textContent = value;
+}
+
+function onAny(eventName, handler, ...ids) {
+  const node = byAnyId(...ids);
+  if (node) node.addEventListener(eventName, handler);
+  return node;
+}
+
+function openPanel(panelName) {
+  document.querySelector(`.nav-item[data-panel="${cssEscape(panelName)}"]`)?.click();
+}
+
+function openConfigSection(sectionName) {
+  const dataPanelButton = document.querySelector('.nav-item[data-panel="data"]');
+  if (dataPanelButton) dataPanelButton.click();
+  const targetMap = {
+    docentes: "Docentes",
+    grados: "Grados",
+    materias: "Materias",
+    asignaciones: "Asignaciones",
+    disponibilidad: "Disponibilidad",
+    reglas: "Reglas"
+  };
+  const label = targetMap[String(sectionName || "").toLowerCase()];
+  if (!label) return;
+  const button = [...document.querySelectorAll(".config-tab")].find((item) =>
+    normalizeKey(item.textContent).includes(normalizeKey(label))
+  );
+  button?.click();
 }
 
 function escapeHtml(value) {
