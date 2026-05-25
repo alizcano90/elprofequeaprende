@@ -1,4 +1,4 @@
-const EPQA = {
+﻿const EPQA = {
   storageKey: "epqa_horarios_avance_v1",
   data: null,
   slots: [],
@@ -57,6 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
   bindNavigation();
   setupDataSectionTabs();
   bindActions();
+  window.addEventListener("resize", () => {
+    if (byId("bulkLoadModal")?.hidden !== false) return;
+    fitMassGradeGridV11();
+  });
   loadSeed();
 });
 
@@ -78,7 +82,7 @@ function setupDataSectionTabs() {
   const cards = [...grid.querySelectorAll(".catalog-card")];
   const tabs = document.createElement("div");
   tabs.className = "config-tabs";
-  const labels = ["Institución", "Sedes", "Docentes", "Resumen docente", "Resumen grados", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
+  const labels = ["InstituciÃ³n", "Sedes", "Docentes", "Resumen docente", "Resumen grados", "Grados", "Materias", "Reglas", "Asignaciones", "Disponibilidad", "JSON"];
   cards.forEach((card, index) => {
     card.dataset.configTab = String(index);
     if (index !== 0) card.hidden = true;
@@ -144,7 +148,7 @@ function bindActions() {
     if (menu) menu.hidden = !menu.hidden;
   }, "btnDashMasAcciones");
   onAny("click", () => openPanel("editor"), "btnDashIrPropuesta");
-  onAny("click", () => openPanel("audit"), "btnDashIrAuditoría", "btnDashVerAuditoría");
+  onAny("click", () => openPanel("audit"), "btnDashIrAuditorÃ­a", "btnDashVerAuditorÃ­a");
   document.querySelectorAll(".epqa-dashboard-v2 a[data-target-tab]").forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
@@ -233,7 +237,7 @@ function initializeEmptyWorkspace() {
   EPQA.data = normalizeImportedData({
     project: { name: "", institution: "" },
     sites: [],
-    days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"],
+    days: ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"],
     teachers: [],
     groups: [],
     rooms: [],
@@ -290,7 +294,7 @@ async function loadScheduleWorkspace(scheduleId = null) {
         traceWorkspaceState("after-render", payload.active);
       } catch (renderError) {
         console.error("EPQA render error after loading schedule", renderError);
-        showDataLoadAlert("El horario activo cargó con advertencias visuales. Revisa si faltan datos en Institución, Docentes, Grados, Materias o Cargas.");
+        showDataLoadAlert("El horario activo cargÃ³ con advertencias visuales. Revisa si faltan datos en InstituciÃ³n, Docentes, Grados, Materias o Cargas.");
       }
       return true;
     }
@@ -419,9 +423,9 @@ function updateDataLoadAlert(active) {
   if (!Array.isArray(data.groups) || (!data.groups.length && !data.groups?.primary?.length && !data.groups?.secondary?.length)) missing.push("no hay grados cargados");
   if (!Array.isArray(data.subjects) || !data.subjects.length) missing.push("no hay materias cargadas");
   if (!Array.isArray(EPQA.slots) || !EPQA.slots.length) missing.push("no hay propuesta de horario cargada");
-  if (!EPQA.audit || !Array.isArray(EPQA.audit.results)) missing.push("no hay Auditoría");
+  if (!EPQA.audit || !Array.isArray(EPQA.audit.results)) missing.push("no hay AuditorÃ­a");
   if (missing.length) {
-    showDataLoadAlert(`El horario llegó con faltantes: ${missing.join(", ")}.`);
+    showDataLoadAlert(`El horario llegÃ³ con faltantes: ${missing.join(", ")}.`);
   } else {
     hideDataLoadAlert();
   }
@@ -825,26 +829,26 @@ function renderDashboardOverview(active = null) {
   const scheduleStatus = statusLabel(activeSchedule?.status || "draft");
   const updatedAt = activeSchedule?.updated_at || activeSchedule?.updatedAt || activeSchedule?.modified_at || activeSchedule?.modifiedAt || null;
   const statusState = critical > 0
-    ? "Requiere corrección obligatoria"
+    ? "Requiere correcciÃ³n obligatoria"
     : strong > 0
       ? "Publicable con observaciones"
       : hasProposal
         ? "Listo para exportar"
-        : "En construcción";
+        : "En construcciÃ³n";
   const nextTitle = chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
   const nextHelp = chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours });
   const executiveSummary = hasBasics
-    ? `Tu horario tiene ${teachers.length} docentes, ${groups.length} grados y ${loads.length} cargas académicas. Hay ${critical} problemas obligatorios y ${strong} reglas importantes por revisar.`
-    : "Empieza por registrar la información base para construir un horario claro y publicable.";
+    ? `Tu horario tiene ${teachers.length} docentes, ${groups.length} grados y ${loads.length} cargas acadÃ©micas. Hay ${critical} problemas obligatorios y ${strong} reglas importantes por revisar.`
+    : "Empieza por registrar la informaciÃ³n base para construir un horario claro y publicable.";
 
   setTextAny(scheduleName, "dashHorarioActivo", "activeScheduleName", "workspaceHeroTitle");
   setTextAny(scheduleStatus, "activeScheduleStatus");
-  setTextAny(updatedAt ? formatShortDate(updatedAt) : "Sin fecha aún", "dashUltimaActualizacion");
+  setTextAny(updatedAt ? formatShortDate(updatedAt) : "Sin fecha aÃºn", "dashUltimaActualizacion");
   setTextAny(statusState, "dashEstadoHorario", "workspaceAvailabilityBadge");
   setTextAny(nextTitle, "dashNextActionTitle", "workspaceNextAction");
   setTextAny(nextHelp, "dashNextActionHelp", "workspaceNextActionHelp");
   setTextAny(executiveSummary, "workspaceDiagnostic");
-  setTextAny(critical > 0 ? "corrección obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar", "workspaceNextActionBadge");
+  setTextAny(critical > 0 ? "correcciÃ³n obligatoria" : strong > 0 ? "Revisar reglas importantes" : hasProposal ? "Listo para exportar" : "Listo para revisar", "workspaceNextActionBadge");
 
   const dashboardSelect = byAnyId("dashHorarioSelect", "scheduleSelect");
   if (dashboardSelect) {
@@ -857,7 +861,7 @@ function renderDashboardOverview(active = null) {
   const stepper = byAnyId("workflowStepper");
   if (stepper) {
     const steps = [
-      dashboardStep("Institución", Boolean(project.institution || project.name), !project.institution && !project.name),
+      dashboardStep("InstituciÃ³n", Boolean(project.institution || project.name), !project.institution && !project.name),
       dashboardStep("Sedes y espacios", sites.length > 0 && rooms.length > 0, sites.length === 0 || rooms.length === 0),
       dashboardStep("Docentes", teachers.length > 0, teachers.length === 0),
       dashboardStep("Grados", groups.length > 0, groups.length === 0),
@@ -865,13 +869,13 @@ function renderDashboardOverview(active = null) {
       dashboardStep("Cargas", hasLoads, !hasLoads),
       dashboardStep("Disponibilidad", hasAvailability, !hasAvailability),
       dashboardStep("Reglas", hasRules, !hasRules),
-      dashboardStep("Generación", hasProposal, !hasProposal),
-      dashboardStep("Auditoría", critical === 0, critical > 0),
+      dashboardStep("GeneraciÃ³n", hasProposal, !hasProposal),
+      dashboardStep("AuditorÃ­a", critical === 0, critical > 0),
       dashboardStep("Consolidado", critical === 0 && hasProposal, critical > 0 || !hasProposal)
     ];
     stepper.innerHTML = steps.map((step, index) => `
-      <div class="epqa-flow-step-v2 ${step.state === "is-complete" ? "✓" : step.label === "Generación" && step.state !== "is-complete" ? "epqa-flow-step-v2--active" : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "epqa-flow-step-v2--warning" : step.state === "is-pending" ? "epqa-flow-step-v2--pending" : "epqa-flow-step-v2--warning"}">
-        <span>${step.state === "is-complete" ? "✓" : step.label === "Generación" && step.state !== "is-complete" ? index + 1 : (step.label === "Auditoría" || step.label === "Consolidado") && critical > 0 ? "!" : step.state === "is-pending" ? index + 1 : "!"}</span>
+      <div class="epqa-flow-step-v2 ${step.state === "is-complete" ? "âœ“" : step.label === "GeneraciÃ³n" && step.state !== "is-complete" ? "epqa-flow-step-v2--active" : (step.label === "AuditorÃ­a" || step.label === "Consolidado") && critical > 0 ? "epqa-flow-step-v2--warning" : step.state === "is-pending" ? "epqa-flow-step-v2--pending" : "epqa-flow-step-v2--warning"}">
+        <span>${step.state === "is-complete" ? "âœ“" : step.label === "GeneraciÃ³n" && step.state !== "is-complete" ? index + 1 : (step.label === "AuditorÃ­a" || step.label === "Consolidado") && critical > 0 ? "!" : step.state === "is-pending" ? index + 1 : "!"}</span>
         <small>${escapeHtml(step.label)}</small>
       </div>
     `).join("");
@@ -888,14 +892,14 @@ function renderDashboardOverview(active = null) {
   setTextAny(preference, "metricP2");
   setTextAny(`${Math.max(0, Math.min(100, Math.round(audit.score || 0)))}%`, "metricCumplimiento");
   setTextAny(`${pendingHours} horas pendientes`, "metricPendientesTexto");
-  setTextAny(critical > 0 ? `${critical} problemas obligatorios impiden publicar el horario` : strong > 0 ? `${strong} reglas fuertes necesitan revisión` : "No hay problemas obligatorios", "metricAlertasTexto");
+  setTextAny(critical > 0 ? `${critical} problemas obligatorios impiden publicar el horario` : strong > 0 ? `${strong} reglas fuertes necesitan revisiÃ³n` : "No hay problemas obligatorios", "metricAlertasTexto");
 
   const alerts = byAnyId("dashboardAlerts");
   if (alerts) {
     const rows = [];
     if (critical > 0) rows.push(dashboardAlert("critical", `Hay ${critical} problemas obligatorios`, "Corrige estas situaciones antes de publicar."));
-    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse según el criterio Institucional."));
-    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revisión o exportación."));
+    if (strong > 0) rows.push(dashboardAlert("warning", `${strong} reglas importantes por revisar`, "Pueden aceptarse o ajustarse segÃºn el criterio Institucional."));
+    if (!rows.length) rows.push(dashboardAlert("ok", "No hay problemas obligatorios", "El horario puede avanzar a revisiÃ³n o exportaciÃ³n."));
     alerts.innerHTML = rows.join("");
   }
 }
@@ -915,7 +919,7 @@ function dashboardAlert(tone, title, copy) {
 }
 
 function chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
-  if (!hasBasics) return "Continúar construcción";
+  if (!hasBasics) return "ContinÃºar construcciÃ³n";
   if (!hasLoads) return "Asignar materias";
   if (!hasProposal) return "Generar horario";
   if (critical > 0) return "Revisar problemas";
@@ -925,7 +929,7 @@ function chooseDashboardNextAction({ hasBasics, hasLoads, hasProposal, critical,
 }
 
 function chooseDashboardNextHelp({ hasBasics, hasLoads, hasProposal, critical, strong, pendingHours }) {
-  if (!hasBasics) return "Registra Institución, docentes, grupos y materias para empezar.";
+  if (!hasBasics) return "Registra InstituciÃ³n, docentes, grupos y materias para empezar.";
   if (!hasLoads) return "Define la carga academica para que el sistema pueda proponer un horario.";
   if (!hasProposal) return "Con la carga lista, el sistema puede generar una propuesta completa.";
   if (critical > 0) return "Hay problemas obligatorios que conviene revisar antes de publicar.";
@@ -1022,7 +1026,7 @@ function renderDayPreferenceChecks(containerId, selected = []) {
   const target = byId(containerId);
   if (!target) return;
   const selectedSet = new Set((selected || []).map(normalizeDay));
-  const days = EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   target.innerHTML = days.map((day) => {
     const value = normalizeDay(day);
     return `<label title="${escapeHtml(day)}"><input type="checkbox" name="${containerId}[]" value="${escapeHtml(value)}" ${selectedSet.has(value) ? "checked" : ""}>${escapeHtml(dayInitial(day))}</label>`;
@@ -1047,7 +1051,7 @@ function openEditLoadModal(loadId) {
   byId("editLoadModalTitle").textContent = `${load.subject} - ${load.group}`;
   byId("editLoadSummary").innerHTML = `
     <strong>${escapeHtml(load.teacher)}</strong>
-    <span>${escapeHtml(load.subject)} · ${escapeHtml(load.group)}</span>
+    <span>${escapeHtml(load.subject)} Â· ${escapeHtml(load.group)}</span>
   `;
   byId("editLoadHours").value = Number(load.hours || 1);
   byId("editLoadBlockHours").value = String(blockHours(load));
@@ -1108,7 +1112,7 @@ function renderDataViews() {
       step();
     } catch (error) {
       console.error(`EPQA ${name} error`, error);
-      showDataLoadAlert(`La vista de edición tuvo un problema al dibujar ${name}. Revisa la consola para el detalle.`);
+      showDataLoadAlert(`La vista de ediciÃ³n tuvo un problema al dibujar ${name}. Revisa la consola para el detalle.`);
       return;
     }
   }
@@ -1117,7 +1121,7 @@ function renderDataViews() {
 
 function renderCatalogEditor() {
   if (!EPQA.data) {
-    showDataLoadAlert("Aún no se cargó un horario activo. Puedes crear uno nuevo o cargar uno existente.");
+    showDataLoadAlert("AÃºn no se cargÃ³ un horario activo. Puedes crear uno nuevo o cargar uno existente.");
     return;
   }
   hideDataLoadAlert();
@@ -1158,10 +1162,45 @@ function fillSelect(id, rows, valueKey, labelKey) {
   select.innerHTML = normalizedRows.map((row) => `<option value="${escapeHtml(row[valueKey])}">${escapeHtml(row[labelKey])}</option>`).join("");
   if (rows.some((row) => String(row[valueKey]) === current)) select.value = current;
   syncSearchableSelect(select);
+  syncSelectTooltip(select);
 }
 
 function placeholderForSelect(id) {
   return ["loadRoom", "bulkLoadRoom"].includes(id) ? "Seleccionar / Aula disponible" : "Seleccionar...";
+}
+
+function syncSelectTooltip(select) {
+  if (!select) return;
+  const optionText = select.selectedOptions?.[0]?.textContent?.trim() || select.options?.[select.selectedIndex]?.textContent?.trim() || "";
+  select.title = optionText || placeholderForSelect(select.id) || "";
+  if (select.dataset.selectTooltipBound === "1") return;
+  select.dataset.selectTooltipBound = "1";
+  select.addEventListener("change", () => {
+    const activeText = select.selectedOptions?.[0]?.textContent?.trim() || select.options?.[select.selectedIndex]?.textContent?.trim() || "";
+    select.title = activeText || placeholderForSelect(select.id) || "";
+  });
+  select.addEventListener("focus", () => {
+    const activeText = select.selectedOptions?.[0]?.textContent?.trim() || select.options?.[select.selectedIndex]?.textContent?.trim() || "";
+    select.title = activeText || placeholderForSelect(select.id) || "";
+  });
+}
+
+function bulkSmartSelectMarkup(id, iconKey, optionsHtml = "") {
+  return `
+    <span class="epqa-control-v9 epqa-smart-select-v12">
+      <span class="epqa-smart-select-icon-v12">${epqaIcon(iconKey)}</span>
+      <select id="${id}" name="${id}">${optionsHtml}</select>
+      <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m6 9 6 6 6-6"></path>
+      </svg>
+    </span>
+  `;
+}
+
+function syncBulkLoadSelectTitlesV12() {
+  ["bulkLoadTeacher", "bulkLoadSubject", "bulkLoadRoom", "bulkLoadBlockHours", "bulkLoadRulePriority", "bulkLoadPreferredDaysPriority", "bulkGroupSiteFilter", "bulkGroupLevelFilter"].forEach((id) => {
+    syncSelectTooltip(byId(id));
+  });
 }
 
 function syncSearchableSelect(select, force = false) {
@@ -1375,7 +1414,7 @@ function dailyRuleExceptions() {
 function addDailyRuleException() {
   const selectedDay = byId("dailyRuleDay")?.value || "";
   const days = selectedDay === "__ALL_DAYS__"
-    ? (EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]).map(normalizeDay)
+    ? (EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"]).map(normalizeDay)
     : [normalizeDay(selectedDay)];
   const baseRule = {
     teacher: byId("dailyRuleTeacher")?.value || "",
@@ -1456,7 +1495,7 @@ function renderCatalogManagers() {
 }
 
 function dayOptions() {
-  const days = EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data?.days?.length ? EPQA.data.days : ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   return [{ id: "__ALL_DAYS__", name: "Todos los dias" }, ...days.map((day) => ({ id: normalizeDay(day), name: day }))];
 }
 
@@ -1521,8 +1560,8 @@ function renderTeacherManager() {
       <td><select data-catalog-field="teacher-site">${siteOptionsWithEmpty().map((site) => `<option value="${escapeHtml(site.id)}" ${sameSite(site.id, teacherSiteId) ? "selected" : ""}>${escapeHtml(site.name)}</option>`).join("")}</select></td>
       <td><input data-catalog-field="teacher-min" type="number" min="0" value="${Number(teacher.minWeeklyHours || teacher.min_secondary_hours || 0)}"></td>
       <td class="catalog-actions">
-        <button class="epqa-icon-action-v4" data-save-teacher="${index}" type="button" title="Guardar docente" aria-label="Guardar docente">💾</button>
-        <button class="epqa-icon-action-v4 epqa-icon-action-v4--danger" data-delete-teacher="${index}" type="button" title="Borrar docente" aria-label="Borrar docente">🗑️</button>
+        <button class="epqa-icon-action-v4" data-save-teacher="${index}" type="button" title="Guardar docente" aria-label="Guardar docente">ðŸ’¾</button>
+        <button class="epqa-icon-action-v4 epqa-icon-action-v4--danger" data-delete-teacher="${index}" type="button" title="Borrar docente" aria-label="Borrar docente">ðŸ—‘ï¸</button>
       </td>
     </tr>`;
   }).join("");
@@ -1589,21 +1628,21 @@ function ensureTeacherV4Chrome() {
   if (!mainCard) return;
 
   const headerTitle = mainCard.querySelector(".epqa-docentes-header-v3 h1");
-  if (headerTitle) headerTitle.textContent = "Gestión de docentes";
+  if (headerTitle) headerTitle.textContent = "GestiÃ³n de docentes";
   const headerCopy = mainCard.querySelector(".epqa-docentes-header-v3 p");
-  if (headerCopy) headerCopy.textContent = "Gestiona los docentes y su disponibilidad mínima.";
+  if (headerCopy) headerCopy.textContent = "Gestiona los docentes y su disponibilidad mÃ­nima.";
   const formTitle = mainCard.querySelector(".epqa-docentes-form-panel-v3 h2");
   if (formTitle) formTitle.textContent = "Nuevo docente";
   const formCopy = mainCard.querySelector(".epqa-docentes-form-panel-v3 p");
-  if (formCopy) formCopy.textContent = "Completa la información base para agregar un docente al sistema.";
+  if (formCopy) formCopy.textContent = "Completa la informaciÃ³n base para agregar un docente al sistema.";
   const tableTitle = mainCard.querySelector(".epqa-docentes-table-panel-v3 h2");
   if (tableTitle) tableTitle.textContent = "Docentes creados";
   const tableCopy = mainCard.querySelector(".epqa-docentes-table-panel-v3 .epqa-table-header-v3 p");
   if (tableCopy) tableCopy.textContent = "Listado editable de docentes registrados en el horario.";
   const addTeacherButton = byId("btnAddTeacher");
-  if (addTeacherButton) addTeacherButton.innerHTML = "<span>＋</span><span>Agregar docente</span>";
+  if (addTeacherButton) addTeacherButton.innerHTML = "<span>ï¼‹</span><span>Agregar docente</span>";
   const footerIcon = mainCard.querySelector(".epqa-footer-icon-v3");
-  if (footerIcon) footerIcon.textContent = "◌";
+  if (footerIcon) footerIcon.textContent = "â—Œ";
 
   const layout = mainCard.querySelector(".epqa-docentes-layout-v3");
   if (layout) layout.classList.add("epqa-docentes-layout-v3--compact");
@@ -1623,9 +1662,9 @@ function ensureTeacherV4Chrome() {
           <div>
             <p class="eyebrow">Docentes</p>
             <h2 id="teacherModalTitle">Nuevo docente</h2>
-            <p class="modal-subcopy">Completa la información base para agregar un docente al sistema.</p>
+            <p class="modal-subcopy">Completa la informaciÃ³n base para agregar un docente al sistema.</p>
           </div>
-          <button type="button" class="modal-close" data-teacher-modal-close aria-label="Cerrar">×</button>
+          <button type="button" class="modal-close" data-teacher-modal-close aria-label="Cerrar">Ã—</button>
         </div>
         <div class="epqa-teacher-modal-body"></div>
       </div>`;
@@ -1643,25 +1682,25 @@ function ensureTeacherV4Chrome() {
     actions.setAttribute("aria-label", "Acciones de docentes");
     actions.innerHTML = `
       <button class="epqa-docente-action-card-v4 epqa-docente-action-card-v4--blue" id="btnTeacherQuickCreate" type="button">
-        <span class="epqa-docente-action-icon-v4">＋</span>
+        <span class="epqa-docente-action-icon-v4">ï¼‹</span>
         <span class="epqa-docente-action-copy-v4">
           <strong>Nuevo docente</strong>
-          <small>Agrega un docente rápidamente</small>
+          <small>Agrega un docente rÃ¡pidamente</small>
         </span>
-        <span class="epqa-docente-action-arrow-v4">›</span>
+        <span class="epqa-docente-action-arrow-v4">â€º</span>
       </button>
 
       <article class="epqa-docente-action-card-v4 epqa-docente-action-card-v4--green">
-        <span class="epqa-docente-action-icon-v4">＋</span>
+        <span class="epqa-docente-action-icon-v4">ï¼‹</span>
         <span class="epqa-docente-action-copy-v4">
           <strong>Importar docentes</strong>
           <small>Importa desde un archivo Excel</small>
           <span class="epqa-import-actions-v4">
             <button type="button" class="epqa-mini-action-v4" id="btnTeacherTemplate">Descargar plantilla</button>
-            <button type="button" class="epqa-mini-action-v4 epqa-mini-action-v4--primary" id="btnTeacherImportExcel">⬆️ Importar Excel</button>
+            <button type="button" class="epqa-mini-action-v4 epqa-mini-action-v4--primary" id="btnTeacherImportExcel">â¬†ï¸ Importar Excel</button>
           </span>
         </span>
-        <span class="epqa-docente-action-arrow-v4">›</span>
+        <span class="epqa-docente-action-arrow-v4">â€º</span>
       </article>`;
     mainCard.insertBefore(actions, layout);
   }
@@ -1707,7 +1746,7 @@ function ensureTeacherSummaryV5Chrome() {
           <span class="epqa-teacher-title-icon-v5">${epqaIcon("file")}</span>
           <div>
             <h1>Resumen docente</h1>
-            <p>Visualiza la carga, disponibilidad y distribución horaria de cada docente.</p>
+            <p>Visualiza la carga, disponibilidad y distribuciÃ³n horaria de cada docente.</p>
           </div>
         </div>
 
@@ -1738,7 +1777,7 @@ function ensureGradeSummaryV6Chrome() {
           <span class="epqa-grade-title-icon-v6">${epqaIcon("school")}</span>
           <div>
             <h1>Resumen grados</h1>
-            <p>Visualiza el cumplimiento semanal y la distribución académica por grado.</p>
+            <p>Visualiza el cumplimiento semanal y la distribuciÃ³n acadÃ©mica por grado.</p>
           </div>
         </div>
 
@@ -2175,7 +2214,7 @@ function ensureGradeEditorV6Chrome() {
         <span class="epqa-grades-title-icon-v6">${epqaIcon("school")}</span>
         <div>
           <h1>Grados</h1>
-          <p>Administra los grados por sede y nivel académico.</p>
+          <p>Administra los grados por sede y nivel acadÃ©mico.</p>
         </div>
       </div>
       <div class="epqa-grades-actions-v6">
@@ -2276,7 +2315,7 @@ function importGradesFromToolbar() {
     input.click();
     return;
   }
-  notify("Importación no disponible", "No se encontró el selector de archivo del módulo.", "warning", true);
+  notify("ImportaciÃ³n no disponible", "No se encontrÃ³ el selector de archivo del mÃ³dulo.", "warning", true);
 }
 
 function populateGradeSiteFilter() {
@@ -2321,7 +2360,7 @@ function ensureSubjectEditorV7Chrome() {
         <span class="epqa-subjects-title-icon-v7">${epqaIcon("book-open")}</span>
         <div>
           <h1>Materias</h1>
-          <p>Define materias con abreviatura, icono SVG y color visual para los resúmenes.</p>
+          <p>Define materias con abreviatura, icono SVG y color visual para los resÃºmenes.</p>
         </div>
       </div>
     </header>
@@ -2332,7 +2371,7 @@ function ensureSubjectEditorV7Chrome() {
         <div class="epqa-subject-form-v7">
           <label class="epqa-grade-field-v6">
             <span>Nombre de materia</span>
-            <span class="epqa-grade-input-shell-v6">${epqaIcon("book-open")}<input id="subjectName" type="text" placeholder="Ej: Tecnología e Informática"></span>
+            <span class="epqa-grade-input-shell-v6">${epqaIcon("book-open")}<input id="subjectName" type="text" placeholder="Ej: TecnologÃ­a e InformÃ¡tica"></span>
           </label>
           <label class="epqa-grade-field-v6">
             <span>Abreviatura</span>
@@ -2458,10 +2497,10 @@ function renderGroupManager() {
     </div>
     <footer class="epqa-grades-footer-v6">
       <span id="gradeTableSummary">Mostrando ${groups.length ? 1 : 0} a ${groups.length} de ${groups.length} grados</span>
-      <div class="epqa-grades-pagination-v6" aria-label="Paginación de grados">
-        <button type="button" disabled>‹</button>
+      <div class="epqa-grades-pagination-v6" aria-label="PaginaciÃ³n de grados">
+        <button type="button" disabled>â€¹</button>
         <button type="button" class="active">1</button>
-        <button type="button" disabled>›</button>
+        <button type="button" disabled>â€º</button>
       </div>
     </footer>`;
   bindCatalogManagerActions(target);
@@ -2517,7 +2556,7 @@ function renderDailyRulesManager() {
       <td>${escapeHtml(siteNameForId(rule.site) || "Cualquier sede")}</td>
       <td>${escapeHtml(rule.day || "Sin asignar")}</td>
       <td>${rule.type === "require" ? "Exigir exactamente" : "Permitir hasta"}</td>
-      <td>${Number(rule.hours || 0) > 0 ? `${Number(rule.hours || 0)}h` : "—"}</td>
+      <td>${Number(rule.hours || 0) > 0 ? `${Number(rule.hours || 0)}h` : "â€”"}</td>
       <td><span class="epqa-priority-badge-v6 epqa-priority-badge-v6--${escapeHtml(priority.toLowerCase())}">${escapeHtml(priority || "Sin prioridad")}</span></td>
       <td>
         <div class="epqa-rule-row-actions-v6">
@@ -2538,9 +2577,9 @@ function renderDailyRulesManager() {
     <footer class="epqa-rules-footer-v6">
       <span>Mostrando ${rules.length ? 1 : 0} a ${rules.length} de ${rules.length} excepciones</span>
       <div class="epqa-rules-pagination-v6">
-        <button type="button" disabled>‹</button>
+        <button type="button" disabled>â€¹</button>
         <button type="button" class="active">1</button>
-        <button type="button" disabled>›</button>
+        <button type="button" disabled>â€º</button>
       </div>
     </footer>`;
   target.querySelectorAll("[data-edit-daily-rule]").forEach((button) => {
@@ -2887,7 +2926,7 @@ function saveTeacherFromRow(button) {
 function ensureTeacherDefaultAvailabilitySite(teacher, siteId = "") {
   if (!teacher || !siteId) return;
   teacher.availability = teacher.availability || {};
-  const days = EPQA.data?.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data?.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const hasSavedAvailability = Object.values(teacher.availability).some((record) =>
     record && typeof record === "object" && ("site" in record || "slots" in record || "hours" in record)
   );
@@ -3046,27 +3085,30 @@ function openBulkLoadModal() {
   byId("bulkLoadPreferredDaysPriority").value = byId("loadPreferredDaysPriority")?.value || "P2";
   renderDayPreferenceChecks("bulkLoadPreferredDays", selectedDaysFrom("loadPreferredDays"));
   populateBulkLoadFiltersV8();
+  syncBulkLoadSelectTitlesV12();
   bindBulkLoadModalV8Events();
   renderBulkLoadGroups();
   renderBulkLoadDrafts();
   modal.hidden = false;
   modal.removeAttribute("hidden");
   document.body.classList.add("modal-open");
+  requestAnimationFrame(() => fitMassGradeGridV12());
+  setTimeout(() => fitMassGradeGridV12(), 80);
   setTimeout(() => byId("bulkLoadTeacher")?.focus(), 0);
 }
 
 function ensureBulkLoadModalV8Chrome() {
   const modal = byId("bulkLoadModal");
   if (!modal || modal.dataset.v9Ready === "1") return;
-  modal.classList.remove("epqa-mass-modal-overlay-v8");
-  modal.classList.add("epqa-mass-modal-overlay-v9");
+  modal.classList.remove("epqa-mass-modal-overlay-v8", "epqa-mass-modal-overlay-v9", "epqa-mass-overlay-v9");
+  modal.classList.add("epqa-mass-overlay-v9");
   modal.innerHTML = `
     <section class="epqa-mass-modal-v9" role="dialog" aria-modal="true" aria-labelledby="bulkLoadModalTitle">
       <header class="epqa-mass-header-v9">
         <div class="epqa-mass-header-copy-v9">
           <div class="epqa-mass-kicker-v9">ASIGNACION MASIVA</div>
           <h1 id="bulkLoadModalTitle" class="epqa-mass-title-v9">Materias por docente</h1>
-          <p class="epqa-mass-subtitle-v9">Prepara varias asignaciones y revísalas antes de guardarlas.</p>
+          <p class="epqa-mass-subtitle-v9">Prepara varias asignaciones y revÃ­salas antes de guardarlas.</p>
         </div>
         <button type="button" class="epqa-mass-close-v9" id="bulkLoadModalClose" aria-label="Cerrar modal" title="Cerrar modal">${epqaIcon("x")}</button>
       </header>
@@ -3076,63 +3118,66 @@ function ensureBulkLoadModalV8Chrome() {
           <section class="epqa-mass-card-v9 epqa-mass-base-card-v9">
             <div class="epqa-mass-card-head-v9">
               <div>
-                <h2>1. Define la asignación base</h2>
+                <h2>1. Define la asignaciÃ³n base</h2>
                 <p>Configura una vez y aplica a varios grados.</p>
               </div>
-              <span class="epqa-mass-chip-v9 epqa-mass-chip-primary-v9">${epqaIcon("copy")}<span>Modo rápido</span></span>
+              <span class="epqa-mass-chip-v9 epqa-mass-chip-primary-v9">${epqaIcon("copy")}<span>Modo rÃ¡pido</span></span>
             </div>
 
-            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-top-v9">
+            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-top-v9 epqa-base-row-main-v12">
               <label class="epqa-mass-field-v9">Docente
-                <span class="epqa-control-v9">${epqaIcon("users")}<select id="bulkLoadTeacher" name="bulkLoadTeacher"></select></span>
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("users")}<select id="bulkLoadTeacher" name="bulkLoadTeacher"></select><svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
               </label>
               <label class="epqa-mass-field-v9">Materia
-                <span class="epqa-control-v9">${epqaIcon("book-open")}<select id="bulkLoadSubject" name="bulkLoadSubject"></select></span>
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("book-open")}<select id="bulkLoadSubject" name="bulkLoadSubject"></select><svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
               </label>
               <label class="epqa-mass-field-v9">Espacio
-                <span class="epqa-control-v9">${epqaIcon("map")}<select id="bulkLoadRoom" name="bulkLoadRoom"></select></span>
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("map")}<select id="bulkLoadRoom" name="bulkLoadRoom"></select><svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
               </label>
             </div>
 
-            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-bottom-v9">
+            <div class="epqa-mass-form-grid-v9 epqa-mass-form-grid-bottom-v9 epqa-base-row-secondary-v12">
               <label class="epqa-mass-field-v9">Horas por grado
                 <span class="epqa-control-v9">${epqaIcon("clock")}<input id="bulkLoadHours" name="bulkLoadHours" type="number" min="1" max="99" value="1" inputmode="numeric"></span>
               </label>
               <label class="epqa-mass-field-v9">Bloque
-                <span class="epqa-control-v9">${epqaIcon("calendar")}
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("calendar")}
                   <select id="bulkLoadBlockHours" name="bulkLoadBlockHours">
                     <option value="1">No, horas sueltas</option>
                     <option value="2">Bloque indivisible 2h</option>
                     <option value="3">Bloque indivisible 3h</option>
                   </select>
+                  <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
                 </span>
               </label>
               <label class="epqa-mass-field-v9">Importancia
-                <span class="epqa-control-v9">${epqaIcon("alert")}
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("alert")}
                   <select id="bulkLoadRulePriority" name="bulkLoadRulePriority">
                     <option value="P0">P0 obligatoria</option>
                     <option value="P1">P1 fuerte</option>
                     <option value="P2">P2 deseable</option>
                   </select>
+                  <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
                 </span>
               </label>
-              <label class="epqa-mass-field-v9">Preferencia de días
-                <span class="epqa-control-v9">${epqaIcon("star")}
+              <label class="epqa-mass-field-v9">Preferencia de dÃ­as
+                <span class="epqa-control-v9 epqa-smart-select-v12">${epqaIcon("star")}
                   <select id="bulkLoadPreferredDaysPriority" name="bulkLoadPreferredDaysPriority">
                     <option value="P2">P2 deseable</option>
                     <option value="P1">P1 fuerte</option>
                     <option value="P0">P0 obligatoria</option>
                   </select>
+                  <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
                 </span>
               </label>
             </div>
 
             <div class="epqa-mass-quick-row-v9">
               <div class="epqa-mass-days-box-v9">
-                <label>Días sugeridos</label>
+                <label>DÃ­as sugeridos</label>
                 <div class="day-checks epqa-mass-day-buttons-v9" id="bulkLoadPreferredDays"></div>
               </div>
-              <div class="epqa-mass-chips-row-v9">
+              <div class="epqa-chips-row-v9">
                 <button class="epqa-mass-chip-v9" type="button" data-bulk-level="primary">Primaria</button>
                 <button class="epqa-mass-chip-v9" type="button" data-bulk-level="secondary">Secundaria</button>
                 <button class="epqa-mass-chip-v9" type="button" data-bulk-site-current>Solo sede actual</button>
@@ -3149,23 +3194,27 @@ function ensureBulkLoadModalV8Chrome() {
                 <p>Marca varios grados para crear asignaciones en bloque.</p>
               </div>
             </div>
-            <div class="epqa-mass-toolbar-v9">
+            <div class="epqa-mass-toolbar-v9 epqa-grades-toolbar-v12">
               <label class="epqa-control-v9">${epqaIcon("search")}<input id="bulkGroupSearch" type="search" placeholder="Buscar grado..."></label>
-              <span class="epqa-control-v9">
+              <span class="epqa-control-v9 epqa-smart-select-v12">
+                <span class="epqa-smart-select-icon-v12">${epqaIcon("map")}</span>
                 <select id="bulkGroupSiteFilter"></select>
+                <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
               </span>
-              <span class="epqa-control-v9">
+              <span class="epqa-control-v9 epqa-smart-select-v12">
+                <span class="epqa-smart-select-icon-v12">${epqaIcon("layers")}</span>
                 <select id="bulkGroupLevelFilter">
                 <option value="">Todos los niveles</option>
                 <option value="primary">Primaria</option>
                 <option value="secondary">Secundaria</option>
                 </select>
+                <svg class="epqa-smart-select-arrow-v12" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
               </span>
-              <button class="epqa-outline-btn-v9" type="button" id="bulkLoadToggleGroups">${epqaIcon("check")}<span>Marcar todos</span></button>
+              <button class="epqa-outline-btn-v9 epqa-mark-all-v12" type="button" id="bulkLoadToggleGroups">${epqaIcon("check")}<span>Marcar todos</span></button>
             </div>
-            <div class="epqa-mass-grade-grid-v9" id="bulkLoadGroups"></div>
+            <div class="epqa-mass-grade-grid-v9 epqa-grade-grid-v10 epqa-grade-grid-v12" id="bulkLoadGroups"></div>
             <div class="epqa-mass-grade-action-v9">
-              <button class="epqa-primary-btn-v9 epqa-primary-btn-full-v9" type="button" id="bulkLoadAddDraft">${epqaIcon("plus")}<span>Agregar a la lista</span></button>
+              <button class="epqa-primary-btn-v9 epqa-primary-btn-full-v9 epqa-add-list-btn-v12" type="button" id="bulkLoadAddDraft">${epqaIcon("plus")}<span>Agregar a la lista</span></button>
             </div>
           </section>
         </main>
@@ -3174,7 +3223,7 @@ function ensureBulkLoadModalV8Chrome() {
           <section class="epqa-mass-card-v9 epqa-mass-summary-card-v9">
             <div class="epqa-summary-top-v9">
               <div class="epqa-summary-icon-v9">${epqaIcon("copy")}</div>
-              <div class="epqa-summary-copy-v9"><span>Total preparado</span><strong id="bulkLoadPreparedCount">0 asignaciones preparadas</strong></div>
+              <div class="epqa-summary-copy-v9"><span>Total preparado</span><strong id="bulkLoadPreparedCount">0 asignaciones listas</strong></div>
               <div class="epqa-summary-hours-v9" id="bulkLoadTotalHours">0h</div>
             </div>
             <div class="epqa-summary-load-v9" id="bulkLoadTeacherHours"></div>
@@ -3190,7 +3239,7 @@ function ensureBulkLoadModalV8Chrome() {
       </div>
 
       <footer class="epqa-mass-footer-v9">
-        <div class="epqa-footer-status-v9">${epqaIcon("check")}<span id="bulkLoadFooterStatus">0 grados seleccionados · 0 asignaciones preparadas · 0h listas</span></div>
+        <div class="epqa-footer-status-v9">${epqaIcon("check")}<span id="bulkLoadFooterStatus">0 grados seleccionados Â· 0 asignaciones preparadas Â· 0h listas</span></div>
         <div class="epqa-footer-actions-v9">
           <button type="button" class="epqa-secondary-btn-v9" id="bulkLoadModalCancel">${epqaIcon("x")}<span>Cancelar</span></button>
           <button type="button" class="epqa-primary-btn-v9" id="bulkLoadAssign" disabled>${epqaIcon("check")}<span>Asignar todas</span></button>
@@ -3206,12 +3255,25 @@ function bindBulkLoadModalV8Events() {
   if (byId("bulkLoadTeacher")) byId("bulkLoadTeacher").onchange = () => {
     renderBulkLoadGroups();
     renderBulkLoadDrafts();
+    syncBulkLoadSelectTitlesV12();
   };
-  if (byId("bulkLoadRoom")) byId("bulkLoadRoom").onchange = renderBulkLoadGroups;
-  if (byId("bulkLoadSubject")) byId("bulkLoadSubject").onchange = renderBulkLoadGroups;
+  if (byId("bulkLoadRoom")) byId("bulkLoadRoom").onchange = () => {
+    syncBulkLoadSelectTitlesV12();
+    renderBulkLoadGroups();
+  };
+  if (byId("bulkLoadSubject")) byId("bulkLoadSubject").onchange = () => {
+    syncBulkLoadSelectTitlesV12();
+    renderBulkLoadGroups();
+  };
   if (byId("bulkGroupSearch")) byId("bulkGroupSearch").oninput = renderBulkLoadGroups;
-  if (byId("bulkGroupSiteFilter")) byId("bulkGroupSiteFilter").onchange = renderBulkLoadGroups;
-  if (byId("bulkGroupLevelFilter")) byId("bulkGroupLevelFilter").onchange = renderBulkLoadGroups;
+  if (byId("bulkGroupSiteFilter")) byId("bulkGroupSiteFilter").onchange = () => {
+    syncBulkLoadSelectTitlesV12();
+    renderBulkLoadGroups();
+  };
+  if (byId("bulkGroupLevelFilter")) byId("bulkGroupLevelFilter").onchange = () => {
+    syncBulkLoadSelectTitlesV12();
+    renderBulkLoadGroups();
+  };
   if (byId("bulkLoadToggleGroups")) byId("bulkLoadToggleGroups").onclick = toggleBulkLoadGroups;
   if (byId("bulkLoadAddDraft")) byId("bulkLoadAddDraft").onclick = addBulkLoadDraft;
   if (byId("bulkLoadAssign")) byId("bulkLoadAssign").onclick = assignBulkLoadDrafts;
@@ -3230,6 +3292,92 @@ function populateBulkLoadFiltersV8() {
   const current = siteFilter.value;
   siteFilter.innerHTML = `<option value="">Todas las sedes</option>` + siteOptions().map((site) => `<option value="${escapeHtml(site.id)}">${escapeHtml(site.name)}</option>`).join("");
   if ([...siteFilter.options].some((option) => option.value === current)) siteFilter.value = current;
+  syncSelectTooltip(siteFilter);
+}
+
+function fitMassGradeGridV12() {
+  const grid = byId("bulkLoadGroups");
+  if (!grid || grid.closest(".epqa-mass-modal-v9")?.hidden) return;
+  const cards = grid.querySelectorAll(".epqa-mass-grade-item-v9, .epqa-grade-tile-v12");
+  const count = cards.length;
+  if (!count) {
+    grid.style.removeProperty("--epqa-mass-grade-cols");
+    grid.style.removeProperty("--epqa-mass-grade-row-h");
+    grid.style.removeProperty("--epqa-mass-grade-gap");
+    grid.style.removeProperty("--grade-cols-v12");
+    grid.style.removeProperty("--grade-row-h-v12");
+    grid.style.removeProperty("--grade-gap-v12");
+    grid.classList.remove("is-dense", "is-ultra-dense");
+    return;
+  }
+  const areaHeight = grid.clientHeight || grid.parentElement?.clientHeight || 0;
+  const areaWidth = grid.clientWidth || grid.parentElement?.clientWidth || 0;
+  if (!areaHeight || !areaWidth) return;
+  let gap = 9;
+  let minCols = 6;
+  let maxCols = 7;
+  let minWidth = 92;
+  let rowHeight = 58;
+
+  if (count <= 10) {
+    gap = 9;
+    minCols = 6;
+    maxCols = 7;
+    minWidth = 92;
+    rowHeight = 58;
+  } else if (count <= 18) {
+    gap = 7;
+    minCols = 7;
+    maxCols = 8;
+    minWidth = 82;
+    rowHeight = 52;
+  } else {
+    gap = 6;
+    minCols = 8;
+    maxCols = 9;
+    minWidth = 74;
+    rowHeight = 46;
+  }
+
+  const widthCap = Math.max(minCols, Math.floor((areaWidth + gap) / (minWidth + gap)));
+  maxCols = Math.min(maxCols, widthCap, Math.max(minCols, count));
+  let chosenCols = Math.min(maxCols, Math.max(minCols, count));
+  let found = false;
+
+  for (let cols = maxCols; cols >= minCols; cols -= 1) {
+    const rows = Math.ceil(count / cols);
+    const colWidth = Math.floor((areaWidth - gap * (cols - 1)) / cols);
+    const visibleRowHeight = Math.floor((areaHeight - gap * (rows - 1)) / rows);
+    const fitsWidth = colWidth >= minWidth;
+    const fitsHeight = visibleRowHeight >= rowHeight;
+    if (!fitsWidth || !fitsHeight) continue;
+    chosenCols = cols;
+    found = true;
+    break;
+  }
+
+  if (!found) {
+    chosenCols = maxCols;
+    if (count > 27) rowHeight = 46;
+  }
+
+  const dense = count >= 11 || chosenCols >= 8;
+  const ultraDense = count >= 19 || chosenCols >= 9;
+  grid.style.setProperty("--epqa-mass-grade-cols", String(chosenCols));
+  grid.style.setProperty("--epqa-mass-grade-row-h", `${rowHeight}px`);
+  grid.style.setProperty("--epqa-mass-grade-gap", `${gap}px`);
+  grid.style.setProperty("--grade-cols-v12", String(chosenCols));
+  grid.style.setProperty("--grade-row-h-v12", `${rowHeight}px`);
+  grid.style.setProperty("--grade-gap-v12", `${gap}px`);
+  grid.style.setProperty("--grade-cols-v10", String(chosenCols));
+  grid.style.setProperty("--grade-row-h-v10", `${rowHeight}px`);
+  grid.style.setProperty("--grade-gap-v10", `${gap}px`);
+  grid.classList.toggle("is-dense", dense);
+  grid.classList.toggle("is-ultra-dense", ultraDense);
+}
+
+function fitMassGradeGridV11() {
+  return fitMassGradeGridV12();
 }
 
 function toggleBulkSmartChip(button) {
@@ -3248,7 +3396,7 @@ function toggleBulkSmartChip(button) {
 function clearBulkLoadGroupSelection() {
   document.querySelectorAll("#bulkLoadGroups input[type='checkbox']").forEach((input) => {
     input.checked = false;
-    input.closest(".epqa-mass-grade-item-v9")?.classList.remove("selected");
+    input.closest(".epqa-mass-grade-item-v9")?.classList.remove("selected", "is-selected");
   });
   updateBulkLoadFooterStatus();
 }
@@ -3300,24 +3448,33 @@ function renderBulkLoadGroups() {
   target.innerHTML = groups.map((group) => {
     const level = normalizeLevel(group.level);
     const hasExisting = bulkLoadHasExisting(teacherId, group.id, subject);
-    const stateLabel = hasExisting ? "Ya tiene materia" : group.needsLevelReview ? "Revisar" : "Libre";
+    const stateLabel = hasExisting ? "Asignada" : group.needsLevelReview ? "Revisar" : "Libre";
     const stateClass = hasExisting ? "exists" : group.needsLevelReview ? "review" : "free";
+    const levelLabel = level === "primary" ? "Primaria" : "Secundaria";
+    const siteLabel = roomSite ? siteNameForId(roomSite) : "";
+    const tooltip = `${group.name || group.id} \u00b7 ${levelLabel}${siteLabel ? ` \u00b7 ${siteLabel}` : ""} \u00b7 ${stateLabel}`;
     return `
-    <label class="bulk-group-option epqa-mass-grade-item-v9">
+    <label class="bulk-group-option epqa-mass-grade-item-v9 epqa-grade-tile-v10 epqa-grade-tile-v12${stateClass !== "free" ? " has-state" : ""}" title="${escapeHtml(tooltip)}">
       <input type="checkbox" name="bulkLoadGroups" value="${escapeHtml(group.id)}">
-      <strong>${escapeHtml(group.name || group.id)}</strong>
-      <span>${level === "primary" ? "Primaria" : "Secundaria"}${roomSite ? ` · ${escapeHtml(siteNameForId(roomSite))}` : ""}</span>
-      <small class="${stateClass}">${escapeHtml(stateLabel)}</small>
+      <span class="epqa-grade-check-visual-v12" aria-hidden="true"></span>
+      <span class="epqa-grade-content-v12">
+        <strong class="epqa-grade-code-v12">${escapeHtml(group.name || group.id)}</strong>
+        <small class="epqa-grade-level-v12">${escapeHtml(levelLabel)}${siteLabel ? ` \u00b7 ${escapeHtml(siteLabel)}` : ""}</small>
+      </span>
+      <span class="epqa-grade-status-v12 ${stateClass}">${escapeHtml(stateLabel)}</span>
     </label>
   `;
   }).join("") || `<div class="epqa-mass-empty-card-v9"><div>${epqaIcon("box")}<strong>No hay grados disponibles</strong><span>Revisa docente, sede, nivel o la opción de excluir asignados.</span></div></div>`;
   target.querySelectorAll("input[type='checkbox']").forEach((input) => {
     input.onchange = () => {
-      input.closest(".epqa-mass-grade-item-v9")?.classList.toggle("selected", input.checked);
+      const tile = input.closest(".epqa-mass-grade-item-v9");
+      tile?.classList.toggle("selected", input.checked);
+      tile?.classList.toggle("is-selected", input.checked);
       updateBulkLoadFooterStatus();
     };
   });
   updateBulkLoadFooterStatus();
+  requestAnimationFrame(() => fitMassGradeGridV12());
 }
 
 function toggleBulkLoadGroups() {
@@ -3326,11 +3483,14 @@ function toggleBulkLoadGroups() {
   const shouldCheck = checks.some((input) => !input.checked);
   checks.forEach((input) => {
     input.checked = shouldCheck;
-    input.closest(".epqa-mass-grade-item-v9")?.classList.toggle("selected", shouldCheck);
+    const tile = input.closest(".epqa-mass-grade-item-v9");
+    tile?.classList.toggle("selected", shouldCheck);
+    tile?.classList.toggle("is-selected", shouldCheck);
   });
   const label = byId("bulkLoadToggleGroups")?.querySelector("span") || byId("bulkLoadToggleGroups");
   if (label) label.textContent = shouldCheck ? "Desmarcar todos" : "Marcar todos";
   updateBulkLoadFooterStatus();
+  requestAnimationFrame(() => fitMassGradeGridV12());
 }
 
 function addBulkLoadDraft() {
@@ -3372,7 +3532,7 @@ function renderBulkLoadDrafts() {
   const drafts = EPQA.ui.bulkLoadDraft || [];
   const preparedHours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
   if (total) total.textContent = `${preparedHours}h`;
-  if (byId("bulkLoadPreparedCount")) byId("bulkLoadPreparedCount").textContent = `${drafts.length} asignacion${drafts.length === 1 ? "" : "es"} preparad${drafts.length === 1 ? "a" : "as"}`;
+  if (byId("bulkLoadPreparedCount")) byId("bulkLoadPreparedCount").textContent = `${drafts.length} asignacion${drafts.length === 1 ? "" : "es"} list${drafts.length === 1 ? "a" : "as"}`;
   if (teacherHours) {
     const teacherId = byId("bulkLoadTeacher")?.value || "";
     const current = (EPQA.data.loads || []).filter((load) => sameTeacher(load.teacher, teacherId)).reduce((sum, load) => sum + Number(load.hours || 0), 0);
@@ -3383,7 +3543,7 @@ function renderBulkLoadDrafts() {
   }
   if (!list) return;
   if (!drafts.length) {
-    list.innerHTML = `<div class="epqa-mass-empty-card-v9"><div><div class="epqa-mass-empty-icon-v9">${epqaIcon("box")}</div><strong>Aquí se acumulan tus asignaciones</strong><span>Agrega materias y grados para revisar el resumen antes de confirmar.</span></div></div>`;
+    list.innerHTML = `<div class="epqa-mass-empty-card-v9"><div><div class="epqa-mass-empty-icon-v9">${epqaIcon("box")}</div><strong>AquÃ­ se acumulan tus asignaciones</strong><span>Agrega materias y grados para revisar el resumen antes de confirmar.</span></div></div>`;
     updateBulkLoadFooterStatus();
     updateBulkLoadValidationBox();
     return;
@@ -3400,10 +3560,10 @@ function renderBulkLoadDrafts() {
         <td>${escapeHtml(room?.name || item.roomId || "Aula disponible")}</td>
         <td>${Number(item.hours || 0)}h</td>
         <td><span class="epqa-mass-priority-badge-v9 epqa-mass-priority-badge-v9--${escapeHtml(normalizeRulePriority(item.rulePriority).toLowerCase())}">${escapeHtml(normalizeRulePriority(item.rulePriority))}</span></td>
-        <td><button type="button" class="epqa-mass-remove-btn-v9" data-remove-bulk-draft="${index}" title="Quitar asignación" aria-label="Quitar asignación">${epqaIcon("trash")}</button></td>
+        <td><button type="button" class="epqa-mass-remove-btn-v9" data-remove-bulk-draft="${index}" title="Quitar asignaciÃ³n" aria-label="Quitar asignaciÃ³n">${epqaIcon("trash")}</button></td>
       </tr>
     `;
-  }).join("")}</tbody></table>${hiddenDrafts ? `<div class="epqa-mass-prepared-more-v9">+ ${hiddenDrafts} asignaciones más preparadas</div>` : ""}</div>`;
+  }).join("")}</tbody></table>${hiddenDrafts ? `<div class="epqa-mass-prepared-more-v9">+ ${hiddenDrafts} asignaciones mÃ¡s preparadas</div>` : ""}</div>`;
   list.querySelectorAll("[data-remove-bulk-draft]").forEach((button) => {
     button.addEventListener("click", () => {
       EPQA.ui.bulkLoadDraft.splice(Number(button.dataset.removeBulkDraft), 1);
@@ -3419,7 +3579,7 @@ function renderBulkLoadDrafts() {
       <article class="bulk-load-draft">
         <div>
           <strong>${escapeHtml(item.subject)}</strong>
-          <span>${escapeHtml(group?.name || item.group)} · ${escapeHtml(item.rulePriority)}</span>
+          <span>${escapeHtml(group?.name || item.group)} Â· ${escapeHtml(item.rulePriority)}</span>
         </div>
         <button type="button" class="ghost danger" data-remove-bulk-draft="${index}">Quitar</button>
       </article>
@@ -3455,7 +3615,7 @@ function updateBulkLoadFooterStatus() {
   const selectedCount = document.querySelectorAll("#bulkLoadGroups input[type='checkbox']:checked").length;
   const drafts = EPQA.ui.bulkLoadDraft || [];
   const preparedHours = drafts.reduce((sum, item) => sum + Number(item.hours || 0), 0);
-  if (byId("bulkLoadFooterStatus")) byId("bulkLoadFooterStatus").textContent = `${selectedCount} grados seleccionados · ${drafts.length} asignaciones preparadas · ${preparedHours}h listas`;
+  if (byId("bulkLoadFooterStatus")) byId("bulkLoadFooterStatus").textContent = `${selectedCount} grados seleccionados Â· ${drafts.length} asignaciones preparadas Â· ${preparedHours}h listas`;
   if (byId("bulkLoadAssign")) byId("bulkLoadAssign").disabled = !drafts.length;
 }
 
@@ -3594,7 +3754,7 @@ function usesSubject(id) {
 function renderAvailabilityGrid() {
   const grid = byId("availabilityGrid");
   if (!grid) return;
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   grid.innerHTML = teacherOptions().map((teacher) => {
     const teacherData = (EPQA.data.teachers || []).find((item) => (item.id || item.name) === teacher.id) || {};
     const availability = teacherData.availability || {};
@@ -3711,7 +3871,7 @@ function renderAvailabilityModal(teacherId = null) {
     grid.innerHTML = `<div class="teacher-empty">No hay docente seleccionado.</div>`;
     return;
   }
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const currentTeacherKey = teacherKey(teacher);
   modal.dataset.teacher = currentTeacherKey;
   teacherLabel.textContent = teacher.name || teacher.id || "Docente";
@@ -3730,7 +3890,7 @@ function renderAvailabilityModal(teacherId = null) {
     )).join("");
     const cells = availabilityPeriods().map((period) => {
       const state = record.slots[period] || "available";
-      const label = state === "flexible" ? "F" : state === "unavailable" ? "X" : "✓";
+      const label = state === "flexible" ? "F" : state === "unavailable" ? "X" : "âœ“";
       return `<button type="button" class="availability-cell ${state}" data-teacher="${escapeHtml(currentTeacherKey)}" data-day="${escapeHtml(day)}" data-period="${period}" data-state="${state}">
         <span>${period}</span>
         <strong>${label}</strong>
@@ -3755,7 +3915,7 @@ async function saveAvailabilityModal() {
   const teacher = findTeacher(modal.dataset.teacher);
   if (!teacher) return;
   teacher.availability = teacher.availability || {};
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   days.forEach((day) => {
     const row = byId("availabilityModalGrid")?.querySelector(`.availability-day-row[data-day="${cssEscape(day)}"]`);
     if (!row) return;
@@ -3784,7 +3944,7 @@ async function resetAvailabilityModal() {
   const teacher = findTeacher(modal.dataset.teacher);
   if (!teacher) return;
   teacher.availability = teacher.availability || {};
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   days.forEach((day) => {
     teacher.availability[day] = {
       site: teacherFixedSite(modal.dataset.teacher) || "",
@@ -3811,7 +3971,7 @@ function syncAvailabilityModalBaseSite() {
   const modal = byId("availabilityModal");
   const baseSite = byId("availabilityModalBaseSite");
   if (!modal?.dataset.teacher || !baseSite) return;
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   days.forEach((day) => {
     const row = byId("availabilityModalGrid")?.querySelector(`.availability-day-row[data-day="${cssEscape(day)}"]`);
     if (!row) return;
@@ -3830,7 +3990,7 @@ function onAvailabilityModalGridClick(event) {
   cell.classList.remove("available", "flexible", "unavailable");
   cell.classList.add(next);
   const label = cell.querySelector("strong");
-  if (label) label.textContent = next === "flexible" ? "F" : next === "unavailable" ? "X" : "✓";
+  if (label) label.textContent = next === "flexible" ? "F" : next === "unavailable" ? "X" : "âœ“";
 }
 
 function onAvailabilityModalGridChange(event) {
@@ -3882,7 +4042,7 @@ function renderTeacherDetailPanelV4Legacy() {
   const barSegments = orderedLoads.length
     ? orderedLoads.map((item) => {
         const width = loadHours ? Math.max(8, Math.round((item.total / loadHours) * 100)) : 0;
-        return `<span class="teacher-bar-segment teacher-bar-segment-v4" style="width:${width}%;background:${item.color}" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} · ${item.total}h"></span>`;
+        return `<span class="teacher-bar-segment teacher-bar-segment-v4" style="width:${width}%;background:${item.color}" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} Â· ${item.total}h"></span>`;
       }).join("")
     : `<span class="teacher-bar-empty"></span>`;
 
@@ -3891,7 +4051,7 @@ function renderTeacherDetailPanelV4Legacy() {
       <div class="teacher-summary-copy-v4">
         <p class="teacher-summary-eyebrow-v4">DOCENTE SELECCIONADO</p>
         <h3>${escapeHtml(teacher.name || teacher.id)}</h3>
-        <p>${escapeHtml(teacher.type || "")} · mínimo ${Number(teacher.minWeeklyHours || 0)}h</p>
+        <p>${escapeHtml(teacher.type || "")} Â· mÃ­nimo ${Number(teacher.minWeeklyHours || 0)}h</p>
         <button type="button" class="ghost open-availability-btn teacher-summary-cta-v4" data-open-availability="${escapeHtml(teacherIdForData)}">Definir horas disponibles</button>
       </div>
       <div class="teacher-score teacher-score-v4">
@@ -3909,7 +4069,7 @@ function renderTeacherDetailPanelV4Legacy() {
 
     <div class="teacher-progress teacher-progress-v4" aria-label="Resumen de horas asignadas">
       <div class="teacher-progress-bar teacher-progress-bar-v4">${barSegments}</div>
-      <small>${usagePct}% de la matriz usada · ${availabilityStats.flexible} flexibles · ${availabilityStats.unavailable} no disponibles</small>
+      <small>${usagePct}% de la matriz usada Â· ${availabilityStats.flexible} flexibles Â· ${availabilityStats.unavailable} no disponibles</small>
     </div>
 
     <div class="teacher-load-list teacher-load-list-v4">
@@ -3919,7 +4079,7 @@ function renderTeacherDetailPanelV4Legacy() {
           <span>${escapeHtml(item.group)}</span>
           <em>${item.assigned}/${item.total}h</em>
         </div>
-      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este docente todavía no tiene cargas asignadas.</div>`}
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este docente todavÃ­a no tiene cargas asignadas.</div>`}
     </div>
   `;
   panel.querySelectorAll("[data-open-availability]").forEach((button) => {
@@ -3989,7 +4149,7 @@ function renderTeacherDetailPanel() {
   const barSegments = orderedLoads.length
     ? orderedLoads.map((item, index) => {
         const width = loadHours ? Math.max(6, Math.round((item.total / loadHours) * 100)) : 0;
-        return `<span style="--w:${width}%; --c:${teacherSummarySegmentColor(index)};" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} · ${item.total}h"></span>`;
+        return `<span style="--w:${width}%; --c:${teacherSummarySegmentColor(index)};" title="${escapeHtml(item.subject)} ${escapeHtml(item.group)} Â· ${item.total}h"></span>`;
       }).join("")
     : `<span style="--w:100%; --c:#E8E8E8;"></span>`;
 
@@ -3998,7 +4158,7 @@ function renderTeacherDetailPanel() {
       <div class="epqa-teacher-hero-info-v5">
         <span class="epqa-teacher-label-v5">DOCENTE SELECCIONADO</span>
         <h2 id="teacherSummaryName">${escapeHtml(teacher.name || teacher.id || "Sin asignar")}</h2>
-        <p id="teacherSummaryMeta">${escapeHtml(teacherType)} · mínimo ${minHours}h</p>
+        <p id="teacherSummaryMeta">${escapeHtml(teacherType)} Â· mÃ­nimo ${minHours}h</p>
         <button type="button" class="epqa-teacher-availability-btn-v5" data-open-availability="${escapeHtml(teacherIdForData)}">
           ${epqaIcon("clock")}
           <span>Definir horas disponibles</span>
@@ -4031,7 +4191,7 @@ function renderTeacherDetailPanel() {
 
     <section class="epqa-teacher-matrix-v5">
       <div class="epqa-teacher-matrix-bar-v5">${barSegments}</div>
-      <p id="teacherMatrixUsageText">${usagePct}% de la matriz usada · ${safeHourValue(availabilityStats.flexible)} flexibles · ${safeHourValue(availabilityStats.unavailable)} no disponibles</p>
+      <p id="teacherMatrixUsageText">${usagePct}% de la matriz usada Â· ${safeHourValue(availabilityStats.flexible)} flexibles Â· ${safeHourValue(availabilityStats.unavailable)} no disponibles</p>
     </section>
 
     <section class="epqa-teacher-load-grid-v5" id="teacherLoadGrid">
@@ -4085,7 +4245,7 @@ function renderGroupDetailPanelV4Legacy() {
       <div>
         <p class="eyebrow">Grado seleccionado</p>
         <h3>${escapeHtml(group.name || group.id)}</h3>
-        <p>${level === "primary" ? "Primaria" : "Secundaria"} · meta ${requiredHours}h semanales</p>
+        <p>${level === "primary" ? "Primaria" : "Secundaria"} Â· meta ${requiredHours}h semanales</p>
       </div>
       <div class="teacher-score ${statusClass}">
         <strong>${assignedHours}/${requiredHours}h</strong>
@@ -4100,7 +4260,7 @@ function renderGroupDetailPanelV4Legacy() {
     </div>
     <div class="teacher-progress" aria-label="Cumplimiento semanal del grado">
       <div class="teacher-progress-bar"><span class="teacher-bar-segment ${statusClass}" style="width:${pct}%"></span></div>
-      <small>${pct}% de la meta semanal · ${weeklyStatus}</small>
+      <small>${pct}% de la meta semanal Â· ${weeklyStatus}</small>
     </div>
     <div class="teacher-load-list">
       ${rows.length ? rows.map((item) => `
@@ -4109,7 +4269,7 @@ function renderGroupDetailPanelV4Legacy() {
           <span>${escapeHtml(item.teacher)}</span>
           <em>${item.assigned}/${item.total}h</em>
         </div>
-      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este grado todavía no tiene cargas asignadas.</div>`}
+      `).join("") : `<div class="teacher-empty teacher-empty-v4">Este grado todavÃ­a no tiene cargas asignadas.</div>`}
     </div>
   `;
 }
@@ -4183,7 +4343,7 @@ function renderGroupDetailPanel() {
       <div class="epqa-grade-hero-info-v6">
         <span class="epqa-grade-label-v6">GRADO SELECCIONADO</span>
         <h2 id="gradeSummaryName">${escapeHtml(group.name || group.id || "Sin asignar")}</h2>
-        <p id="gradeSummaryMeta">${escapeHtml(levelLabel)} · meta ${requiredHours}h semanales</p>
+        <p id="gradeSummaryMeta">${escapeHtml(levelLabel)} Â· meta ${requiredHours}h semanales</p>
       </div>
       <div class="epqa-grade-status-box-v6 ${status.className}">
         <div>
@@ -4217,7 +4377,7 @@ function renderGroupDetailPanel() {
       <div class="epqa-grade-progress-track-v6">
         <div class="epqa-grade-progress-bar-v6" style="width:${pct}%;"></div>
       </div>
-      <p>${pct}% de la meta semanal · <strong>${status.label}</strong></p>
+      <p>${pct}% de la meta semanal Â· <strong>${status.label}</strong></p>
     </section>
 
     <section class="epqa-grade-subject-grid-v6" id="gradeSubjectGrid">
@@ -4237,7 +4397,7 @@ function renderGroupDetailPanel() {
 
 function teacherAvailabilityTotals(teacher) {
   const availability = teacher?.availability || {};
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   let available = 0;
   let flexible = 0;
   let unavailable = 0;
@@ -4267,7 +4427,7 @@ function renderBoard() {
     renderGroupPanoramaBoard(board);
     return;
   }
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const periods = Array.from({ length: boardPeriodCount(mode, filter) }, (_, index) => index + 1);
 
   const rows = [`<div class="board-head board-corner">${labelForMode(mode)}: ${escapeHtml(filter || "Todos")}</div>`];
@@ -4293,7 +4453,7 @@ function renderBoard() {
 }
 
 function renderTeacherPanoramaBoard(board) {
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const periods = Array.from({ length: boardPeriodCount("teacher", "__ALL_TEACHERS__") }, (_, index) => index + 1);
   const rows = [`<div class="board-head board-corner">Profesores general</div>`];
   periods.forEach((period, index) => {
@@ -4319,7 +4479,7 @@ function renderTeacherPanoramaBoard(board) {
 }
 
 function renderGroupPanoramaBoard(board) {
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const groups = groupOptions();
   const rows = [`<div class="board-head board-corner">Grados general</div>`];
   days.forEach((day, index) => {
@@ -4354,7 +4514,7 @@ function renderGroupPanoramaBoard(board) {
 function renderPanoramaSlot(slot, mode = "teacher") {
   const color = colorForItem(slot, "teacher");
   const symbol = mode === "group" ? subjectAbbrev(slot.subject) : teacherAbbrev(slot.teacher);
-  const tooltip = `${slot.teacher} · "Aula"} · H${slot.period}`;
+  const tooltip = `${slot.teacher} Â· "Aula"} Â· H${slot.period}`;
   return `
     <div class="class-card panorama-card ${slot.locked ? "locked" : ""}" data-slot-id="${slot.id}" data-duration="${slotDuration(slot)}" data-short-label="${escapeHtml(symbol)}" title="${escapeHtml(tooltip)}" style="background:${color};border-left-color:${borderColor(color)}">
       <button class="remove-slot" type="button" data-slot-id="${slot.id}" aria-label="Quitar hora">x</button>
@@ -4387,9 +4547,9 @@ function renderBoardCell(mode, filter, day, period, column, row) {
   const content = starts.length
     ? starts.map(renderCard).join("")
     : covered.length
-      ? `<span class="block-continuation">Continúacher)}</span>`
+      ? `<span class="block-continuation">ContinÃºacher)}</span>`
       : "";
-  const title = conflictText || (primary ? `${primary.subject} · ${primary.group}` : "");
+  const title = conflictText || (primary ? `${primary.subject} Â· ${primary.group}` : "");
   const style = `grid-column:${column};grid-row:${row}${rowSpan > 1 ? ` / span ${rowSpan}` : ""}`;
   return `<div class="${classes}" data-day="${escapeHtml(day)}" data-period="${period}" data-level="${escapeHtml(cycleLevel)}" data-mode="${escapeHtml(mode)}" data-filter="${escapeHtml(filter || "")}" data-conflicts="${escapeHtml(conflictText)}" title="${escapeHtml(title)}" style="${style}">${content}</div>`;
 }
@@ -4480,8 +4640,8 @@ function renderPendingCard(load) {
         <span class="subject-badge">${escapeHtml(load.group)}</span>
       </div>
       <strong>${escapeHtml(load.subject)}</strong>
-      <span>${escapeHtml(load.teacher)} · ${escapeHtml(load.group)}</span>
-      <small>Pendiente ${load.pendingIndex} · "Aula disponible")}</small>
+      <span>${escapeHtml(load.teacher)} Â· ${escapeHtml(load.group)}</span>
+      <small>Pendiente ${load.pendingIndex} Â· "Aula disponible")}</small>
     </div>
   `;
 }
@@ -4536,8 +4696,8 @@ function renderCard(slot) {
         <span class="subject-badge">${escapeHtml(slot.room || slot.site || "")}</span>
       </div>
       <strong>${escapeHtml(slot.subject)}</strong>
-      <span>${escapeHtml(slot.teacher)} · ${escapeHtml(slot.group)}</span>
-      <small>${escapeHtml(slot.room)} · "manual")}</small>
+      <span>${escapeHtml(slot.teacher)} Â· ${escapeHtml(slot.group)}</span>
+      <small>${escapeHtml(slot.room)} Â· "manual")}</small>
     </div>
   `;
 }
@@ -4866,7 +5026,7 @@ function wireDragAndDrop() {
                     if (swapResult.ok) {
             confirmAction(
               "Confirmar intercambio",
-              `${swapResult.message || "La celda destino ya tiene una clase."}\n\n¿Deseas continuar?\nSe intercambiaran las dos clases.`,
+              `${swapResult.message || "La celda destino ya tiene una clase."}\n\nÂ¿Deseas continuar?\nSe intercambiaran las dos clases.`,
               () => {
                 applyDirectSwap(slot.id, swapResult.otherId, swapResult.movingTarget, swapResult.otherTarget);
                 renderAvailableTray();
@@ -4880,7 +5040,7 @@ function wireDragAndDrop() {
           } else if (swapResult.replaceable) {
             confirmAction(
               "Reemplazar clase",
-              `${swapResult.message}\n\n¿Deseas continuar?\nLa clase que estaba en esa celda volvera a pendientes.`,
+              `${swapResult.message}\n\nÂ¿Deseas continuar?\nLa clase que estaba en esa celda volvera a pendientes.`,
               () => {
                 applyReplacementMove(slot.id, source, targetDay, targetPeriod, context);
               },
@@ -5627,7 +5787,7 @@ function normalizeExistingSlotsForOptimization(slots) {
 }
 
 function buildOptimizedProposal(seed, lockedSlots = [], options = {}) {
-  const days = shuffleArray(EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"], seed);
+  const days = shuffleArray(EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"], seed);
   const units = loadUnitsForOptimization(seed, lockedSlots);
   const state = { slots: [...lockedSlots], occupancy: new Set(), teacherDayHours: new Map(), unplaced: [], relaxed: [], relaxLevel: options.relaxLevel || "strict", score: 0, hardConflicts: 0 };
   lockedSlots.forEach((slot) => {
@@ -5842,7 +6002,7 @@ function countHardConflicts(slots) {
 }
 
 function generateSchedule() {
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const next = [];
   const occupancy = new Set();
   EPQA.data.loads.forEach((load) => {
@@ -6073,9 +6233,9 @@ async function parseExcelFile(file) {
   const payload = {
     project: {
       name: "EPQA Horarios Inteligentes",
-      institution: byId("schoolName")?.value || "Institución importada"
+      institution: byId("schoolName")?.value || "InstituciÃ³n importada"
     },
-    days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"],
+    days: ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"],
     teachers: normalizeExcelTeachers(teacherRows, baseRows, assignmentRows),
     groups: normalizeExcelGroups(groupRows, baseRows, assignmentRows),
     rooms: normalizeExcelRooms(roomRows, baseRows, assignmentRows),
@@ -6176,7 +6336,7 @@ async function saveVersion(final) {
     return;
   }
   const log = byId("versionLog");
-  log.insertAdjacentHTML("afterbegin", `<div><strong>${escapeHtml(payload.status)}</strong> · ${EPQA.audit.counts.P0}</div>`);
+  log.insertAdjacentHTML("afterbegin", `<div><strong>${escapeHtml(payload.status)}</strong> Â· ${EPQA.audit.counts.P0}</div>`);
   notify(final ? "Version final lista" : "Version guardada", final ? "Se iniciara la descarga del PDF final." : "La version quedo registrada.", "success");
   if (final) exportPdf("final");
 }
@@ -6187,7 +6347,7 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(EPQA.data.loads), "Base");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(EPQA.slots), "Matriz_Grados");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(EPQA.slots.map(({ teacher, day, period, group, subject, room }) => ({ teacher, day, period, group, subject, room }))), "Matriz_Profes");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(EPQA.audit.results || []), "Auditoría");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(EPQA.audit.results || []), "AuditorÃ­a");
   XLSX.writeFile(wb, "epqa_horario_auditado.xlsx");
 }
 
@@ -6235,15 +6395,15 @@ function exportPdf(type) {
     doc.text(`EPQA Horarios Inteligentes - ${labelForMode(mode)} ${value}`, 36, 36);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`Auditoríaudit.counts.P2 || 0}`, 36, 54);
+    doc.text(`AuditorÃ­audit.counts.P2 || 0}`, 36, 54);
     let y = 78;
-    (EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]).forEach((day) => {
+    (EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"]).forEach((day) => {
       doc.setFont("helvetica", "bold");
       doc.text(day, 36, y);
       y += 14;
       EPQA.slots.filter((slot) => slot[mode] === value && slot.day === day).sort((a, b) => a.period - b.period).forEach((slot) => {
         doc.setFont("helvetica", "normal");
-        doc.text(`H${slot.period} · ${slot.room}`, 52, y);
+        doc.text(`H${slot.period} Â· ${slot.room}`, 52, y);
         y += 13;
       });
       y += 8;
@@ -6299,8 +6459,8 @@ function drawFinalCoverPage(doc, teachers) {
   doc.text("EPQA Horario Final", margin, 40);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Profesores: ${teachers.length} · => sum + slotDuration(slot), 0)}h`, margin, 58);
-  doc.text(`P0 ${EPQA.audit?.counts?.P0 || 0} · 0}`, margin, 72);
+  doc.text(`Profesores: ${teachers.length} Â· => sum + slotDuration(slot), 0)}h`, margin, 58);
+  doc.text(`P0 ${EPQA.audit?.counts?.P0 || 0} Â· 0}`, margin, 72);
   doc.setDrawColor(174, 197, 222);
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(margin, 96, pageW - margin * 2, 120, 8, 8, "FD");
@@ -6327,7 +6487,7 @@ function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
   const loadHours = loads.reduce((sum, load) => sum + Number(load.hours || 0), 0);
   const pendingHours = Math.max(0, loadHours - assignedHours);
   const level = normalizeLevel(teacher.type || teacher.level || slots[0]?.level || "secondary");
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const periods = pdfPeriodCountForTeacher(level, slots);
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -6349,8 +6509,8 @@ function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
   doc.text(`${teacherName}`, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`${mode === "final" ? "Final" : "Docente"} · "primary" ? "Primaria" : "Secundaria"} · ""}`, margin, 48);
-  doc.text(`Carga total ${loadHours}h · ${pendingHours}h`, margin, 60);
+  doc.text(`${mode === "final" ? "Final" : "Docente"} Â· "primary" ? "Primaria" : "Secundaria"} Â· ""}`, margin, 48);
+  doc.text(`Carga total ${loadHours}h Â· ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -6407,8 +6567,8 @@ function drawTeacherPdfPage(doc, teacherId, mode = "teacher") {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Areas a dictar", loads.map((load) => ({
-    title: `${load.subject} · ${load.group}`,
-    body: `${Number(load.hours || 0)}h · "Aula"}`
+    title: `${load.subject} Â· ${load.group}`,
+    body: `${Number(load.hours || 0)}h Â· "Aula"}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen laboral", [
     { title: "Total", body: `${loadHours}h` },
@@ -6434,7 +6594,7 @@ function drawGroupPdfPage(doc, groupId) {
   const gridTop = 114;
   const gridLeft = margin;
   const rowHeaderW = 70;
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const periods = maxPeriod(level);
   const gridW = pageW - margin * 2 - rowHeaderW;
   const cellW = gridW / days.length;
@@ -6448,8 +6608,8 @@ function drawGroupPdfPage(doc, groupId) {
   doc.text(groupName, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`${level === "primary" ? "Primaria" : "Secundaria"} · semanales`, margin, 48);
-  doc.text(`Carga total ${loadHours}h · ${pendingHours}h`, margin, 60);
+  doc.text(`${level === "primary" ? "Primaria" : "Secundaria"} Â· semanales`, margin, 48);
+  doc.text(`Carga total ${loadHours}h Â· ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -6503,8 +6663,8 @@ function drawGroupPdfPage(doc, groupId) {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", loads.map((load) => ({
-    title: `${load.subject} · ${load.teacher}`,
-    body: `${Number(load.hours || 0)}h · "Aula"}`
+    title: `${load.subject} Â· ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h Â· "Aula"}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del grado", [
     { title: "Total", body: `${loadHours}h` },
@@ -6528,7 +6688,7 @@ function drawRoomPdfPage(doc, roomId) {
   const gridTop = 114;
   const gridLeft = margin;
   const rowHeaderW = 70;
-  const days = EPQA.data.days || ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const days = EPQA.data.days || ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   const periods = Math.max(5, ...roomSlots.map((slot) => Number(slot.period || 1) + slotDuration(slot) - 1), ...roomLoads.map((load) => maxPeriod(load.level || "secondary")));
   const gridW = pageW - margin * 2 - rowHeaderW;
   const cellW = gridW / days.length;
@@ -6542,8 +6702,8 @@ function drawRoomPdfPage(doc, roomId) {
   doc.text(roomNameValue, margin, 34);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`Espacio · ${loadHours}h`, margin, 48);
-  doc.text(`Asignadas ${assignedHours}h · ${pendingHours}h`, margin, 60);
+  doc.text(`Espacio Â· ${loadHours}h`, margin, 48);
+  doc.text(`Asignadas ${assignedHours}h Â· ${pendingHours}h`, margin, 60);
 
   const summaryY = 72;
   const cardW = (pageW - margin * 2 - 18) / 4;
@@ -6597,8 +6757,8 @@ function drawRoomPdfPage(doc, roomId) {
   const leftColW = (pageW - margin * 2 - 12) * 0.58;
   const rightX = margin + leftColW + 12;
   drawPdfSection(doc, margin, listsTop, leftColW, pageH - listsTop - 20, "Asignaturas y docentes", roomLoads.map((load) => ({
-    title: `${load.subject} · ${load.teacher}`,
-    body: `${Number(load.hours || 0)}h · ""}`
+    title: `${load.subject} Â· ${load.teacher}`,
+    body: `${Number(load.hours || 0)}h Â· ""}`
   })));
   drawPdfSection(doc, rightX, listsTop, pageW - margin - rightX, pageH - listsTop - 20, "Resumen del espacio", [
     { title: "Total", body: `${loadHours}h` },
@@ -6610,24 +6770,24 @@ function drawRoomPdfPage(doc, roomId) {
 function teacherPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.group || ""}`.trim(),
-    `${Number(slot.hours || 0)}h · ${slot.room || slot.roomId || "Aula"}`.trim()
+    `${slot.teacher || ""} Â· ${slot.group || ""}`.trim(),
+    `${Number(slot.hours || 0)}h Â· ${slot.room || slot.roomId || "Aula"}`.trim()
   ];
 }
 
 function groupPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.group || ""}`.trim(),
-    `${Number(slot.hours || 0)}h · ${slot.room || slot.roomId || "Aula"}`.trim()
+    `${slot.teacher || ""} Â· ${slot.group || ""}`.trim(),
+    `${Number(slot.hours || 0)}h Â· ${slot.room || slot.roomId || "Aula"}`.trim()
   ];
 }
 
 function roomPdfBlockLines(slot) {
   return [
     slot.subject || "",
-    `${slot.teacher || ""} · ${slot.group || ""}`.trim(),
-    `${Number(slot.hours || 0)}h · ${slot.source || "manual"}`.trim()
+    `${slot.teacher || ""} Â· ${slot.group || ""}`.trim(),
+    `${Number(slot.hours || 0)}h Â· ${slot.source || "manual"}`.trim()
   ];
 }
 
@@ -6667,7 +6827,7 @@ function drawPdfSection(doc, x, y, w, h, title, rows) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   (rows || []).forEach((row) => {
-    const text = `${row.title} · ${row.body}`;
+    const text = `${row.title} Â· ${row.body}`;
     const lines = doc.splitTextToSize(text, w - 16);
     if (cursorY + lines.length * 10 > y + h - 8) return;
     doc.text(lines, x + 8, cursorY);
@@ -7019,17 +7179,17 @@ function normalizeRooms(rooms) {
 }
 
 function normalizeDays(days) {
-  const fallback = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  const fallback = ["Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes"];
   return Array.isArray(days) && days.length ? days.map(normalizeDay) : fallback;
 }
 
 function normalizeDay(day) {
   const key = normalizeKey(day);
-  if (key.includes("Miércoles")) return "Miércoles";
+  if (key.includes("MiÃ©rcoles")) return "MiÃ©rcoles";
   return {
     LUNES: "Lunes",
     MARTES: "Martes",
-    Miércoles: "Miércoles",
+    "MiÃ©rcoles": "MiÃ©rcoles",
     JUEVES: "Jueves",
     VIERNES: "Viernes"
   }[key] || day;
@@ -7184,7 +7344,7 @@ function notify(title, message = "", type = "info", modal = false) {
   }, type === "error" ? 5200 : 3200);
 }
 
-function confirmAction(title, message, onConfirm, confirmLabel = "Continúar") {
+function confirmAction(title, message, onConfirm, confirmLabel = "ContinÃºar") {
   openUxModal(title, formatAlertMessage(message), "warning", {
     confirmLabel,
     cancelLabel: "Cancelar",
@@ -7414,7 +7574,7 @@ function buildCellAvailabilityTooltip(cell) {
   const suffix = target.length > limit ? `<span class="tooltip-more">+${target.length - limit} mas</span>` : "";
   return `
     <div class="cell-tooltip">
-      <strong>${escapeHtml(day)} H${period} · "primary" ? "Primaria" : "Secundaria"}</strong>
+      <strong>${escapeHtml(day)} H${period} Â· "primary" ? "Primaria" : "Secundaria"}</strong>
       <p>${label} sin asignacion en esa franja.</p>
       <div class="tooltip-chip-list">${items || `<span class="tooltip-empty">${emptyLabel}</span>`}${suffix}</div>
     </div>
@@ -7474,7 +7634,7 @@ function activateTooltips() {
           const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
           const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
           updateHoverInspector(
-            `${cell.dataset.day} H${cell.dataset.period} · "primary" ? "Primaria" : "Secundaria"}`,
+            `${cell.dataset.day} H${cell.dataset.period} Â· "primary" ? "Primaria" : "Secundaria"}`,
             `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
             "info"
           );
@@ -7490,7 +7650,7 @@ function activateTooltips() {
         const cycle = cell.dataset.level || cellCycleLevel(mode, filter, null, cell.dataset.day, Number(cell.dataset.period || 0), cell.dataset.group || "");
         const target = mode === "teacher" ? availableGroupsForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0)) : availableTeachersForCell(cycle, cell.dataset.day, Number(cell.dataset.period || 0));
         updateHoverInspector(
-          `${cell.dataset.day} H${cell.dataset.period} · "primary" ? "Primaria" : "Secundaria"}`,
+          `${cell.dataset.day} H${cell.dataset.period} Â· "primary" ? "Primaria" : "Secundaria"}`,
           `${mode === "teacher" ? "Grados" : "Docentes"} disponibles: ${target.slice(0, 6).map((item) => item.name || item.id).join(", ") || "ninguno"}`,
           "info"
         );
@@ -7514,19 +7674,19 @@ function activateTooltips() {
       const conflictText = conflicts.length ? ` | Conflictos: ${conflicts.join(" | ")}` : "";
       if (card._epqaCardTip) return;
       card._epqaCardTip = tippy(card, {
-        content: `${slot.teacher} · ${slot.source}`,
+        content: `${slot.teacher} Â· ${slot.source}`,
         placement: "top",
         delay: [120, 0],
         maxWidth: 380,
         theme: conflicts.length ? "epqa-conflict" : "epqa",
         onShow(instance) {
-          instance.setContent(`${slot.teacher} · ${slot.source}${conflictText}`);
+          instance.setContent(`${slot.teacher} Â· ${slot.source}${conflictText}`);
         }
       });
       card.addEventListener("pointerenter", () => {
         updateHoverInspector(
-          `${slot.teacher} · ${slot.subject}`,
-          `${slot.group} · "Aula"} · ${slotDuration(slot)}h`,
+          `${slot.teacher} Â· ${slot.subject}`,
+          `${slot.group} Â· "Aula"} Â· ${slotDuration(slot)}h`,
           "slot"
         );
       });
@@ -7545,8 +7705,8 @@ function activateTooltips() {
       if (!load) return;
       card.addEventListener("pointerenter", () => {
         updateHoverInspector(
-          `${load.teacher} · ${load.subject}`,
-          `Pendiente ${card.dataset.duration || 1}h · "Aula"} · ubicar`,
+          `${load.teacher} Â· ${load.subject}`,
+          `Pendiente ${card.dataset.duration || 1}h Â· "Aula"} Â· ubicar`,
           "warn"
         );
       });
